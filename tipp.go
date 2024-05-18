@@ -53,11 +53,11 @@ type Tipp struct {
 	GuessB int
 }
 
-func main() {
+func loadGames() (*Games, error) {
 	// load games
 	jsonFile, err := os.Open("games.json")
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 
 	fmt.Println("Opened games.json")
@@ -67,6 +67,16 @@ func main() {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var games Games
 	json.Unmarshal(byteValue, &games)
+
+	return &games, nil
+}
+
+func main() {
+
+	games, err := loadGames()
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	for i := 0; i < len(games.Games); i++ {
 		fmt.Println("StartTime: " + games.Games[i].StartTime)
