@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	// "time"
 )
@@ -71,7 +72,8 @@ func loadGames() (*Games, error) {
 	return &games, nil
 }
 
-func main() {
+func gamesHandler(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "Games:\n\n")
 
 	games, err := loadGames()
 	if err != nil {
@@ -79,16 +81,15 @@ func main() {
 	}
 
 	for i := 0; i < len(games.Games); i++ {
-		fmt.Println("StartTime: " + games.Games[i].StartTime)
-		fmt.Println("TeamA: " + games.Games[i].TeamA)
-		fmt.Println("TeamB: " + games.Games[i].TeamB)
-		fmt.Println("")
+		fmt.Fprintln(w, "StartTime: "+games.Games[i].StartTime)
+		fmt.Fprintln(w, "TeamA: "+games.Games[i].TeamA)
+		fmt.Fprintln(w, "TeamB: "+games.Games[i].TeamB)
+		fmt.Fprintln(w, "")
 	}
+}
 
-	// load the location you want to display the time in
-	// loc, _ := time.LoadLocation("Europe/Berlin")
-	// g1 := &Game{TeamA: TEAM_DE, TeamB: TEAM_DK,
-	// 	StartTime: time.Date(2024, 6, 14, 21, 0, 0, 0, loc),
-	// 	ResultA:   nil, ResultB: nil}
-	// fmt.Println(g1)
+func main() {
+	http.HandleFunc("/", gamesHandler)
+	fmt.Println("Http server listening on port 8090")
+	http.ListenAndServe(":8090", nil)
 }
