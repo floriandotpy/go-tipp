@@ -73,7 +73,8 @@ func loadGames() (*Games, error) {
 }
 
 func gamesHandler(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Games:\n\n")
+	w.Write([]byte("Games:"))
+	// fmt.Fprintf(w, "Games:\n\n")
 
 	games, err := loadGames()
 	if err != nil {
@@ -88,8 +89,23 @@ func gamesHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// view a single submitted tipp instance
+func tippViewHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Display a single tipp submitted previously..."))
+}
+
+// create a new tipp by user submission
+func tippCreateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Submit a new tipp..."))
+}
+
 func main() {
-	http.HandleFunc("/", gamesHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", gamesHandler)
+	mux.HandleFunc("/tipp/view", tippViewHandler)
+	mux.HandleFunc("/tipp/create", tippCreateHandler)
+
+	// http.HandleFunc("/", gamesHandler)
 	fmt.Println("Http server listening on port 8090")
-	http.ListenAndServe(":8090", nil)
+	http.ListenAndServe(":8090", mux)
 }
