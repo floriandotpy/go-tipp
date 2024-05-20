@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	// "time"
 )
 
 const TEAM_DE = "Deutschland"
@@ -108,16 +107,4 @@ func tippCreateFormHandler(w http.ResponseWriter, r *http.Request) {
 func tippCreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Save a new tipp...")
-}
-
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", gamesHandler)
-	mux.HandleFunc("GET /tipp/view/{tippID}", tippViewHandler)
-	mux.HandleFunc("GET /tipp/create", tippCreateFormHandler)
-	mux.HandleFunc("POST /tipp/create", tippCreatePostHandler)
-
-	// http.HandleFunc("/", gamesHandler)
-	fmt.Println("Http server listening on port 8090")
-	http.ListenAndServe(":8090", mux)
 }
