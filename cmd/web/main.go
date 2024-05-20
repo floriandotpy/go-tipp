@@ -8,6 +8,11 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
+
+	// host static files
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+
 	mux.HandleFunc("GET /{$}", gamesHandler)
 	mux.HandleFunc("GET /tipp/view/{tippID}", tippViewHandler)
 	mux.HandleFunc("GET /tipp/create", tippCreateFormHandler)
