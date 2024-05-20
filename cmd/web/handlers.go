@@ -71,7 +71,7 @@ func loadGames() (*Games, error) {
 	return &games, nil
 }
 
-func gamesHandler(w http.ResponseWriter, req *http.Request) {
+func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 
 	games, err := loadGames()
 	if err != nil {
@@ -112,7 +112,7 @@ func gamesHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 // view a single submitted tipp instance
-func tippViewHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) {
 	tippId, err := strconv.Atoi(r.PathValue("tippID"))
 	if err != nil || tippId < 0 {
 		http.NotFound(w, r)
@@ -123,11 +123,11 @@ func tippViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // create a new tipp by user submission
-func tippCreateFormHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) tippCreateFormHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Display a form for a new tipp...")
 }
 
-func tippCreatePostHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) tippCreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Save a new tipp...")
 }
