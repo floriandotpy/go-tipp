@@ -74,8 +74,7 @@ func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 
 	games, err := loadGames()
 	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		app.serverError(w, req, err)
 	}
 	// for now just log to console
 	fmt.Println(games)
@@ -97,16 +96,14 @@ func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 	// load template
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		app.serverError(w, req, err)
 		return
 	}
 
 	// execute template
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		app.logger.Error(err.Error(), "method", req.Method, "uri", req.URL.RequestURI())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		app.serverError(w, req, err)
 	}
 
 }
