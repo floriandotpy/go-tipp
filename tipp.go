@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	// "time"
 )
 
@@ -74,7 +75,6 @@ func loadGames() (*Games, error) {
 
 func gamesHandler(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("Games:"))
-	// fmt.Fprintf(w, "Games:\n\n")
 
 	games, err := loadGames()
 	if err != nil {
@@ -91,7 +91,15 @@ func gamesHandler(w http.ResponseWriter, req *http.Request) {
 
 // view a single submitted tipp instance
 func tippViewHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Display a single tipp submitted previously..."))
+	tippId, err := strconv.Atoi(r.PathValue("tippID"))
+	if err != nil || tippId < 0 {
+		http.NotFound(w, r)
+		return
+	}
+
+	msg := fmt.Sprintf("Display tipp with id %d ...", tippId)
+
+	w.Write([]byte(msg))
 }
 
 // create a new tipp by user submission
@@ -101,8 +109,8 @@ func tippCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", gamesHandler)
-	mux.HandleFunc("/tipp/view", tippViewHandler)
+	mux.HandleFunc("/{$}", gamesHandler)
+	mux.HandleFunc("/tipp/view/{tippID}", tippViewHandler)
 	mux.HandleFunc("/tipp/create", tippCreateHandler)
 
 	// http.HandleFunc("/", gamesHandler)
