@@ -74,7 +74,7 @@ func loadGames() (*Games, error) {
 }
 
 func gamesHandler(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte("Games:"))
+	fmt.Fprintln(w, "Games:")
 
 	games, err := loadGames()
 	if err != nil {
@@ -97,21 +97,25 @@ func tippViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := fmt.Sprintf("Display tipp with id %d ...", tippId)
-
-	w.Write([]byte(msg))
+	fmt.Fprintf(w, "Display tipp with id %d ...", tippId)
 }
 
 // create a new tipp by user submission
-func tippCreateHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Submit a new tipp..."))
+func tippCreateFormHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Display a form for a new tipp...")
+}
+
+func tippCreatePostHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Save a new tipp...")
 }
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/{$}", gamesHandler)
-	mux.HandleFunc("/tipp/view/{tippID}", tippViewHandler)
-	mux.HandleFunc("/tipp/create", tippCreateHandler)
+	mux.HandleFunc("GET /{$}", gamesHandler)
+	mux.HandleFunc("GET /tipp/view/{tippID}", tippViewHandler)
+	mux.HandleFunc("GET /tipp/create", tippCreateFormHandler)
+	mux.HandleFunc("POST /tipp/create", tippCreatePostHandler)
 
 	// http.HandleFunc("/", gamesHandler)
 	fmt.Println("Http server listening on port 8090")
