@@ -1,0 +1,16 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{template "title" .}} - GoTipp</title>
+  </head>
+  <body>
+    <header>
+      <h1><a href="/">GoTipp</a></h1>
+    </header>
+    {{template "nav" .}}
+    <main>{{template "main" .}}</main>
+  </body>
+</html>
+{{end}}
