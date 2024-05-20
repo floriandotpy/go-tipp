@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -75,7 +74,8 @@ func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 
 	games, err := loadGames()
 	if err != nil {
-		fmt.Println(err)
+		app.logger.Error(err.Error())
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 	// for now just log to console
 	fmt.Println(games)
@@ -97,7 +97,7 @@ func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 	// load template
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -105,7 +105,7 @@ func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 	// execute template
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error(), "method", req.Method, "uri", req.URL.RequestURI())
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 
