@@ -40,12 +40,8 @@ func (m *TippModel) Insert(matchId int, userId int, tippA int, tippB int) (int, 
 
 func (m *TippModel) Get(id int) (Tipp, error) {
 	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE id = ?`
-
-	row := m.DB.QueryRow(stmt, id)
-
 	var t Tipp
-
-	err := row.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
+	err := m.DB.QueryRow(stmt, id).Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Tipp{}, ErrNoRecord

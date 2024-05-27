@@ -28,12 +28,8 @@ func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchTy
 
 func (m *MatchModel) Get(id int) (Match, error) {
 	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type FROM matches WHERE id = ?`
-
-	row := m.DB.QueryRow(stmt, id)
-
 	var match Match
-
-	err := row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+	err := m.DB.QueryRow(stmt, id).Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord
@@ -41,7 +37,6 @@ func (m *MatchModel) Get(id int) (Match, error) {
 			return Match{}, nil
 		}
 	}
-
 	return match, nil
 }
 
