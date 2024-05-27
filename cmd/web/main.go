@@ -14,9 +14,10 @@ import (
 
 // application-wide dependencies
 type application struct {
-	logger  *slog.Logger
-	matches *models.MatchModel
-	tipps   *models.TippModel
+	logger     *slog.Logger
+	matches    *models.MatchModel
+	tipps      *models.TippModel
+	matchTipps *models.MatchTippModel
 }
 
 func main() {
@@ -37,10 +38,14 @@ func main() {
 	defer db.Close()
 
 	// setup for dependency injection across our app
+	matchModel := models.MatchModel{DB: db}
+	tippModel := models.TippModel{DB: db}
+	matchTippModel := models.MatchTippModel{DB: db, MatchModel: &matchModel, TippModel: &tippModel}
 	app := &application{
-		logger:  logger,
-		matches: &models.MatchModel{DB: db},
-		tipps:   &models.TippModel{DB: db},
+		logger:     logger,
+		matches:    &matchModel,
+		tipps:      &tippModel,
+		matchTipps: &matchTippModel,
 	}
 
 	// start server

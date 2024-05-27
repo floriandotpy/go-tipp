@@ -5,6 +5,7 @@ import (
 )
 
 type templateData struct {
-	Matches []models.Match
-	T       map[string]string
+	MatchTipps []models.MatchTipp
+	Matches    []models.Match
+	T          map[string]string
 }

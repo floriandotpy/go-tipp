@@ -42,14 +42,22 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 		app.serverError(w, req, err)
 	}
 	// for now just log to console
-	fmt.Printf("Matches:\n%+v\n", matches)
+	// fmt.Printf("Matches:\n%+v\n", matches)
 
-	userId := 6 // TODO: load user id from current auth session eventually
-	tipps, err := app.tipps.AllForUser(userId)
+	userId := 1 // TODO: load user id from current auth session eventually
+	// tipps, err := app.tipps.AllForUser(userId)
+	// if err != nil {
+	// 	app.serverError(w, req, err)
+	// }
+	// fmt.Printf("Tipps:\n%+v\n", tipps)
+
+	// fetch joined data (matches & tipps)
+	matchTipps, err := app.matchTipps.All(userId)
 	if err != nil {
+		fmt.Printf("errrrrrror!!!!!")
 		app.serverError(w, req, err)
 	}
-	fmt.Printf("Tipps:\n%+v\n", tipps)
+	fmt.Printf("Matches and Tipps:\n%+v\n", matchTipps)
 
 	// templates
 	files := []string{
@@ -77,8 +85,9 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	data := templateData{
-		Matches: matches,
-		T:       germanWeekdays,
+		MatchTipps: matchTipps,
+		Matches:    matches,
+		T:          germanWeekdays,
 	}
 
 	// execute template

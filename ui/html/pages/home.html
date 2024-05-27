@@ -13,7 +13,7 @@
       </tr>
     </thead>
     <tbody>
-      {{range .Matches}}
+      {{range .MatchTipps}}
       <tr>
         <td>{{.Start.Weekday}}, {{.Start.Format "02.01.2006"}}</td>
         <td>{{.Start.Format "15:04" }}</td>
@@ -21,8 +21,13 @@
         <td>{{.TeamB}}</td>
         <td>-:-</td>
         <td>
-          <input type="text" size="2" /> : <input type="text" size="2" />
+          {{ if .TippA }} {{.TippA}} : {{.TippB}}
+          <a href="">ändern</a>
+          {{else}}
+          <input type="text" size="2" /> :
+          <input type="text" size="2" />
           <input type="button" value="Ok" />
+          {{end}}
         </td>
       </tr>
       {{end}}
