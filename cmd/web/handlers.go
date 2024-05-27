@@ -35,7 +35,7 @@ const TEAM_PL = "Polen"
 const TEAM_UA = "Ukraine"
 const TEAM_GR = "Griechenland"
 
-func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
+func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 
 	matches, err := app.matches.All()
 	if err != nil {
@@ -65,8 +65,24 @@ func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// prep translation mapping
+	var germanWeekdays = map[string]string{
+		"Sunday":    "Sonntag",
+		"Monday":    "Montag",
+		"Tuesday":   "Dienstag",
+		"Wednesday": "Mittwoch",
+		"Thursday":  "Donnerstag",
+		"Friday":    "Freitag",
+		"Saturday":  "Samstag",
+	}
+
+	data := templateData{
+		Matches: matches,
+		T:       germanWeekdays,
+	}
+
 	// execute template
-	err = ts.ExecuteTemplate(w, "base", nil)
+	err = ts.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		app.serverError(w, req, err)
 	}

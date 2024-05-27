@@ -1,8 +1,6 @@
-{{define "title"}}Home{{end}} {{define "main"}}
+{{define "title"}}Spiele{{end}} {{define "main"}}
 <div class="container">
   <h2>Spiele</h2>
-  <p>There's nothing to see here yet!</p>
-
   <table class="pure-table pure-table-horizontal">
     <thead>
       <tr>
@@ -11,16 +9,23 @@
         <th>Team 1</th>
         <th>Team 2</th>
         <th>Ergebnis</th>
+        <th>Dein Tipp</th>
       </tr>
     </thead>
     <tbody>
+      {{range .Matches}}
       <tr>
-        <td>foo</td>
-        <td>foo</td>
-        <td>Unbekannt</td>
-        <td>Unbekannt</td>
+        <td>{{.Start.Weekday}}, {{.Start.Format "02.01.2006"}}</td>
+        <td>{{.Start.Format "15:04" }}</td>
+        <td>{{.TeamA}}</td>
+        <td>{{.TeamB}}</td>
         <td>-:-</td>
+        <td>
+          <input type="text" size="2" /> : <input type="text" size="2" />
+          <input type="button" value="Ok" />
+        </td>
       </tr>
+      {{end}}
     </tbody>
   </table>
 </div>
