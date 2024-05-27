@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
+
+	"tipp.casualcoding.com/internal/models"
 )
 
 const TEAM_DE = "Deutschland"
@@ -116,7 +119,29 @@ func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	fmt.Fprintf(w, "Display tipp with id %d ...", tippId)
+	// Fetch Tipp instance
+	tipp, err := app.tipps.Get(tippId)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	// Fetch corresponding Match instance
+	match, err := app.matches.Get(tipp.MatchId)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	fmt.Fprintf(w, "Tipp:\n%+v\nMatch:\n%+v", tipp, match)
 }
 
 // create a new tipp by user submission

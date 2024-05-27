@@ -2,17 +2,18 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 )
 
 type Tipp struct {
-	id      int
-	matchId int
-	userId  int
-	tippA   int
-	tippB   int
-	created time.Time
-	changed time.Time
+	ID      int
+	MatchId int
+	UserId  int
+	TippA   int
+	TippB   int
+	Created time.Time
+	Changed time.Time
 }
 
 type TippModel struct {
@@ -38,7 +39,22 @@ func (m *TippModel) Insert(matchId int, userId int, tippA int, tippB int) (int, 
 }
 
 func (m *TippModel) Get(id int) (Tipp, error) {
-	return Tipp{}, nil
+	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE id = ?`
+
+	row := m.DB.QueryRow(stmt, id)
+
+	var t Tipp
+
+	err := row.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Tipp{}, ErrNoRecord
+		} else {
+			return Tipp{}, nil
+		}
+	}
+
+	return t, nil
 }
 
 func (m *TippModel) AllForUser(userId int) ([]Tipp, error) {

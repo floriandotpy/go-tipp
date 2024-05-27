@@ -2,30 +2,47 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 )
 
 type Match struct {
-	TeamA string
-	TeamB string
-	Start time.Time
-	Title string
+	ID        int
+	TeamA     string
+	TeamB     string
+	Start     time.Time
+	MatchType string
 
 	// goal numbers
-	// ResultA *int
-	// ResultB *int
+	ResultA *int
+	ResultB *int
 }
 
 type MatchModel struct {
 	DB *sql.DB
 }
 
-func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, title string) (int, error) {
+func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchType string) (int, error) {
 	return 0, nil
 }
 
 func (m *MatchModel) Get(id int) (Match, error) {
-	return Match{}, nil
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type FROM matches WHERE id = ?`
+
+	row := m.DB.QueryRow(stmt, id)
+
+	var match Match
+
+	err := row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Match{}, ErrNoRecord
+		} else {
+			return Match{}, nil
+		}
+	}
+
+	return match, nil
 }
 
 func (m *MatchModel) SetResults(id int, resultA int, resultB int) error {
