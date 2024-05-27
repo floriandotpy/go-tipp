@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 
 	"tipp.casualcoding.com/internal/models"
@@ -38,56 +35,21 @@ const TEAM_PL = "Polen"
 const TEAM_UA = "Ukraine"
 const TEAM_GR = "Griechenland"
 
-type Games struct {
-	Games []Game `json:"games"`
-}
-
-type Game struct {
-	TeamA     string
-	TeamB     string
-	StartTime string //time.Time
-	Title     string
-
-	// goal numbers
-	// ResultA *int
-	// ResultB *int
-}
-
-type Tipp struct {
-	GuessA int
-	GuessB int
-}
-
-func loadGames() (*Games, error) {
-	// load games
-	jsonFile, err := os.Open("games.json")
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Opened games.json")
-	defer jsonFile.Close()
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var games Games
-	json.Unmarshal(byteValue, &games)
-
-	return &games, nil
-}
-
 func (app *application) gamesHandler(w http.ResponseWriter, req *http.Request) {
 
-	games, err := loadGames()
+	matches, err := app.matches.All()
 	if err != nil {
 		app.serverError(w, req, err)
 	}
 	// for now just log to console
-	fmt.Println(games)
+	fmt.Printf("Matches:\n%+v\n", matches)
 
-	// for i := 0; i < len(games.Games); i++ {
-	// 	fmt.Fprintln(w, "StartTime: "+games.Games[i].StartTime)
-	// 	fmt.Fprintln(w, "TeamA: "+games.Games[i].TeamA)
-	// 	fmt.Fprintln(w, "TeamB: "+games.Games[i].TeamB)
-	// 	fmt.Fprintln(w, "")
-	// }
+	userId := 6 // TODO: load user id from current auth session eventually
+	tipps, err := app.tipps.AllForUser(userId)
+	if err != nil {
+		app.serverError(w, req, err)
+	}
+	fmt.Printf("Tipps:\n%+v\n", tipps)
 
 	// templates
 	files := []string{

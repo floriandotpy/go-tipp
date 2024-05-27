@@ -54,5 +54,25 @@ func (m *TippModel) Get(id int) (Tipp, error) {
 }
 
 func (m *TippModel) AllForUser(userId int) ([]Tipp, error) {
-	return nil, nil
+	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE user_id = ?`
+	rows, err := m.DB.Query(stmt, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tipps []Tipp
+	for rows.Next() {
+		var t Tipp
+		err = rows.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
+		if err != nil {
+			return nil, err
+		}
+		tipps = append(tipps, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tipps, nil
 }

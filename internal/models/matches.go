@@ -51,5 +51,28 @@ func (m *MatchModel) Upcoming() ([]Match, error) {
 
 // will return all matches
 func (m *MatchModel) All() ([]Match, error) {
-	return nil, nil
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type FROM matches ORDER BY start ASC`
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var matches []Match
+
+	for rows.Next() {
+		var match Match
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, match)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return matches, nil
 }
