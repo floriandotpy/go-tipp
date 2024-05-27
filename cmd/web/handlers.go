@@ -125,6 +125,17 @@ func (app *application) tippCreateFormHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (app *application) tippCreatePostHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "Save a new tipp...")
+	// dummy data for now
+	userId := 1
+	matchId := 1
+	tippA := 2
+	tippB := 1
+
+	id, err := app.tipps.Insert(matchId, userId, tippA, tippB)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/tipp/view/%d", id), http.StatusSeeOther)
 }

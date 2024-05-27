@@ -7,12 +7,16 @@ import (
 	"net/http"
 	"os"
 
+	"tipp.casualcoding.com/internal/models"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // application-wide dependencies
 type application struct {
-	logger *slog.Logger
+	logger  *slog.Logger
+	matches *models.MatchModel
+	tipps   *models.TippModel
 }
 
 func main() {
@@ -34,7 +38,9 @@ func main() {
 
 	// setup for dependency injection across our app
 	app := &application{
-		logger: logger,
+		logger:  logger,
+		matches: &models.MatchModel{DB: db},
+		tipps:   &models.TippModel{DB: db},
 	}
 
 	// start server

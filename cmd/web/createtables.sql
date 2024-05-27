@@ -35,6 +35,7 @@ CREATE TABLE tipps (
     tipp_a INT NOT NULL,
     tipp_b INT NOT NULL,
     created DATETIME NOT NULL,
+    changed DATETIME NOT NULL,
     FOREIGN KEY (match_id) REFERENCES matches(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
