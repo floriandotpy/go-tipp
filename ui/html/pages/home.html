@@ -24,9 +24,12 @@
           {{ if .TippA }} {{.TippA}} : {{.TippB}}
           <a href="">ändern</a>
           {{else}}
-          <input type="text" size="2" /> :
-          <input type="text" size="2" />
-          <input type="button" value="Ok" />
+          <form action="/tipp/create" method="post">
+            <input type="hidden" name="match_id" value="{{.MatchId}}" />
+            <input type="number" min="0" max="99" name="tipp_a" required /> :
+            <input type="number" min="0" max="99" name="tipp_b" required />
+            <input type="submit" value="Ok" />
+          </form>
           {{end}}
         </td>
       </tr>
