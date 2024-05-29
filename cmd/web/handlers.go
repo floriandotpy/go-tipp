@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"tipp.casualcoding.com/internal/models"
 )
@@ -129,4 +130,66 @@ func (app *application) tippCreatePostHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
+	// parse form data
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// TODO: get user id from auth session
+	userId := 1
+
+	// Iterate through form data
+	for key, values := range r.PostForm {
+		if strings.HasPrefix(key, "match_id_") {
+			matchIdStr := values[0]
+			matchId, err := strconv.Atoi(matchIdStr)
+			if err != nil {
+				app.clientError(w, http.StatusBadRequest)
+				return
+			}
+
+			tippAKey := "tipp_a_" + matchIdStr
+			tippBKey := "tipp_b_" + matchIdStr
+
+			tippAStr := r.PostForm.Get(tippAKey)
+			tippBStr := r.PostForm.Get(tippBKey)
+			if tippAStr == "" || tippBStr == "" {
+				fmt.Printf("TODO if exists: delete tipp for match %d and user %d\n", matchId, userId)
+				continue
+				// TODO: delete previous tipp (user may want to reset it)
+				//       and then return, or continue to next item
+			}
+
+			tippA, err := strconv.Atoi(tippAStr)
+			if err != nil {
+				fmt.Printf("error 1, match id %d\n", matchId)
+				app.clientError(w, http.StatusBadRequest)
+				return
+			}
+
+			tippB, err := strconv.Atoi(tippBStr)
+			if err != nil {
+				fmt.Printf("error 2, match id %d\n", matchId)
+				app.clientError(w, http.StatusBadRequest)
+				return
+			}
+
+			// TODO: change to "updateOrInsert"
+			// _, err = app.tipps.Insert(matchId, userId, tippA, tippB)
+			fmt.Printf("TODO Update or insert tipp for match %d with data: %d:%d\n", matchId, tippA, tippB)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+		}
+	}
+
+	// Assuming a success response after processing all matches
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Tipps updated successfully\n"))
 }
