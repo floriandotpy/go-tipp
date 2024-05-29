@@ -58,21 +58,9 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Printf("Matches and Tipps:\n%+v\n", matchTipps)
 
-	// prep translation mapping
-	var germanWeekdays = map[string]string{
-		"Sunday":    "Sonntag",
-		"Monday":    "Montag",
-		"Tuesday":   "Dienstag",
-		"Wednesday": "Mittwoch",
-		"Thursday":  "Donnerstag",
-		"Friday":    "Freitag",
-		"Saturday":  "Samstag",
-	}
-
 	data := app.newTemplateData(req)
 	data.MatchTipps = matchTipps
 	data.Matches = matches
-	data.T = germanWeekdays
 
 	app.render(w, req, http.StatusOK, "home.html", data)
 }

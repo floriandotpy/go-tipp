@@ -15,11 +15,11 @@
     <tbody>
       {{range .MatchTipps}}
       <tr>
-        <td>{{.Start.Weekday}}, {{.Start.Format "02.01.2006"}}</td>
+        <td>{{germanWeekday .Start}}, {{germanDate .Start}}</td>
         <td>{{.Start.Format "15:04" }}</td>
         <td>{{.TeamA}}</td>
         <td>{{.TeamB}}</td>
-        <td>-:-</td>
+        <td>{{matchResult .ResultA .ResultB}}</td>
         <td>
           {{ if .TippA }} {{.TippA}} : {{.TippB}}
           <a href="">ändern</a>
