@@ -69,11 +69,12 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 		"Saturday":  "Samstag",
 	}
 
-	app.render(w, req, http.StatusOK, "home.html", templateData{
-		MatchTipps: matchTipps,
-		Matches:    matches,
-		T:          germanWeekdays,
-	})
+	data := app.newTemplateData(req)
+	data.MatchTipps = matchTipps
+	data.Matches = matches
+	data.T = germanWeekdays
+
+	app.render(w, req, http.StatusOK, "home.html", data)
 }
 
 // view a single submitted tipp instance

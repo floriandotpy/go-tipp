@@ -8,9 +8,10 @@ import (
 )
 
 type templateData struct {
-	MatchTipps []models.MatchTipp
-	Matches    []models.Match
-	T          map[string]string
+	CurrentYear int
+	MatchTipps  []models.MatchTipp
+	Matches     []models.Match
+	T           map[string]string
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

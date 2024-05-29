@@ -13,6 +13,12 @@
     </header>
     {{template "nav" .}}
     <main>{{template "main" .}}</main>
+    <div class="container footer l-box">
+      <p>
+        &copy; {{.CurrentYear}} GoTipp ist ein Projekt von
+        <a href="https://casualcoding.com">casualcoding.com</a>
+      </p>
+    </div>
   </body>
 </html>
 {{end}}
