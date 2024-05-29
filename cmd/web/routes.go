@@ -16,5 +16,5 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /tipp/create", app.tippCreateFormHandler)
 	mux.HandleFunc("POST /tipp/create", app.tippCreatePostHandler)
 
-	return commonHeaders(mux)
+	return app.logRequest(commonHeaders(mux))
 }
