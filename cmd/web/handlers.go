@@ -40,15 +40,9 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		app.serverError(w, req, err)
 	}
-	// for now just log to console
-	// fmt.Printf("Matches:\n%+v\n", matches)
 
-	userId := 1 // TODO: load user id from current auth session eventually
-	// tipps, err := app.tipps.AllForUser(userId)
-	// if err != nil {
-	// 	app.serverError(w, req, err)
-	// }
-	// fmt.Printf("Tipps:\n%+v\n", tipps)
+	// TODO: load user id from current auth session eventually
+	userId := 1
 
 	// fetch joined data (matches & tipps)
 	matchTipps, err := app.matchTipps.All(userId)
@@ -56,7 +50,6 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 		fmt.Printf("errrrrrror!!!!!")
 		app.serverError(w, req, err)
 	}
-	fmt.Printf("Matches and Tipps:\n%+v\n", matchTipps)
 
 	data := app.newTemplateData(req)
 	data.MatchTipps = matchTipps
