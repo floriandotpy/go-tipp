@@ -2,7 +2,7 @@ package main
 
 import "net/http"
 
-func (app *application) routes() *http.ServeMux {
+func (app *application) routes() http.Handler {
 
 	mux := http.NewServeMux()
 
@@ -16,5 +16,5 @@ func (app *application) routes() *http.ServeMux {
 	mux.HandleFunc("GET /tipp/create", app.tippCreateFormHandler)
 	mux.HandleFunc("POST /tipp/create", app.tippCreatePostHandler)
 
-	return mux
+	return commonHeaders(mux)
 }
