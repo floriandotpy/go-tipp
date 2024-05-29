@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
@@ -59,20 +58,6 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Printf("Matches and Tipps:\n%+v\n", matchTipps)
 
-	// templates
-	files := []string{
-		"./ui/html/base.html",
-		"./ui/html/partials/nav.html",
-		"./ui/html/pages/home.html",
-	}
-
-	// load template
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, req, err)
-		return
-	}
-
 	// prep translation mapping
 	var germanWeekdays = map[string]string{
 		"Sunday":    "Sonntag",
@@ -84,18 +69,11 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 		"Saturday":  "Samstag",
 	}
 
-	data := templateData{
+	app.render(w, req, http.StatusOK, "home.html", templateData{
 		MatchTipps: matchTipps,
 		Matches:    matches,
 		T:          germanWeekdays,
-	}
-
-	// execute template
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.serverError(w, req, err)
-	}
-
+	})
 }
 
 // view a single submitted tipp instance

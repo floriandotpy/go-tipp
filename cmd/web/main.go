@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,10 +15,11 @@ import (
 
 // application-wide dependencies
 type application struct {
-	logger     *slog.Logger
-	matches    *models.MatchModel
-	tipps      *models.TippModel
-	matchTipps *models.MatchTippModel
+	logger        *slog.Logger
+	matches       *models.MatchModel
+	tipps         *models.TippModel
+	matchTipps    *models.MatchTippModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -41,11 +43,17 @@ func main() {
 	matchModel := models.MatchModel{DB: db}
 	tippModel := models.TippModel{DB: db}
 	matchTippModel := models.MatchTippModel{DB: db, MatchModel: &matchModel, TippModel: &tippModel}
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 	app := &application{
-		logger:     logger,
-		matches:    &matchModel,
-		tipps:      &tippModel,
-		matchTipps: &matchTippModel,
+		logger:        logger,
+		matches:       &matchModel,
+		tipps:         &tippModel,
+		matchTipps:    &matchTippModel,
+		templateCache: templateCache,
 	}
 
 	// start server
