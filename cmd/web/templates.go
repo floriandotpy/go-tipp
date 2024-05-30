@@ -78,9 +78,9 @@ func matchResult(result_a *int, result_b *int) string {
 
 }
 
-func defaultStr(val *int) string {
+func defaultStr(val *int, defaultStr string) string {
 	if val == nil {
-		return ""
+		return defaultStr
 	} else {
 		return strconv.Itoa(*val)
 	}

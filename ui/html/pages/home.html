@@ -24,6 +24,7 @@
           <td>{{.TeamB}}</td>
           <td>{{matchResult .ResultA .ResultB}}</td>
           <td>
+            {{if .AcceptsTipps}}
             <input
               type="hidden"
               name="match_id_{{.MatchId}}"
@@ -34,7 +35,7 @@
               min="0"
               max="99"
               name="tipp_a_{{.MatchId}}"
-              value="{{.TippA | defaultStr}}"
+              value='{{defaultStr .TippA ""}}'
             />
             :
             <input
@@ -42,8 +43,9 @@
               min="0"
               max="99"
               name="tipp_b_{{.MatchId}}"
-              value="{{.TippB | defaultStr}}"
+              value='{{defaultStr .TippB ""}}'
             />
+            {{else}} {{defaultStr .TippA "-"}}:{{defaultStr .TippB "-"}} {{end}}
           </td>
         </tr>
         {{end}}

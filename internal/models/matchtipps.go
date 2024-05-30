@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -19,6 +20,8 @@ type MatchTipp struct {
 	MatchType string
 	ResultA   *int
 	ResultB   *int
+
+	AcceptsTipps bool
 
 	// data from tipp
 	TippA       *int
@@ -38,6 +41,19 @@ type MatchTippModel struct {
 	DB         *sql.DB
 	MatchModel *MatchModel
 	TippModel  *TippModel
+}
+
+func (m *MatchTippModel) AcceptsTipps(matchId int) (bool, error) {
+	if m.MatchModel == nil {
+		return false, errors.New("MatchModel is nil")
+	}
+
+	accepts, err := m.MatchModel.AcceptsTipps(matchId)
+	if err != nil {
+		return false, err
+	}
+
+	return accepts, nil
 }
 
 func (m *MatchTippModel) All(userId int) ([]MatchTipp, error) {
@@ -60,14 +76,19 @@ func (m *MatchTippModel) All(userId int) ([]MatchTipp, error) {
 	// Perform the join
 	var joined []MatchTipp
 	for _, match := range matches {
+		acceptsTipps, err := m.AcceptsTipps(match.ID)
+		if err != nil {
+			return nil, err
+		}
 		mt := MatchTipp{
-			MatchId:   match.ID,
-			TeamA:     match.TeamA,
-			TeamB:     match.TeamB,
-			Start:     match.Start,
-			MatchType: match.MatchType,
-			ResultA:   match.ResultA,
-			ResultB:   match.ResultB,
+			MatchId:      match.ID,
+			TeamA:        match.TeamA,
+			TeamB:        match.TeamB,
+			Start:        match.Start,
+			MatchType:    match.MatchType,
+			ResultA:      match.ResultA,
+			ResultB:      match.ResultB,
+			AcceptsTipps: acceptsTipps,
 		}
 		if userTipp, ok := tippMap[match.ID]; ok {
 			mt.SetTipp(userTipp)

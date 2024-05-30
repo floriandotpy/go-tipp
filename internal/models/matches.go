@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -22,6 +23,24 @@ type MatchModel struct {
 	DB *sql.DB
 }
 
+// check if user should still be allowed to submit a tipp for this match
+func (m *MatchModel) AcceptsTipps(matchId int) (bool, error) {
+	match, err := m.Get(matchId)
+	if err != nil {
+		return false, err
+	}
+
+	// match has already begun
+	now := time.Now()
+
+	fmt.Printf("now = %s, matchStart = %s\n", now.String(), match.Start.String())
+	if match.Start.Before(now) {
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
 func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchType string) (int, error) {
 	return 0, nil
 }
@@ -37,6 +56,13 @@ func (m *MatchModel) Get(id int) (Match, error) {
 			return Match{}, nil
 		}
 	}
+
+	// Set the timezone of the start time to local
+	match.Start, err = forceLocalTimezone(match.Start)
+	if err != nil {
+		return Match{}, err
+	}
+
 	return match, nil
 }
 
@@ -67,6 +93,11 @@ func (m *MatchModel) All() ([]Match, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Set the timezone of the start time to local
+		match.Start, err = forceLocalTimezone(match.Start)
+		if err != nil {
+			return nil, err
+		}
 		matches = append(matches, match)
 	}
 
@@ -75,4 +106,19 @@ func (m *MatchModel) All() ([]Match, error) {
 	}
 
 	return matches, nil
+}
+
+func forceLocalTimezone(t time.Time) (time.Time, error) {
+	// Load the local timezone
+	loc, err := time.LoadLocation("Local")
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	// Set the timezone of the time to local
+	localTime := time.Date(
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), loc,
+	)
+	return localTime, nil
 }

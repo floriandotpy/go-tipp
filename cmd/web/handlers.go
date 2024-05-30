@@ -156,7 +156,16 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 			tippAKey := "tipp_a_" + matchIdStr
 			tippBKey := "tipp_b_" + matchIdStr
 
-			// TODO: check if match still accepts tipps (i.e. it hasn't started yet)
+			// check if match still accepts tipps (i.e. it hasn't started yet)
+			acceptsTipps, err := app.matches.AcceptsTipps(matchId)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			if !acceptsTipps {
+				// silently skip this one, because we wouldn't want to cancel the whole bulk update
+				continue
+			}
 
 			tippAStr := r.PostForm.Get(tippAKey)
 			tippBStr := r.PostForm.Get(tippBKey)
@@ -179,20 +188,17 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 
 			tippA, err := strconv.Atoi(tippAStr)
 			if err != nil {
-				fmt.Printf("error 1, match id %d\n", matchId)
 				app.clientError(w, http.StatusBadRequest)
 				return
 			}
 
 			tippB, err := strconv.Atoi(tippBStr)
 			if err != nil {
-				fmt.Printf("error 2, match id %d\n", matchId)
 				app.clientError(w, http.StatusBadRequest)
 				return
 			}
 
 			err = app.tipps.InsertOrUpdate(matchId, userId, tippA, tippB)
-			fmt.Printf("TODO Update or insert tipp for match %d with data: %d:%d\n", matchId, tippA, tippB)
 			if err != nil {
 				app.serverError(w, r, err)
 				return
