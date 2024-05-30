@@ -156,13 +156,25 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 			tippAKey := "tipp_a_" + matchIdStr
 			tippBKey := "tipp_b_" + matchIdStr
 
+			// TODO: check if match still accepts tipps (i.e. it hasn't started yet)
+
 			tippAStr := r.PostForm.Get(tippAKey)
 			tippBStr := r.PostForm.Get(tippBKey)
 			if tippAStr == "" || tippBStr == "" {
-				fmt.Printf("TODO if exists: delete tipp for match %d and user %d\n", matchId, userId)
+				// delete previous tipp (user may want to reset it), then continue to next item
+				tippExists, err := app.tipps.Exists(matchId, userId)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+				if tippExists {
+					err = app.tipps.Delete(matchId, userId)
+					if err != nil {
+						app.serverError(w, r, err)
+						return
+					}
+				}
 				continue
-				// TODO: delete previous tipp (user may want to reset it)
-				//       and then return, or continue to next item
 			}
 
 			tippA, err := strconv.Atoi(tippAStr)
@@ -179,8 +191,7 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 				return
 			}
 
-			// TODO: change to "updateOrInsert"
-			// _, err = app.tipps.Insert(matchId, userId, tippA, tippB)
+			err = app.tipps.InsertOrUpdate(matchId, userId, tippA, tippB)
 			fmt.Printf("TODO Update or insert tipp for match %d with data: %d:%d\n", matchId, tippA, tippB)
 			if err != nil {
 				app.serverError(w, r, err)
@@ -189,7 +200,5 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	// Assuming a success response after processing all matches
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Tipps updated successfully\n"))
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

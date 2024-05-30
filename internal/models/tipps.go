@@ -38,6 +38,62 @@ func (m *TippModel) Insert(matchId int, userId int, tippA int, tippB int) (int, 
 	return int(id), nil
 }
 
+func (m *TippModel) Update(matchId int, userId int, tippA int, tippB int) error {
+	stmt := `UPDATE tipps
+	SET tipp_a = ?, tipp_b = ?, changed = UTC_TIMESTAMP()
+	WHERE match_id = ? AND user_id = ?`
+
+	_, err := m.DB.Exec(stmt, tippA, tippB, matchId, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *TippModel) Exists(matchId int, userId int) (bool, error) {
+	stmt := `SELECT COUNT(*) FROM tipps WHERE match_id = ? AND user_id = ?`
+
+	var count int
+	err := m.DB.QueryRow(stmt, matchId, userId).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (m *TippModel) Delete(matchId int, userId int) error {
+	stmt := `DELETE FROM tipps WHERE match_id = ? AND user_id = ?`
+
+	_, err := m.DB.Exec(stmt, matchId, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *TippModel) InsertOrUpdate(matchId int, userId int, tippA int, tippB int) error {
+	tippExists, err := m.Exists(matchId, userId)
+	if err != nil {
+		return err
+	}
+
+	if tippExists {
+		err = m.Update(matchId, userId, tippA, tippB)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = m.Insert(matchId, userId, tippA, tippB)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *TippModel) Get(id int) (Tipp, error) {
 	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE id = ?`
 	var t Tipp

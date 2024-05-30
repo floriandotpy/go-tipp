@@ -24,20 +24,26 @@
           <td>{{.TeamB}}</td>
           <td>{{matchResult .ResultA .ResultB}}</td>
           <td>
-            {{ if .TippA }} {{.TippA}} : {{.TippB}}
-            <a href="">ändern</a>
-            {{else}}
-
             <input
               type="hidden"
               name="match_id_{{.MatchId}}"
               value="{{.MatchId}}"
             />
-            <input type="number" min="0" max="99" name="tipp_a_{{.MatchId}}" />
+            <input
+              type="number"
+              min="0"
+              max="99"
+              name="tipp_a_{{.MatchId}}"
+              value="{{.TippA | defaultStr}}"
+            />
             :
-            <input type="number" min="0" max="99" name="tipp_b_{{.MatchId}}" />
-
-            {{end}}
+            <input
+              type="number"
+              min="0"
+              max="99"
+              name="tipp_b_{{.MatchId}}"
+              value="{{.TippB | defaultStr}}"
+            />
           </td>
         </tr>
         {{end}}

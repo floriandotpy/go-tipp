@@ -78,10 +78,19 @@ func matchResult(result_a *int, result_b *int) string {
 
 }
 
+func defaultStr(val *int) string {
+	if val == nil {
+		return ""
+	} else {
+		return strconv.Itoa(*val)
+	}
+}
+
 var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
 	"matchResult":   matchResult,
+	"defaultStr":    defaultStr,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
