@@ -17,8 +17,6 @@ func (app *application) routes() http.Handler {
 	// routes
 	mux.HandleFunc("GET /{$}", app.indexHandler)
 	mux.HandleFunc("GET /tipp/view/{tippID}", app.tippViewHandler)
-	mux.HandleFunc("GET /tipp/create", app.tippCreateFormHandler)
-	mux.HandleFunc("POST /tipp/create", app.tippCreatePostHandler)
 	mux.HandleFunc("POST /tipp/update", app.tippUpdateMultipleHandler)
 
 	// standard middleware chain

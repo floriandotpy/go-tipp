@@ -3,9 +3,17 @@
   <h2>Spiele</h2>
 
   <form action="/tipp/update" method="post">
-    <input type="submit" value="Speichern" />
-    <table class="pure-table pure-table-horizontal">
-      <thead>
+    <div class="header-container">
+      <h3 class="header-container__left">Testspiele</h3>
+      <input
+        type="submit"
+        value="Speichern"
+        class="pure-button pure-button-primary header-container__right"
+      />
+    </div>
+
+    <table class="cc-table">
+      <thead class="">
         <tr>
           <th>Tag</th>
           <th>Uhrzeit</th>
@@ -15,9 +23,9 @@
           <th>Dein Tipp</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="">
         {{range .MatchTipps}}
-        <tr>
+        <tr class="">
           <td>{{germanWeekday .Start}}, {{germanDate .Start}}</td>
           <td>{{.Start.Format "15:04" }}</td>
           <td>{{.TeamA}}</td>
@@ -51,48 +59,14 @@
         {{end}}
       </tbody>
     </table>
-    <input type="submit" value="Speichern" />
+    <div class="header-container">
+      <input
+        type="submit"
+        value="Speichern"
+        class="pure-button pure-button-primary header-container__right"
+      />
+    </div>
   </form>
-
-  <hr />
-
-  <h3>(One form per row)</h3>
-
-  <table class="pure-table pure-table-horizontal">
-    <thead>
-      <tr>
-        <th>Tag</th>
-        <th>Uhrzeit</th>
-        <th>Team 1</th>
-        <th>Team 2</th>
-        <th>Ergebnis</th>
-        <th>Dein Tipp</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .MatchTipps}}
-      <tr>
-        <td>{{germanWeekday .Start}}, {{germanDate .Start}}</td>
-        <td>{{.Start.Format "15:04" }}</td>
-        <td>{{.TeamA}}</td>
-        <td>{{.TeamB}}</td>
-        <td>{{matchResult .ResultA .ResultB}}</td>
-        <td>
-          {{ if .TippA }} {{.TippA}} : {{.TippB}}
-          <a href="">ändern</a>
-          {{else}}
-          <form action="/tipp/create" method="post">
-            <input type="hidden" name="match_id" value="{{.MatchId}}" />
-            <input type="number" min="0" max="99" name="tipp_a" required /> :
-            <input type="number" min="0" max="99" name="tipp_b" required />
-            <input type="submit" value="Ok" />
-          </form>
-          {{end}}
-        </td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
 </div>
 
 {{end}}

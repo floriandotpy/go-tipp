@@ -92,46 +92,6 @@ func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(w, "Tipp:\n%+v\nMatch:\n%+v", tipp, match)
 }
 
-// create a new tipp by user submission
-func (app *application) tippCreateFormHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: probably not needed because this all happens on the index
-	fmt.Fprintf(w, "Display a form for a new tipp...")
-}
-
-func (app *application) tippCreatePostHandler(w http.ResponseWriter, r *http.Request) {
-	// parse form data
-	err := r.ParseForm()
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	// TODO: get user id from auth session
-	userId := 1
-
-	// read form data
-	matchId, err := strconv.Atoi(r.PostForm.Get("match_id"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-	}
-	tippA, err := strconv.Atoi(r.PostForm.Get("tipp_a"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-	}
-	tippB, err := strconv.Atoi(r.PostForm.Get("tipp_b"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-	}
-
-	_, err = app.tipps.Insert(matchId, userId, tippA, tippB)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
 func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
 	// parse form data
 	err := r.ParseForm()

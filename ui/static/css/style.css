@@ -2,3 +2,45 @@
     max-width: 980px;
     margin: 0 auto;
 }
+
+.header-container {
+    display: flex;
+    align-items: center; /* Align items vertically in the center */
+    justify-content: space-between; /* Push items to the edges */
+    margin: 12px 0;
+}
+
+.header-container__left {
+    margin: 0; /* Remove default margin to avoid unexpected spacing */
+}
+
+.header-container__right {
+    margin-left: auto; /* Push the button to the right */
+}
+
+.cc-table {
+width: 100%; /* Make the table span 100% of the container's width */
+border-collapse: collapse; /* Collapse borders to create a single border around the table */
+}
+
+.cc-table th, .cc-table td {
+padding: 12px 15px; /* Add padding for better readability */
+border: 1px solid #ddd; /* Add a single border around each cell */
+}
+
+.cc-table thead tr {
+background-color: #f2f2f2; /* Light gray background for the header */
+text-align: left; /* Align text to the left in the header */
+}
+
+.cc-table tbody tr:nth-child(even) {
+background-color: #f9f9f9; /* Light gray background for even rows */
+}
+
+.cc-table tbody tr:nth-child(odd) {
+background-color: #ffffff; /* White background for odd rows */
+}
+
+.cc-table tbody tr:hover {
+background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
+}
