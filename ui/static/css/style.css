@@ -19,28 +19,36 @@
 }
 
 .cc-table {
-width: 100%; /* Make the table span 100% of the container's width */
-border-collapse: collapse; /* Collapse borders to create a single border around the table */
+    width: 100%; /* Make the table span 100% of the container's width */
+    border-collapse: collapse; /* Collapse borders to create a single border around the table */
 }
 
 .cc-table th, .cc-table td {
-padding: 12px 15px; /* Add padding for better readability */
-border: 1px solid #ddd; /* Add a single border around each cell */
+    padding: 12px 15px; /* Add padding for better readability */
+    border: 1px solid #ddd; /* Add a single border around each cell */
 }
 
 .cc-table thead tr {
-background-color: #f2f2f2; /* Light gray background for the header */
-text-align: left; /* Align text to the left in the header */
+    background-color: #f2f2f2; /* Light gray background for the header */
+    text-align: left; /* Align text to the left in the header */
 }
 
 .cc-table tbody tr:nth-child(even) {
-background-color: #f9f9f9; /* Light gray background for even rows */
+    background-color: #f9f9f9; /* Light gray background for even rows */
 }
 
 .cc-table tbody tr:nth-child(odd) {
-background-color: #ffffff; /* White background for odd rows */
+    background-color: #ffffff; /* White background for odd rows */
 }
 
 .cc-table tbody tr:hover {
-background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
+    background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
+}
+
+.cc-flash {
+    background: #1f8dd6;
+    border-radius: 3px;
+    color: #fff;
+    padding: 1em 1em;
+    text-align: center;
 }

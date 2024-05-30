@@ -7,19 +7,24 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"tipp.casualcoding.com/internal/models"
+
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // application-wide dependencies
 type application struct {
-	logger        *slog.Logger
-	matches       *models.MatchModel
-	tipps         *models.TippModel
-	matchTipps    *models.MatchTippModel
-	templateCache map[string]*template.Template
+	logger         *slog.Logger
+	matches        *models.MatchModel
+	tipps          *models.TippModel
+	matchTipps     *models.MatchTippModel
+	templateCache  map[string]*template.Template
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -39,6 +44,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// session management
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	// setup for dependency injection across our app
 	matchModel := models.MatchModel{DB: db}
 	tippModel := models.TippModel{DB: db}
@@ -49,11 +59,12 @@ func main() {
 		os.Exit(1)
 	}
 	app := &application{
-		logger:        logger,
-		matches:       &matchModel,
-		tipps:         &tippModel,
-		matchTipps:    &matchTippModel,
-		templateCache: templateCache,
+		logger:         logger,
+		matches:        &matchModel,
+		tipps:          &tippModel,
+		matchTipps:     &matchTippModel,
+		templateCache:  templateCache,
+		sessionManager: sessionManager,
 	}
 
 	// start server

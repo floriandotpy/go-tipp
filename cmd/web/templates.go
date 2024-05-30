@@ -14,6 +14,7 @@ type templateData struct {
 	CurrentYear int
 	MatchTipps  []models.MatchTipp
 	Matches     []models.Match
+	Flash       string
 }
 
 // prep translation mapping

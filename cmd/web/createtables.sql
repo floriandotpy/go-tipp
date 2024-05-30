@@ -1,6 +1,5 @@
 USE gotipp;
 
--- Create a `snippets` table.
 CREATE TABLE snippets (
     id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(100) NOT NULL,
@@ -8,7 +7,7 @@ CREATE TABLE snippets (
     created DATETIME NOT NULL,
     expires DATETIME NOT NULL
 );
-
+CREATE INDEX idx_snippets_created ON snippets(created);
 
 CREATE TABLE matches (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -40,6 +39,9 @@ CREATE TABLE tipps (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE sessions (
+    token CHAR(43) PRIMARY KEY, data BLOB NOT NULL,
+    expiry TIMESTAMP(6) NOT NULL
+);
 
--- Add an index on the created column.
-CREATE INDEX idx_snippets_created ON snippets(created);
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);

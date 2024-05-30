@@ -48,7 +48,6 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	// fetch joined data (matches & tipps)
 	matchTipps, err := app.matchTipps.All(userId)
 	if err != nil {
-		fmt.Printf("errrrrrror!!!!!")
 		app.serverError(w, req, err)
 	}
 
@@ -165,6 +164,8 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 			}
 		}
 	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Tipps gespeichert!")
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
