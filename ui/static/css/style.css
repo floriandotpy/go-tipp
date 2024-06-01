@@ -52,3 +52,41 @@
     padding: 1em 1em;
     text-align: center;
 }
+
+.navbar form { 
+    display: inline-block;
+}
+
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px; /* Optional: Adjust padding as needed */
+}
+
+.navbar .left, .navbar .right {
+    display: flex;
+    gap: 20px; /* Optional: Adjust gap between items as needed */
+}
+
+/* Media query for small viewports */
+@media (max-width: 640px) {
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start; /* Align items to the start of the container */
+    }
+
+    .navbar .left, .navbar .right {
+        flex-direction: column;
+        width: 100%;
+        gap: 0; /* Remove gap between items */
+    }
+
+    .navbar .left a, .navbar .right a, .navbar .right form, .navbar .right button {
+        display: block; /* Ensure items take full width */
+        width: 100%;
+        margin: 4px 0;
+        text-align: left; /* Optional: Align text to the left */
+    }
+}

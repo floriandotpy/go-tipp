@@ -16,10 +16,21 @@ func (app *application) routes() http.Handler {
 
 	dynamic := alice.New(app.sessionManager.LoadAndSave)
 
-	// routes
+	// general routes
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.indexHandler))
 	mux.Handle("GET /tipp/view/{tippID}", dynamic.ThenFunc(app.tippViewHandler))
 	mux.Handle("POST /tipp/update", dynamic.ThenFunc(app.tippUpdateMultipleHandler))
+
+	// user auth routes
+	mux.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup))
+	mux.Handle("POST /user/signup", dynamic.ThenFunc(app.userSignupPost))
+	mux.Handle("GET /user/login", dynamic.ThenFunc(app.userLogin))
+	mux.Handle("POST /user/login", dynamic.ThenFunc(app.userLoginPost))
+	mux.Handle("POST /user/logout", dynamic.ThenFunc(app.userLogoutPost))
+
+	// admin routes
+	mux.Handle("GET /admin", dynamic.ThenFunc(app.adminIndex))
+	mux.Handle("POST /admin/newinvite", dynamic.ThenFunc(app.adminCreateInvitePost))
 
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)

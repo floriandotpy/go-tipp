@@ -1,7 +1,16 @@
 {{define "nav"}}
-<nav class="container">
-  <a href="/">Spiele</a>
-  <a href="">Leaderboard</a>
-  <a href="">Konto</a>
+<nav class="navbar container">
+  <div class="left">
+    <a href="/" class="pure-button">⚽️ Spiele</a>
+    <a href="" class="pure-button">🏆 Leaderboard</a>
+  </div>
+  <div class="right">
+    <a href="/user/signup" class="pure-button">🔜 Registrieren</a>
+    <a href="/user/login" class="pure-button">🔒 Login</a>
+    <a href="/admin" class="pure-button">🕶️ Admin</a>
+    <form action="/user/logout" method="post">
+      <button class="pure-button">➡️ Logout</button>
+    </form>
+  </div>
 </nav>
 {{end}}

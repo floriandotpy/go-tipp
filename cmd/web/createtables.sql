@@ -45,3 +45,15 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX sessions_expiry_idx ON sessions (expiry);
+
+USE gotipp;
+
+CREATE TABLE invites (
+	id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, 
+	code VARCHAR(255) NOT NULL,
+	note VARCHAR(255) NOT NULL,
+	group_id INTEGER NOT NULL,
+	created DATETIME NOT NULL
+);
+
+ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (code);
