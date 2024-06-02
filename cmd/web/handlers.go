@@ -43,17 +43,48 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
 
-	// TODO: get all user groups from database
-	groupId := 1
-
-	users, err := app.users.GroupLeaderboard(groupId)
+	// fetch all user groups from database
+	err, userId := app.authUserId(req)
+	if err != nil {
+		app.serverError(w, req, err)
+		return
+	}
+	groups, err := app.groups.AllForUser(userId)
 	if err != nil {
 		app.serverError(w, req, err)
 		return
 	}
 
+	var leaderboards []Leaderboard
+	for _, group := range groups {
+		users, err := app.users.GroupLeaderboard(group.ID)
+		if err != nil {
+			app.serverError(w, req, err)
+			return
+		}
+
+		var leaderboard = Leaderboard{
+			Title: fmt.Sprintf("%s Leaderboard", group.Name),
+			ID:    group.ID,
+			Users: users,
+		}
+
+		leaderboards = append(leaderboards, leaderboard)
+	}
+
+	globalLeaderboardUsers, err := app.users.GlobalLeaderboard()
+	if err != nil {
+		app.serverError(w, req, err)
+		return
+	}
+	var globalLeaderboard = Leaderboard{
+		Title: "Global Leaderboard",
+		Users: globalLeaderboardUsers,
+	}
+	leaderboards = append(leaderboards, globalLeaderboard)
+
 	data := app.newTemplateData(req)
-	data.Leaderboard = users
+	data.Leaderboards = leaderboards
 
 	app.render(w, req, http.StatusOK, "leaderboard.html", data)
 }

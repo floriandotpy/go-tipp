@@ -52,6 +52,9 @@
 .cc-table tbody tr:hover {
     background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
 }
+.cc-table .active {
+    font-weight: bold;
+}
 
 .cc-alert-flash {
     background: #1f8dd6;

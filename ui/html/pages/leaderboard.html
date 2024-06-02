@@ -1,6 +1,15 @@
 {{define "title"}}Leaderboard{{end}} {{define "main"}}
+
 <div class="container">
   <h2>Leaderboard</h2>
+
+  <p>
+    Hier kannst du deinen aktuellen Platz in deiner Gruppe sehen, sowie deinen
+    Platz im globalen Leaderboard mit allen Usern aus allen Gruppen gemeinsam.
+  </p>
+
+  {{ range .Leaderboards}}
+  <h3>{{.Title}}</h3>
   <table class="cc-table">
     <thead>
       <tr>
@@ -9,14 +18,16 @@
         <td>Gesamtpunkte</td>
       </tr>
     </thead>
-    {{range $i, $u := .Leaderboard}}
-    <tr>
+    {{range $i, $u := .Users}}
+    <tr {{if eq $.AuthUserId $u.ID}} class="active" {{end}}>
       <td>{{add $i 1}}</td>
       <td>{{$u.Name}}</td>
       <td>{{$u.Points}}</td>
     </tr>
     {{end}}
   </table>
+
+  {{end}}
 </div>
 
 {{end}}

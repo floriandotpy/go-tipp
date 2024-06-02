@@ -10,17 +10,24 @@ import (
 	"tipp.casualcoding.com/internal/models"
 )
 
+type Leaderboard struct {
+	Title string
+	Users []models.User
+	ID    int
+}
+
 type templateData struct {
 	CurrentYear     int
 	MatchTipps      []models.MatchTipp
 	Matches         []models.Match
 	Groups          []models.Group
-	Leaderboard     []models.User
+	Leaderboards    []Leaderboard
 	Flash           string
 	Form            any
 	IsAuthenticated bool
 	IsAdmin         bool
 	CSRFToken       string
+	AuthUserId      int
 }
 
 // prep translation mapping

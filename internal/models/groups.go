@@ -54,6 +54,44 @@ func (m *GroupModel) All() ([]Group, error) {
 	return groups, nil
 }
 
+func (m *GroupModel) AllForUser(userId int) ([]Group, error) {
+	stmt := `SELECT 
+    g.id AS group_id,
+    g.name AS group_name 
+FROM 
+    ` + "`" + `groups` + "`" + ` g
+JOIN 
+    user_groups ug ON g.id = ug.group_id 
+WHERE 
+    ug.user_id = 1
+ORDER BY 
+    group_id ASC;`
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var groups []Group
+
+	for rows.Next() {
+		var group Group
+		err = rows.Scan(&group.ID, &group.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		groups = append(groups, group)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return groups, nil
+}
+
 func (m *GroupModel) GetByInvite(invite string) (Group, error) {
 	stmt := "SELECT id, name, invite FROM `groups` WHERE invite = ? ORDER BY id ASC"
 

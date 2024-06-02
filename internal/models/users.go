@@ -118,3 +118,36 @@ func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
 
 	return users, nil
 }
+
+func (m *UserModel) GlobalLeaderboard() ([]User, error) {
+	stmt := `SELECT u.id AS user_id, u.name AS user_name, COALESCE(SUM(t.points), 0) AS total_points
+	FROM users u
+	LEFT JOIN tipps t ON u.id = t.user_id
+	GROUP BY u.id, u.name
+	ORDER BY total_points DESC;`
+
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.ID, &user.Name, &user.Points)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
