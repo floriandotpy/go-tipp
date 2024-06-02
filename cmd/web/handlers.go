@@ -228,7 +228,8 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "Mindestens 8 Zeichen lang")
 
 	// TODO: setup proper invite code management through database eventually
-	if form.Invite != "runde-ins-eckige-24" {
+	groupId, err := getGroupID(form.Invite)
+	if err != nil {
 		form.AddFieldError("invite", "Dieser Invitecode funktioniert nicht")
 	}
 
@@ -242,7 +243,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Otherwise send the placeholder response (for now!).
-	err = app.users.Insert(form.Name, form.Email, form.Password)
+	userId, err := app.users.Insert(form.Name, form.Email, form.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) || errors.Is(err, models.ErrDuplicateName) {
 
@@ -260,6 +261,8 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	app.groups.AddUserToGroup(userId, groupId)
 
 	app.sessionManager.Put(r.Context(), "flash", "Registrierung erfolgreich! Du kannst dich nun einloggen.")
 

@@ -101,3 +101,19 @@ func (app *application) authUserId(r *http.Request) (error, int) {
 	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
 	return nil, userId
 }
+
+var inviteToGroupId = map[string]int{
+	"runde-ins-eckige-24": 1,
+	"dk-tippspiel":        2,
+}
+
+func (app *application) getInvites() map[string]int {
+	return inviteToGroupId
+}
+
+func getGroupID(invite string) (int, error) {
+	if groupID, exists := inviteToGroupId[invite]; exists {
+		return groupID, nil
+	}
+	return 0, errors.New("invite not found")
+}
