@@ -1,7 +1,22 @@
 {{define "title"}}Leaderboard{{end}} {{define "main"}}
 <div class="container">
   <h2>Leaderboard</h2>
-  <p>folgt...</p>
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <td>Platz</td>
+        <td>Name</td>
+        <td>Gesamtpunkte</td>
+      </tr>
+    </thead>
+    {{range $i, $u := .Leaderboard}}
+    <tr>
+      <td>{{add $i 1}}</td>
+      <td>{{$u.Name}}</td>
+      <td>{{$u.Points}}</td>
+    </tr>
+    {{end}}
+  </table>
 </div>
 
 {{end}}

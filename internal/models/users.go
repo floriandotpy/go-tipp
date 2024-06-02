@@ -16,6 +16,7 @@ type User struct {
 	Email          string
 	HashedPassword []byte
 	Created        time.Time
+	Points         int
 }
 
 type UserModel struct {
@@ -81,4 +82,39 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 
 func (m *UserModel) Exists(id int) (bool, error) {
 	return false, nil
+}
+
+func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
+	stmt := `SELECT u.id AS user_id, u.name AS user_name, COALESCE(SUM(t.points), 0) AS total_points
+	FROM users u
+	JOIN user_groups ug ON u.id = ug.user_id
+	LEFT JOIN tipps t ON u.id = t.user_id
+	WHERE ug.group_id = ?
+	GROUP BY u.id, u.name
+	ORDER BY total_points DESC;`
+
+	rows, err := m.DB.Query(stmt, groupId)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.ID, &user.Name, &user.Points)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

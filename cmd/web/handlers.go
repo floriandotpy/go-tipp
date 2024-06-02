@@ -42,7 +42,19 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
+
+	// TODO: get all user groups from database
+	groupId := 1
+
+	users, err := app.users.GroupLeaderboard(groupId)
+	if err != nil {
+		app.serverError(w, req, err)
+		return
+	}
+
 	data := app.newTemplateData(req)
+	data.Leaderboard = users
+
 	app.render(w, req, http.StatusOK, "leaderboard.html", data)
 }
 

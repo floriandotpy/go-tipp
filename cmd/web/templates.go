@@ -15,6 +15,7 @@ type templateData struct {
 	MatchTipps      []models.MatchTipp
 	Matches         []models.Match
 	Groups          []models.Group
+	Leaderboard     []models.User
 	Flash           string
 	Form            any
 	IsAuthenticated bool
@@ -92,11 +93,16 @@ func defaultStr(val *int, defaultStr string) string {
 	}
 }
 
+func add(x, y int) int {
+	return x + y
+}
+
 var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
 	"matchResult":   matchResult,
 	"defaultStr":    defaultStr,
+	"add":           add,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
