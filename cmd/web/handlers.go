@@ -205,6 +205,11 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.NotBlank(form.Password), "password", "Darf nicht leer sein")
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "Mindestens 8 Zeichen lang")
 
+	// TODO: setup proper invite code management through database eventually
+	if form.Invite != "runde-ins-eckige-24" {
+		form.AddFieldError("invite", "Dieser Invitecode funktioniert nicht")
+	}
+
 	// If there are any errors, redisplay the signup form along with a 422
 	// status code.
 	if !form.Valid() {
@@ -215,7 +220,23 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Otherwise send the placeholder response (for now!).
-	fmt.Fprintln(w, "Create a new user...")
+	err = app.users.Insert(form.Name, form.Email, form.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			form.AddFieldError("email", "E-Mail wird bereits verwendet")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "signup.html", data)
+		} else {
+			app.serverError(w, r, err)
+		}
+
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Anmeldung erfolgreich! Du kannst dich nun einloggen.")
+
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
