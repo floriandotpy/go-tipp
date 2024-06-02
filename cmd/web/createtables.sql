@@ -19,13 +19,16 @@ CREATE TABLE matches (
     match_type VARCHAR(255)
 );
 
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255),
-    email VARCHAR(255) NOT NULL,
-    hashed_password CHAR(60) NOT NULL,
-    created DATETIME NOT NULL
-);
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `hashed_password` char(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `users_uc_email` (`email`),
+  UNIQUE KEY `users_uc_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE tipps (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -55,5 +58,3 @@ CREATE TABLE invites (
 	group_id INTEGER NOT NULL,
 	created DATETIME NOT NULL
 );
-
-ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (code);

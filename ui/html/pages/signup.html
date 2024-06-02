@@ -10,7 +10,7 @@
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <fieldset>
       <div class="pure-control-group">
-        <label>Invite code:</label>
+        <label>Invite Code:</label>
         <input
           type="text"
           name="invite"
@@ -22,20 +22,9 @@
         />
         {{with .Form.FieldErrors.invite}}
         <label class="error pure-form-message-inline">{{.}}</label> {{end}}
-      </div>
-      <div class="pure-control-group">
-        <label>Name:</label>
-        <input
-          type="text"
-          name="name"
-          value="{{.Form.Name}}"
-          {{if
-          .Form.FieldErrors.name}}
-          class="error"
-          {{end}}
-        />
-        {{with .Form.FieldErrors.name}}
-        <label class="error pure-form-message-inline">{{.}}</label> {{end}}
+        <p class="explanation">
+          Registrierung ist nur mit einem gültigen Invite Code möglich.
+        </p>
       </div>
       <div class="pure-control-group">
         <label>Email:</label>
@@ -51,6 +40,9 @@
         />
         {{with .Form.FieldErrors.email}}
         <label class="error pure-form-message-inline">{{.}}</label> {{end}}
+        <p class="explanation">
+          Mit dieser E-Mail-Adresse wirst du dich einloggen.
+        </p>
       </div>
       <div class="pure-control-group">
         <label>Password:</label>
@@ -65,7 +57,28 @@
         />
         {{with .Form.FieldErrors.password}}
         <label class="error pure-form-message-inline">{{.}}</label> {{end}}
+        <p class="explanation">Mindestens 8 Zeichen lang.</p>
       </div>
+      <div class="pure-control-group">
+        <label>Username:</label>
+
+        <input
+          type="text"
+          name="name"
+          value="{{.Form.Name}}"
+          {{if
+          .Form.FieldErrors.name}}
+          class="error"
+          {{end}}
+        />
+        {{with .Form.FieldErrors.name}}
+        <label class="error pure-form-message-inline">{{.}}</label> {{end}}
+        <p class="explanation">
+          Mit diesem Namen wirst du im Spiel angezeigt. 3-20 Buchstaben und
+          Zahlen, keine Leerzeichen.
+        </p>
+      </div>
+
       <div class="pure-controls">
         <input
           type="submit"

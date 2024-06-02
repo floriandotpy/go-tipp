@@ -108,8 +108,7 @@
 
 /* Forms */
 .pure-form input.error {
-    border: 1px dashed #B22222;
-    background-color: #ffd6d6;
+    border: 2px dashed #B22222;
 }
 
 .pure-form-message-inline.error, .pure-form-message.error {
@@ -121,6 +120,25 @@
 }
 .pure-form-aligned .pure-control-group .pure-form-message-inline {
     text-align: left;
+}
+.pure-form-aligned .pure-control-group {
+    margin-bottom: 2.5em
+}
+.pure-form-aligned .pure-control-group .explanation {
+    color: #858585;
+    font-size: 0.9em;
+    text-align: center;
+    width: 50%;
+}
+@media (max-width: 640px) {
+    .pure-form-aligned .pure-control-group .explanation {
+        width: 100%;
+    }
+    .pure-form-aligned .pure-control-group .pure-form-message-inline {
+        display: block;
+        width: 100%;
+        text-align: center;
+     }
 }
 
 

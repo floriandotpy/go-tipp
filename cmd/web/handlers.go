@@ -218,6 +218,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.NotBlank(form.Invite), "invite", "Darf nicht leer sein")
 	form.CheckField(validator.NotBlank(form.Name), "name", "Darf nicht leer sein")
 	form.CheckField(validator.NotBlank(form.Email), "email", "Darf nicht leer sein")
+	form.CheckField(validator.Matches(form.Name, validator.UsernameRX), "name", "Kein valider Username")
 	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "Keine valide E-Mail-Adresse")
 	form.CheckField(validator.NotBlank(form.Password), "password", "Darf nicht leer sein")
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "Mindestens 8 Zeichen lang")
@@ -239,8 +240,13 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	// Otherwise send the placeholder response (for now!).
 	err = app.users.Insert(form.Name, form.Email, form.Password)
 	if err != nil {
-		if errors.Is(err, models.ErrDuplicateEmail) {
-			form.AddFieldError("email", "E-Mail wird bereits verwendet")
+		if errors.Is(err, models.ErrDuplicateEmail) || errors.Is(err, models.ErrDuplicateName) {
+
+			if errors.Is(err, models.ErrDuplicateEmail) {
+				form.AddFieldError("email", "E-Mail wird bereits verwendet")
+			} else if errors.Is(err, models.ErrDuplicateName) {
+				form.AddFieldError("name", "Username bereits vergeben")
+			}
 			data := app.newTemplateData(r)
 			data.Form = form
 			app.render(w, r, http.StatusUnprocessableEntity, "signup.html", data)
