@@ -1,0 +1,54 @@
+{{define "title"}}Login{{end}} {{define "main"}}
+<div class="container">
+  <h2>Login</h2>
+  <form
+    action="/user/login"
+    method="POST"
+    novalidate
+    class="pure-form pure-form-aligned"
+  >
+    <fieldset>
+      {{range .Form.NonFieldErrors}}
+      <p class="cc-alert-error">{{.}}</p>
+      {{end}}
+      <div class="pure-control-group">
+        <label>Email:</label>
+
+        <input
+          type="email"
+          name="email"
+          value="{{.Form.Email}}"
+          {{if
+          .Form.FieldErrors.email}}
+          class="error"
+          {{end}}
+        />
+        {{with .Form.FieldErrors.email}}
+        <label class="error pure-form-message-inline">{{.}}</label> {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label>Password:</label>
+
+        <input
+          type="password"
+          name="password"
+          {{if
+          .Form.FieldErrors.password}}
+          class="error"
+          {{end}}
+        />
+        {{with .Form.FieldErrors.password}}
+        <label class="error pure-form-message-inline">{{.}}</label> {{end}}
+      </div>
+      <div class="pure-controls">
+        <input
+          type="submit"
+          value="Login"
+          class="pure-button pure-button-primary"
+        />
+      </div>
+    </fieldset>
+  </form>
+</div>
+
+{{end}}

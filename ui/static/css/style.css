@@ -45,8 +45,15 @@
     background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
 }
 
-.cc-flash {
+.cc-alert-flash {
     background: #1f8dd6;
+    border-radius: 3px;
+    color: #fff;
+    padding: 1em 1em;
+    text-align: center;
+}
+.cc-alert-error {
+    background: #B22222;
     border-radius: 3px;
     color: #fff;
     padding: 1em 1em;
