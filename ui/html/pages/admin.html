@@ -1,0 +1,38 @@
+{{define "title"}}Admin{{end}} {{define "main"}}
+<div class="container">
+  <h1>Admin</h1>
+
+  <h2>Aktionen</h2>
+  <form action="/action/score" method="post">
+    <button class="pure-button">Neueste Punkte verteilen</button>
+  </form>
+
+  <h2>Gruppen</h2>
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <td>ID</td>
+        <td>Name</td>
+        <td>Invite-Code</td>
+        <td>Direktlink</td>
+      </tr>
+    </thead>
+    {{range .Groups}}
+    <tr>
+      <td>{{.ID}}</td>
+      <td>{{.Name}}</td>
+      <td><em>{{.Invite}}</em></td>
+      <td>
+        <input
+          type="text"
+          disabled
+          size="50"
+          value="domain.com/user/signup?invite={{.Invite}}"
+        />
+      </td>
+    </tr>
+    {{end}}
+  </table>
+</div>
+
+{{end}}

@@ -228,7 +228,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	form.CheckField(validator.MinChars(form.Password, 8), "password", "Mindestens 8 Zeichen lang")
 
 	// TODO: setup proper invite code management through database eventually
-	groupId, err := getGroupID(form.Invite)
+	groupId, err := app.getGroupID(form.Invite)
 	if err != nil {
 		form.AddFieldError("invite", "Dieser Invitecode funktioniert nicht")
 	}
@@ -344,7 +344,14 @@ func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "List of available admin actions...")
+	data := app.newTemplateData(r)
+	groups, err := app.groups.All()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Groups = groups
+	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
 func (app *application) adminCreateInvitePost(w http.ResponseWriter, r *http.Request) {

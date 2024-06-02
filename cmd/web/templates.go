@@ -14,6 +14,7 @@ type templateData struct {
 	CurrentYear     int
 	MatchTipps      []models.MatchTipp
 	Matches         []models.Match
+	Groups          []models.Group
 	Flash           string
 	Form            any
 	IsAuthenticated bool

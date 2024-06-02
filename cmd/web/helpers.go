@@ -102,18 +102,17 @@ func (app *application) authUserId(r *http.Request) (error, int) {
 	return nil, userId
 }
 
-var inviteToGroupId = map[string]int{
-	"runde-ins-eckige-24": 1,
-	"dk-tippspiel":        2,
-}
+func (app *application) getGroupID(invite string) (int, error) {
 
-func (app *application) getInvites() map[string]int {
-	return inviteToGroupId
-}
-
-func getGroupID(invite string) (int, error) {
-	if groupID, exists := inviteToGroupId[invite]; exists {
-		return groupID, nil
+	// check for empty string to avoid accidental match if a group has no invite code set in the db
+	if len(invite) < 1 {
+		return 0, models.ErrInvalidInvite
 	}
-	return 0, errors.New("invite not found")
+
+	group, err := app.groups.GetByInvite(invite)
+	if err != nil {
+		return 0, err
+	}
+
+	return group.ID, nil
 }
