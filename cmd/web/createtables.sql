@@ -30,17 +30,24 @@ CREATE TABLE `users` (
   UNIQUE KEY `users_uc_name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE tipps (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    match_id INT NOT NULL,
-    user_id INT NOT NULL,
-    tipp_a INT NOT NULL,
-    tipp_b INT NOT NULL,
-    created DATETIME NOT NULL,
-    changed DATETIME NOT NULL,
-    FOREIGN KEY (match_id) REFERENCES matches(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
+CREATE TABLE `tipps` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `match_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `tipp_a` int NOT NULL,
+  `tipp_b` int NOT NULL,
+  `created` datetime NOT NULL,
+  `changed` datetime NOT NULL,
+  `result_correct` tinyint(1) NOT NULL DEFAULT '0',
+  `tendency_correct` tinyint(1) NOT NULL DEFAULT '0',
+  `goal_difference_correct` tinyint(1) NOT NULL DEFAULT '0',
+  `points` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `match_id` (`match_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `tipps_ibfk_1` FOREIGN KEY (`match_id`) REFERENCES `matches` (`id`),
+  CONSTRAINT `tipps_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE sessions (
     token CHAR(43) PRIMARY KEY, data BLOB NOT NULL,

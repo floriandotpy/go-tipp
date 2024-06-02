@@ -357,3 +357,18 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 func (app *application) adminCreateInvitePost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Create new invites in the database...")
 }
+
+func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request) {
+
+	rowsAffected, err := app.tipps.UpdatePoints()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	msg := fmt.Sprintf("Punkte erfolgreich aktualisiert für %d Einträge", rowsAffected)
+	app.sessionManager.Put(r.Context(), "flash", msg)
+
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+
+}

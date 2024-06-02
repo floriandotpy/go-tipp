@@ -36,6 +36,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /leaderboard", protected.ThenFunc(app.leaderboardHandler))
 	mux.Handle("GET /admin", protected.ThenFunc(app.adminIndex))
 	mux.Handle("POST /admin/newinvite", protected.ThenFunc(app.adminCreateInvitePost))
+	mux.Handle("POST /admin/updatepoints", protected.ThenFunc(app.adminUpdatePoints))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
 
 	// standard middleware chain

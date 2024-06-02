@@ -132,3 +132,47 @@ func (m *TippModel) AllForUser(userId int) ([]Tipp, error) {
 
 	return tipps, nil
 }
+
+// will compute and set the points in the database for all tipps that relate to completed matches
+// Returns the number of rows affected
+func (m *TippModel) UpdatePoints() (int, error) {
+	stmt := `
+	UPDATE tipps t
+	JOIN matches m ON t.match_id = m.id
+	SET 
+		t.result_correct = CASE 
+			WHEN t.tipp_a = m.result_a AND t.tipp_b = m.result_b THEN 1 
+			ELSE 0 
+		END,
+		t.goal_difference_correct = CASE 
+			WHEN (t.tipp_a - t.tipp_b) = (m.result_a - m.result_b) THEN 1 
+			ELSE 0 
+		END,
+		t.tendency_correct = CASE 
+			WHEN (t.tipp_a > t.tipp_b AND m.result_a > m.result_b) 
+				 OR (t.tipp_a = t.tipp_b AND m.result_a = m.result_b) 
+				 OR (t.tipp_a < t.tipp_b AND m.result_a < m.result_b) THEN 1 
+			ELSE 0 
+		END,
+		t.points = CASE
+			WHEN t.result_correct = 1 THEN 5
+			WHEN t.tendency_correct = 1 AND t.goal_difference_correct = 1 THEN 3
+			WHEN t.tendency_correct = 1 THEN 1
+			ELSE 0
+		END
+	WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL;
+	`
+
+	result, err := m.DB.Exec(stmt)
+	if err != nil {
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(rowsAffected), nil
+
+}

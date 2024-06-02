@@ -3,7 +3,8 @@
   <h1>Admin</h1>
 
   <h2>Aktionen</h2>
-  <form action="/action/score" method="post">
+  <form action="/admin/updatepoints" method="post">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <button class="pure-button">Neueste Punkte verteilen</button>
   </form>
 
