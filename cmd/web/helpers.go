@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-playground/form/v4"
 	"github.com/justinas/nosurf"
+	"tipp.casualcoding.com/internal/models"
 )
 
 func (app *application) serverError(w http.ResponseWriter, req *http.Request, err error) {
@@ -91,4 +92,12 @@ func (app *application) isAdmin(r *http.Request) bool {
 	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
 	// TODO: instead of hardcoding the admin id, have an admin column in the user table instead
 	return userId == 1
+}
+
+func (app *application) authUserId(r *http.Request) (error, int) {
+	if !app.isAuthenticated(r) {
+		return models.ErrNotLoggedIn, 0
+	}
+	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+	return nil, userId
 }

@@ -53,8 +53,11 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		app.serverError(w, req, err)
 	}
 
-	// TODO: load user id from current auth session eventually
-	userId := 1
+	err, userId := app.authUserId(req)
+	if err != nil {
+		// TODO: or a proper not authenticated error?
+		app.serverError(w, req, err)
+	}
 
 	// fetch joined data (matches & tipps)
 	matchTipps, err := app.matchTipps.All(userId)
@@ -110,8 +113,12 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// TODO: get user id from auth session
-	userId := 1
+	// get user id from session
+	err, userId := app.authUserId(r)
+	if err != nil {
+		// TODO: or a proper not authenticated error?
+		app.serverError(w, r, err)
+	}
 
 	// Iterate through form data
 	for key, values := range r.PostForm {
