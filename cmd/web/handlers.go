@@ -37,6 +37,16 @@ const TEAM_UA = "Ukraine"
 const TEAM_GR = "Griechenland"
 
 func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
+	data := app.newTemplateData(req)
+	app.render(w, req, http.StatusOK, "index.html", data)
+}
+
+func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
+	data := app.newTemplateData(req)
+	app.render(w, req, http.StatusOK, "leaderboard.html", data)
+}
+
+func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request) {
 
 	matches, err := app.matches.All()
 	if err != nil {
@@ -56,7 +66,7 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	data.MatchTipps = matchTipps
 	data.Matches = matches
 
-	app.render(w, req, http.StatusOK, "home.html", data)
+	app.render(w, req, http.StatusOK, "matches.html", data)
 }
 
 // view a single submitted tipp instance

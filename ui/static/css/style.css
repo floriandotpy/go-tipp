@@ -17,6 +17,14 @@
 .header-container__right {
     margin-left: auto; /* Push the button to the right */
 }
+.logo {
+    font-size: 1em;
+
+}
+.logo a {
+    text-decoration: none;
+    color: black;
+}
 
 .cc-table {
     width: 100%; /* Make the table span 100% of the container's width */
@@ -114,3 +122,37 @@
 .pure-form-aligned .pure-control-group .pure-form-message-inline {
     text-align: left;
 }
+
+
+/* Hero section */
+.hero {
+    
+}
+.hero__headline {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 42px;
+    line-height: 51px;
+    color: #151B32;
+}
+
+.hero__highlight {
+    color: #FEC021;
+}
+
+.hero__teaser {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 24px;
+    color: #333;
+    width: 33%;
+}
+@media (max-width: 640px) {
+    .hero__teaser {
+        width: 100%;
+    }
+}
+
