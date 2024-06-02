@@ -47,8 +47,10 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 
 func (app *application) newTemplateData(r *http.Request) templateData {
 	return templateData{
-		CurrentYear: time.Now().Year(),
-		Flash:       app.sessionManager.PopString(r.Context(), "flash"),
+		CurrentYear:     time.Now().Year(),
+		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
+		IsAuthenticated: app.isAuthenticated(r),
+		IsAdmin:         app.isAdmin(r),
 	}
 }
 
@@ -73,4 +75,17 @@ func (app *application) decodePostForm(r *http.Request, dst any) error {
 		return err
 	}
 	return nil
+}
+
+func (app *application) isAuthenticated(r *http.Request) bool {
+	return app.sessionManager.Exists(r.Context(), "authenticatedUserID")
+}
+
+func (app *application) isAdmin(r *http.Request) bool {
+	if !app.isAuthenticated(r) {
+		return false
+	}
+	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+	// TODO: instead of hardcoding the admin id, have an admin column in the user table instead
+	return userId == 1
 }

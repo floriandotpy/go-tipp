@@ -11,11 +11,13 @@ import (
 )
 
 type templateData struct {
-	CurrentYear int
-	MatchTipps  []models.MatchTipp
-	Matches     []models.Match
-	Flash       string
-	Form        any
+	CurrentYear     int
+	MatchTipps      []models.MatchTipp
+	Matches         []models.Match
+	Flash           string
+	Form            any
+	IsAuthenticated bool
+	IsAdmin         bool
 }
 
 // prep translation mapping
