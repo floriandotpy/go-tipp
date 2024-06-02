@@ -198,8 +198,12 @@ type userSignupForm struct {
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
+
 	data := app.newTemplateData(r)
-	data.Form = userSignupForm{}
+	form := userSignupForm{
+		Invite: r.URL.Query().Get("invite"),
+	}
+	data.Form = form
 	app.render(w, r, http.StatusOK, "signup.html", data)
 }
 
