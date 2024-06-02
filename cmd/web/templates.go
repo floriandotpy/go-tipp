@@ -15,6 +15,7 @@ type templateData struct {
 	MatchTipps  []models.MatchTipp
 	Matches     []models.Match
 	Flash       string
+	Form        any
 }
 
 // prep translation mapping

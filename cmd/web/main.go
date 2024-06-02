@@ -15,6 +15,7 @@ import (
 	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
 
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -24,7 +25,9 @@ type application struct {
 	matches        *models.MatchModel
 	tipps          *models.TippModel
 	matchTipps     *models.MatchTippModel
+	users          *models.UserModel
 	templateCache  map[string]*template.Template
+	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
 }
 
@@ -54,6 +57,7 @@ func main() {
 	matchModel := models.MatchModel{DB: db}
 	tippModel := models.TippModel{DB: db}
 	matchTippModel := models.MatchTippModel{DB: db, MatchModel: &matchModel, TippModel: &tippModel}
+	formDecoder := form.NewDecoder()
 	templateCache, err := newTemplateCache()
 	if err != nil {
 		logger.Error(err.Error())
@@ -64,7 +68,9 @@ func main() {
 		matches:        &matchModel,
 		tipps:          &tippModel,
 		matchTipps:     &matchTippModel,
+		users:          &models.UserModel{DB: db},
 		templateCache:  templateCache,
+		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
 	}
 

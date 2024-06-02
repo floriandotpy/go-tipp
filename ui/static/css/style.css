@@ -90,3 +90,20 @@
         text-align: left; /* Optional: Align text to the left */
     }
 }
+
+/* Forms */
+.pure-form input.error {
+    border: 1px dashed #B22222;
+    background-color: #ffd6d6;
+}
+
+.pure-form-message-inline.error, .pure-form-message.error {
+    color: #B22222; 
+}
+
+.pure-form-aligned .pure-control-group label {
+    width: 15em;
+}
+.pure-form-aligned .pure-control-group .pure-form-message-inline {
+    text-align: left;
+}

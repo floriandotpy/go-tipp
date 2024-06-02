@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"tipp.casualcoding.com/internal/models"
+	"tipp.casualcoding.com/internal/validator"
 )
 
 const TEAM_DE = "Deutschland"
@@ -170,11 +171,50 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+// Create a new userSignupForm struct.
+type userSignupForm struct {
+	Invite              string `form:"invite"`
+	Name                string `form:"name"`
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Display a form for signing up a new user...")
+	data := app.newTemplateData(r)
+	data.Form = userSignupForm{}
+	app.render(w, r, http.StatusOK, "signup.html", data)
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
+	// Declare an zero-valued instance of our userSignupForm struct.
+	var form userSignupForm
+
+	// Parse the form data into the userSignupForm struct.
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate the form contents using our helper functions.
+	form.CheckField(validator.NotBlank(form.Invite), "invite", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.Name), "name", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.Email), "email", "Darf nicht leer sein")
+	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "Keine valide E-Mail-Adresse")
+	form.CheckField(validator.NotBlank(form.Password), "password", "Darf nicht leer sein")
+	form.CheckField(validator.MinChars(form.Password, 8), "password", "Mindestens 8 Zeichen lang")
+
+	// If there are any errors, redisplay the signup form along with a 422
+	// status code.
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "signup.html", data)
+		return
+	}
+
+	// Otherwise send the placeholder response (for now!).
 	fmt.Fprintln(w, "Create a new user...")
 }
 
