@@ -18,6 +18,7 @@ type templateData struct {
 	Form            any
 	IsAuthenticated bool
 	IsAdmin         bool
+	CSRFToken       string
 }
 
 // prep translation mapping

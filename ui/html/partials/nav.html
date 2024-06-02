@@ -11,6 +11,7 @@
     <a href="/admin" class="pure-button">🕶️ Admin</a>
     {{end}}
     <form action="/user/logout" method="post">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
       <button class="pure-button">➡️ Logout</button>
     </form>
     {{else}}

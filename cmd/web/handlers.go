@@ -178,7 +178,7 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 
 	app.sessionManager.Put(r.Context(), "flash", "Tipps gespeichert!")
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/spiele", http.StatusSeeOther)
 }
 
 // Create a new userSignupForm struct.
@@ -308,7 +308,7 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 
 	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/spiele", http.StatusSeeOther)
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
