@@ -63,10 +63,10 @@ FROM
 JOIN 
     user_groups ug ON g.id = ug.group_id 
 WHERE 
-    ug.user_id = 1
+    ug.user_id = ?
 ORDER BY 
     group_id ASC;`
-	rows, err := m.DB.Query(stmt)
+	rows, err := m.DB.Query(stmt, userId)
 	if err != nil {
 		return nil, err
 	}
