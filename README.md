@@ -7,8 +7,22 @@ A self-hosted sport betting game for me an my friends, written in Go.
 1. Install Go
 2. Install MySQL
 3. Create user and database (suggested: db name `gotipp` and user name `gotipp`).
-4. Run initial SQL statements (see `cmd/web/createtables.sql`)
-5. Setup a local certificate for https
+4. Run database setup (see below)
+5. Setup a local certificate for https (see below)
+
+## Database setup
+
+1. Add the database connection string to your environment variables
+
+```
+export DATABASE_URL="mysql://DB_USER:DB_PASSWORD/DB_NAME?parseTime=true"
+```
+
+Note: Replace DB_USER, DB_PASSWORD and DB_NAME with the values for your system.
+
+2. Install dbmate for database migrations: https://github.com/amacneil/dbmate
+3. (optional) Run `dbmate create` to create a new database (if you haven't done that manually)
+4. Run `dbmate up` to run the migrations which create the schema and insert initial data
 
 ## TLS setup
 

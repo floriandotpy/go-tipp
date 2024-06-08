@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"tipp.casualcoding.com/internal/models"
@@ -40,6 +41,11 @@ func main() {
 
 	// logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	// Strip the "mysql://" prefix
+	if strings.HasPrefix(*dsn, "mysql://") {
+		*dsn = strings.TrimPrefix(*dsn, "mysql://")
+	}
 
 	// database connection pool
 	db, err := openDB(*dsn)
