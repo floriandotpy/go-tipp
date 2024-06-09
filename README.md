@@ -15,7 +15,8 @@ A self-hosted sport betting game for me an my friends, written in Go.
 1. Add the database connection string to your environment variables
 
 ```
-export DATABASE_URL="mysql://DB_USER:DB_PASSWORD/DB_NAME?parseTime=true"
+export DATABASE_URL="mysql://DB_USER:DB_PASSWORD@HOST:PORT/DB_NAME"
+export DATABASE_URL_GO="DB_USER:DB_PASSWORD/DB_NAME?parseTime=true"
 ```
 
 Note: Replace DB_USER, DB_PASSWORD and DB_NAME with the values for your system.
@@ -39,8 +40,16 @@ Note: The path to `generate_cert.go` may be different on your system, but it sho
 
 Note: Replace db name, user name and password with your own names in the following statement:
 
+Run with https enabled (using local self-signed certificate)
+
 ```sh
-go run ./cmd/web -addr=":8090" -dsn="gotipp:password@/gotipp?parseTime=true"
+sh runhttps.sh
+```
+
+Run with http disabled (for example in production: using the https of a production server, behind a reverse proxy)
+
+```sh
+sh run.sh
 ```
 
 In your browser, open:

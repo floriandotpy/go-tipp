@@ -37,6 +37,7 @@ func main() {
 	// CLI flags
 	addr := flag.String("addr", ":8090", "HTTP network address")
 	dsn := flag.String("dsn", "user:pass@/dbname?parseTime=true", "MySQL data source name")
+	https := flag.Bool("https", false, "Enable TLS for https")
 	flag.Parse()
 
 	// logger
@@ -100,7 +101,11 @@ func main() {
 	// start server
 	logger.Info("Starting server", "addr", srv.Addr)
 
-	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
+	if *https {
+		err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
+	} else {
+		err = srv.ListenAndServe()
+	}
 	logger.Error(err.Error())
 	os.Exit(1)
 }
