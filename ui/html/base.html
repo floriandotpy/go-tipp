@@ -14,7 +14,7 @@
     />
   </head>
   <body>
-    <header class="container">
+    <header class="container w-100">
       <h1 class="logo">
         <a {{if .IsAuthenticated}} href="/spiele" {{else}} href="/" {{end}}
           >⚽️ GoTipp</a
@@ -22,7 +22,7 @@
       </h1>
     </header>
     {{template "nav" .}}
-    <main>
+    <main class="content">
       {{with .Flash}}
       <div class="container">
         <p class="cc-alert-flash">{{.}}</p>
