@@ -34,10 +34,13 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /tipp/view/{tippID}", protected.ThenFunc(app.tippViewHandler))
 	mux.Handle("GET /spiele", protected.ThenFunc(app.matchesHandler))
 	mux.Handle("GET /leaderboard", protected.ThenFunc(app.leaderboardHandler))
-	mux.Handle("GET /admin", protected.ThenFunc(app.adminIndex))
-	mux.Handle("POST /admin/newinvite", protected.ThenFunc(app.adminCreateInvitePost))
-	mux.Handle("POST /admin/updatepoints", protected.ThenFunc(app.adminUpdatePoints))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
+
+	// protected routes (=admin required)
+	admin := dynamic.Append(app.requireAdminAuthentication)
+	mux.Handle("GET /admin", admin.ThenFunc(app.adminIndex))
+	mux.Handle("POST /admin/newinvite", admin.ThenFunc(app.adminCreateInvitePost))
+	mux.Handle("POST /admin/updatepoints", admin.ThenFunc(app.adminUpdatePoints))
 
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)

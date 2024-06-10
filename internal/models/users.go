@@ -17,6 +17,7 @@ type User struct {
 	HashedPassword []byte
 	Created        time.Time
 	Points         int
+	IsAdmin        bool
 }
 
 type UserModel struct {
@@ -53,31 +54,32 @@ func (m *UserModel) Insert(name, email, password string) (int, error) {
 	return int(id), nil
 }
 
-func (m *UserModel) Authenticate(email, password string) (int, error) {
+func (m *UserModel) Authenticate(email, password string) (int, bool, error) {
 
 	var id int
 	var hashedPassword []byte
+	var isAdmin bool
 
-	stmt := "SELECT id, hashed_password FROM users WHERE email = ?"
-	err := m.DB.QueryRow(stmt, email).Scan(&id, &hashedPassword)
+	stmt := "SELECT id, hashed_password, admin FROM users WHERE email = ?"
+	err := m.DB.QueryRow(stmt, email).Scan(&id, &hashedPassword, &isAdmin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrInvalidCredentials
+			return 0, false, ErrInvalidCredentials
 		} else {
-			return 0, err
+			return 0, false, err
 		}
 	}
 
 	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return 0, ErrInvalidCredentials
+			return 0, false, ErrInvalidCredentials
 		} else {
-			return 0, err
+			return 0, false, err
 		}
 	}
 
-	return id, nil
+	return id, isAdmin, nil
 }
 
 func (m *UserModel) Exists(id int) (bool, error) {

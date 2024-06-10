@@ -91,9 +91,13 @@ func (app *application) isAdmin(r *http.Request) bool {
 	if !app.isAuthenticated(r) {
 		return false
 	}
-	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
-	// TODO: instead of hardcoding the admin id, have an admin column in the user table instead
-	return userId == 1
+
+	if !app.sessionManager.Exists(r.Context(), "authenticatedUserID") {
+		return false
+	}
+
+	isAdmin := app.sessionManager.GetBool(r.Context(), "isAdmin")
+	return isAdmin
 }
 
 func (app *application) authUserId(r *http.Request) (error, int) {
