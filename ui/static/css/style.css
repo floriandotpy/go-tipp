@@ -1,9 +1,9 @@
 :root {
-    --dark-slate-gray: #275054ff;
-    --platinum: #DADBDBff;
-    --asparagus: #6D8D3Eff;
-    --rebecca-purple: #73409Dff;
-    --khaki: #C8AE9Eff;
+    --russian-violet: #341E57ff;
+    --baby-powder: #FAFBF9ff;
+    --ash-gray: #C1D6BFff;
+    --mantis: #65B152ff;
+    --tekhelet: #5A287Eff;
 }
 
 html, body {
@@ -206,7 +206,7 @@ text-align: center;
     }
   
     .hero__image {
-      flex: 0 0 50%;
+      flex: 0 0 55%;
       margin-left: auto;
     }
   
@@ -225,10 +225,10 @@ text-align: center;
 }
 
 .hero__highlight {
-    color: var(--rebecca-purple);
+    color: var(--tekhelet);
 }
 .pure-button-primary, a.pure-button-primary {
-    background-color: var(--asparagus);
+    background-color: var(--mantis);
 }
 
 .hero__teaser {
