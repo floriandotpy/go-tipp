@@ -15,6 +15,7 @@
       <tr>
         <td>Platz</td>
         <td>Name</td>
+        <td>Tipps abgegeben</td>
         <td>Gesamtpunkte</td>
       </tr>
     </thead>
@@ -22,6 +23,7 @@
     <tr {{if eq $.AuthUserId $u.ID}} class="active" {{end}}>
       <td>{{add $i 1}}</td>
       <td>{{$u.Name}}</td>
+      <td>{{$u.Tipps}}</td>
       <td>{{$u.Points}}</td>
     </tr>
     {{end}}

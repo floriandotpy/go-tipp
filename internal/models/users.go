@@ -17,6 +17,7 @@ type User struct {
 	HashedPassword []byte
 	Created        time.Time
 	Points         int
+	Tipps          int
 	IsAdmin        bool
 }
 
@@ -87,13 +88,17 @@ func (m *UserModel) Exists(id int) (bool, error) {
 }
 
 func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
-	stmt := `SELECT u.id AS user_id, u.name AS user_name, COALESCE(SUM(t.points), 0) AS total_points
+	stmt := `SELECT 
+		u.id AS user_id, 
+		u.name AS user_name, 
+		COALESCE(SUM(t.points), 0) AS total_points,
+		COUNT(t.id) AS tipps_count
 	FROM users u
 	JOIN user_groups ug ON u.id = ug.user_id
 	LEFT JOIN tipps t ON u.id = t.user_id
 	WHERE ug.group_id = ?
 	GROUP BY u.id, u.name
-	ORDER BY total_points DESC;`
+	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
 	rows, err := m.DB.Query(stmt, groupId)
 	if err != nil {
@@ -106,7 +111,7 @@ func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
 
 	for rows.Next() {
 		var user User
-		err = rows.Scan(&user.ID, &user.Name, &user.Points)
+		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps)
 		if err != nil {
 			return nil, err
 		}
@@ -122,11 +127,15 @@ func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
 }
 
 func (m *UserModel) GlobalLeaderboard() ([]User, error) {
-	stmt := `SELECT u.id AS user_id, u.name AS user_name, COALESCE(SUM(t.points), 0) AS total_points
+	stmt := `SELECT 
+		u.id AS user_id, 
+		u.name AS user_name, 
+		COALESCE(SUM(t.points), 0) AS total_points, 
+		COUNT(t.id) AS tipps_count
 	FROM users u
 	LEFT JOIN tipps t ON u.id = t.user_id
 	GROUP BY u.id, u.name
-	ORDER BY total_points DESC;`
+	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
@@ -139,7 +148,7 @@ func (m *UserModel) GlobalLeaderboard() ([]User, error) {
 
 	for rows.Next() {
 		var user User
-		err = rows.Scan(&user.ID, &user.Name, &user.Points)
+		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps)
 		if err != nil {
 			return nil, err
 		}
