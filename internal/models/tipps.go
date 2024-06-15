@@ -15,6 +15,11 @@ type Tipp struct {
 	Created time.Time
 	Changed time.Time
 
+	TendencyCorrect       bool
+	GoalDifferenceCorrect bool
+	ResultCorrect         bool
+	Points                int
+
 	// optional (derived properties, not set on all queries)
 	UserName string
 }
@@ -137,12 +142,12 @@ func (m *TippModel) AllForUser(userId int) ([]Tipp, error) {
 }
 
 func (m *TippModel) AllForMatch(matchId int) ([]Tipp, error) {
-	stmt := `SELECT t.id, t.match_id, t.user_id, t.tipp_a, t.tipp_b, t.created, t.changed, u.name as user_name FROM tipps t
+	stmt := `SELECT t.id, t.match_id, t.user_id, t.tipp_a, t.tipp_b, t.created, t.changed, u.name as user_name, t.tendency_correct, t.goal_difference_correct, t.result_correct, t.points FROM tipps t
 	JOIN  
 	users u
 	ON 
 	t.user_id = u.id
-	WHERE match_id = ?`
+	WHERE match_id = ? ORDER BY t.points DESC, user_name ASC`
 	rows, err := m.DB.Query(stmt, matchId)
 	if err != nil {
 		return nil, err
@@ -151,7 +156,7 @@ func (m *TippModel) AllForMatch(matchId int) ([]Tipp, error) {
 	var tipps []Tipp
 	for rows.Next() {
 		var t Tipp
-		err = rows.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed, &t.UserName)
+		err = rows.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed, &t.UserName, &t.TendencyCorrect, &t.GoalDifferenceCorrect, &t.ResultCorrect, &t.Points)
 		if err != nil {
 			return nil, err
 		}

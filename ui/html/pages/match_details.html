@@ -1,21 +1,38 @@
 {{define "title"}}Spiele{{end}} {{define "main"}}
 <div class="container">
-  <h2>Spiel: {{.Match.TeamA}} gegen {{.Match.TeamB}}</h2>
-  <p>
-    <em>{{.Match.MatchType}}</em>
-  </p>
-  <div>
-    Spielstart: {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
-    ({{.Match.Start.Format "15:04" }} Uhr)
+  <div class="match-details match-details-top">
+    <p class="match-details__subtitle">{{.Match.MatchType}}</p>
+    <p class="match-details__result">{{.Match.TeamA}} gegen {{.Match.TeamB}}</p>
   </div>
 
+  <div class="match-details">
+    <p class="match-details__subtitle">Spielstart</p>
+    <p class="match-details__result">
+      {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
+      ({{.Match.Start.Format "15:04" }} Uhr)
+    </p>
+  </div>
+
+  <div class="match-details">
+    <p class="match-details__subtitle">Endergebnis</p>
+    <p class="match-details__result">
+      {{if eq $.Status "done"}}{{.Match.ResultA}} : {{.Match.ResultB}} {{else}}
+      ? : ? {{end}}
+    </p>
+  </div>
   {{if .Tipps}}
-  <h2>Tipps</h2>
+  <h2>Abgegebene Tipps</h2>
   <table class="cc-table">
     <thead>
       <tr>
         <td>User</td>
         <td>Tipp</td>
+        {{if eq $.Status "done"}}
+        <td>Tendenz richtig</td>
+        <td>Tordifferenz richtig</td>
+        <td>Ergebnis richtig</td>
+        <td>Punkte</td>
+        {{end}}
       </tr>
     </thead>
     <tbody>
@@ -23,6 +40,12 @@
       <tr {{if eq $.AuthUserId .UserId}} class="active" {{end}}>
         <td>{{.UserName}}</td>
         <td>{{.TippA}} : {{.TippB}}</td>
+        {{if eq $.Status "done"}}
+        <td>{{ germanYesNo .TendencyCorrect }}</td>
+        <td>{{ germanYesNo .GoalDifferenceCorrect }}</td>
+        <td>{{ germanYesNo .ResultCorrect }}</td>
+        <td>{{ .Points }}</td>
+        {{end}}
       </tr>
       {{end}}
     </tbody>

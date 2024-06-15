@@ -324,3 +324,23 @@ a.status-future::before {
     left: 50%;
     transform: translate(-50%, -50%); /* Center the icon */
 }
+
+
+
+.match-details {
+    margin: 24px 0;
+}
+
+.match-details.match-details-top {
+    margin-top: 48px;
+}
+.match-details__subtitle {
+    font-size: 0.8em;
+    color: lightslategray;
+    text-transform: uppercase;
+    margin: 0;
+}
+.match-details__result {
+    font-size: 2em;
+    margin: 0;
+}

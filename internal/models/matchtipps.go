@@ -31,6 +31,14 @@ type MatchTipp struct {
 	TippChanged *time.Time
 }
 
+// Define string constants for match statuses
+const (
+	MatchFuture  = "future"
+	MatchLive    = "live"
+	MatchDone    = "done"
+	MatchPending = "pending"
+)
+
 func (mt *MatchTipp) SetTipp(tipp Tipp) {
 	mt.TippA = &tipp.TippA
 	mt.TippB = &tipp.TippB
@@ -44,6 +52,18 @@ type MatchTippModel struct {
 	TippModel  *TippModel
 }
 
+func (m *MatchTippModel) MatchStatus(start time.Time, now time.Time, resultA *int, resultB *int) string {
+	if now.Before(start) {
+		return MatchFuture
+	} else if resultA != nil && resultB != nil {
+		return MatchDone
+	} else if now.Sub(start) >= 120*time.Minute && resultA == nil && resultB == nil {
+		return MatchPending
+	} else {
+		return MatchLive
+	}
+}
+
 func (m *MatchTippModel) AcceptsTipps(matchId int) (bool, error) {
 	if m.MatchModel == nil {
 		return false, errors.New("MatchModel is nil")
@@ -55,28 +75,6 @@ func (m *MatchTippModel) AcceptsTipps(matchId int) (bool, error) {
 	}
 
 	return accepts, nil
-}
-
-// todo: move somewhere else
-// Define string constants for match statuses
-const (
-	MatchFuture  = "future"
-	MatchLive    = "live"
-	MatchDone    = "done"
-	MatchPending = "pending"
-)
-
-// matchStatus determines the status of a match
-func matchStatus(start time.Time, now time.Time, resultA *int, resultB *int) string {
-	if now.Before(start) {
-		return MatchFuture
-	} else if resultA != nil && resultB != nil {
-		return MatchDone
-	} else if now.Sub(start) >= 120*time.Minute && resultA == nil && resultB == nil {
-		return MatchPending
-	} else {
-		return MatchLive
-	}
 }
 
 func (m *MatchTippModel) All(userId int) ([]MatchTipp, error) {
@@ -104,7 +102,7 @@ func (m *MatchTippModel) All(userId int) ([]MatchTipp, error) {
 		if err != nil {
 			return nil, err
 		}
-		status := matchStatus(match.Start, now, match.ResultA, match.ResultB)
+		status := m.MatchStatus(match.Start, now, match.ResultA, match.ResultB)
 		mt := MatchTipp{
 			MatchId:      match.ID,
 			TeamA:        match.TeamA,

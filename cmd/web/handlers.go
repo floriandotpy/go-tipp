@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"tipp.casualcoding.com/internal/models"
 	"tipp.casualcoding.com/internal/validator"
@@ -134,6 +135,10 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 
 	data := app.newTemplateData(r)
 	data.Match = match
+
+	now := time.Now()
+	status := app.matchTipps.MatchStatus(match.Start, now, match.ResultA, match.ResultB)
+	data.Status = status
 
 	// below: if tipps are no longer accepted, we can display other users' tipps
 	acceptsTipps, err := app.matches.AcceptsTipps(matchId)

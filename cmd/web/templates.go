@@ -24,6 +24,7 @@ type templateData struct {
 	Groups          []models.Group
 	Leaderboards    []Leaderboard
 	Match           models.Match
+	Status          string // move into Match object?
 	Flash           string
 	Form            any
 	IsAuthenticated bool
@@ -77,6 +78,14 @@ func germanDate(t time.Time) string {
 	return fmt.Sprintf("%d. %s %d", day, germanMonth, year)
 }
 
+func germanYesNo(val bool) string {
+	if val {
+		return "Ja"
+	} else {
+		return "Nein"
+	}
+}
+
 func matchResult(result_a *int, result_b *int) string {
 	var str_a string
 	var str_b string
@@ -112,6 +121,7 @@ var functions = template.FuncMap{
 	"matchResult":   matchResult,
 	"defaultStr":    defaultStr,
 	"add":           add,
+	"germanYesNo":   germanYesNo,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
