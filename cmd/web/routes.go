@@ -29,14 +29,15 @@ func (app *application) routes() http.Handler {
 	// protected routes (=auth required)
 	protected := dynamic.Append(app.requireAuthentication)
 
-	// admin routes
+	// protected routes (=login required)
 	mux.Handle("POST /tipp/update", protected.ThenFunc(app.tippUpdateMultipleHandler))
 	mux.Handle("GET /tipp/view/{tippID}", protected.ThenFunc(app.tippViewHandler))
 	mux.Handle("GET /spiele", protected.ThenFunc(app.matchesHandler))
+	mux.Handle("GET /spiel/{matchID}", protected.ThenFunc(app.matchDetailsHandler))
 	mux.Handle("GET /leaderboard", protected.ThenFunc(app.leaderboardHandler))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
 
-	// protected routes (=admin required)
+	// admin routes
 	admin := dynamic.Append(app.requireAdminAuthentication)
 	mux.Handle("GET /admin", admin.ThenFunc(app.adminIndex))
 	mux.Handle("POST /admin/newinvite", admin.ThenFunc(app.adminCreateInvitePost))

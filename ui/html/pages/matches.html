@@ -16,6 +16,7 @@
     <table class="cc-table">
       <thead class="">
         <tr>
+          <th></th>
           <th>Tag</th>
           <th>Uhrzeit</th>
           <th>Team 1</th>
@@ -27,6 +28,15 @@
       <tbody class="">
         {{range .MatchTipps}}
         <tr class="">
+          <td>
+            {{if ne .Status "future"}}
+            <a
+              href="/spiel/{{.MatchId}}"
+              class="status-label status-{{.Status}}"
+              >status</a
+            >
+            {{end}}
+          </td>
           <td>{{germanWeekday .Start}}, {{germanDate .Start}}</td>
           <td>{{.Start.Format "15:04" }}</td>
           <td>{{.TeamA}}</td>

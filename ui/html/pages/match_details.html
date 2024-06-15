@@ -1,0 +1,33 @@
+{{define "title"}}Spiele{{end}} {{define "main"}}
+<div class="container">
+  <h2>Spiel: {{.Match.TeamA}} gegen {{.Match.TeamB}}</h2>
+  <p>
+    <em>{{.Match.MatchType}}</em>
+  </p>
+  <div>
+    Spielstart: {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
+    ({{.Match.Start.Format "15:04" }} Uhr)
+  </div>
+
+  {{if .Tipps}}
+  <h2>Tipps</h2>
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <td>User</td>
+        <td>Tipp</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Tipps}}
+      <tr {{if eq $.AuthUserId .UserId}} class="active" {{end}}>
+        <td>{{.UserName}}</td>
+        <td>{{.TippA}} : {{.TippB}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</div>
+
+{{end}}

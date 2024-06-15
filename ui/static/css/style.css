@@ -242,3 +242,85 @@ text-align: center;
 .hero__cta {
     margin: 48px 0;
 }
+
+
+
+
+/* General styles for all status links */
+a.status-label {
+    display: inline-block;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    text-align: center; /* Center the emoji */
+    line-height: 1.5; /* Vertically center the emoji */
+}
+
+a.status-live {
+    background-color: red; /* Red background color */
+    color: transparent; /* Hide the text */
+    position: relative; /* Position for the pseudo-element */
+}
+
+.status-live::before {
+    color: white;
+    content: "live";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the icon */
+}
+
+
+a.status-live:hover {
+    background-color: darkred; /* Darker red on hover for better visual feedback */
+}
+
+/* Specific styles for each status type */
+a.status-pending {
+    /* background-color: grey; */
+    color: transparent; /* Hide the text */
+    position: relative; /* Position for the pseudo-element */
+}
+
+a.status-pending::before {
+    content: "\231B"; /* Unicode for hourglass */
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the icon */
+}
+
+a.status-done {
+    /* background-color: lightgrey; */
+    color: transparent; /* Hide the text */
+    position: relative; /* Position for the pseudo-element */
+}
+
+a.status-done::before {
+    content: "\2714"; /* Unicode for checkmark */
+    color: black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the icon */
+}
+
+a.status-future {
+    background-color: lightblue;
+    color: transparent; /* Hide the text */
+    position: relative; /* Position for the pseudo-element */
+}
+
+a.status-future::before {
+    content: "\23F1"; /* Unicode for stopwatch */
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the icon */
+}

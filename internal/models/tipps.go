@@ -14,6 +14,9 @@ type Tipp struct {
 	TippB   int
 	Created time.Time
 	Changed time.Time
+
+	// optional (derived properties, not set on all queries)
+	UserName string
 }
 
 type TippModel struct {
@@ -120,6 +123,35 @@ func (m *TippModel) AllForUser(userId int) ([]Tipp, error) {
 	for rows.Next() {
 		var t Tipp
 		err = rows.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
+		if err != nil {
+			return nil, err
+		}
+		tipps = append(tipps, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tipps, nil
+}
+
+func (m *TippModel) AllForMatch(matchId int) ([]Tipp, error) {
+	stmt := `SELECT t.id, t.match_id, t.user_id, t.tipp_a, t.tipp_b, t.created, t.changed, u.name as user_name FROM tipps t
+	JOIN  
+	users u
+	ON 
+	t.user_id = u.id
+	WHERE match_id = ?`
+	rows, err := m.DB.Query(stmt, matchId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tipps []Tipp
+	for rows.Next() {
+		var t Tipp
+		err = rows.Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed, &t.UserName)
 		if err != nil {
 			return nil, err
 		}

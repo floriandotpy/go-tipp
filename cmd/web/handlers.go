@@ -115,6 +115,42 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	app.render(w, req, http.StatusOK, "matches.html", data)
 }
 
+func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Request) {
+
+	matchId, err := strconv.Atoi(r.PathValue("matchID"))
+	if err != nil || matchId < 0 {
+		http.NotFound(w, r)
+		return
+	}
+	match, err := app.matches.Get(matchId)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.Match = match
+
+	// below: if tipps are no longer accepted, we can display other users' tipps
+	acceptsTipps, err := app.matches.AcceptsTipps(matchId)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+	if !acceptsTipps { // TODO: not pretty: runs second query
+		tipps, err := app.tipps.AllForMatch(matchId)
+		if err != nil {
+			app.serverError(w, r, err)
+		}
+		data.Tipps = tipps
+	}
+
+	app.render(w, r, http.StatusOK, "match_details.html", data)
+}
+
 // view a single submitted tipp instance
 func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) {
 	tippId, err := strconv.Atoi(r.PathValue("tippID"))
