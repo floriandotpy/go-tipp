@@ -57,3 +57,17 @@ In your browser, open:
 ```
 https://localhost:8090/
 ```
+
+# Update scores automatically using API
+
+Run this script to fetch results from
+
+Set up cronjob (configured to run on [Uberspace](https://manual.uberspace.de/daemons-cron/)):
+
+```
+MAILTO=""
+# disable emails of crontab output (errors will still be mailed)
+*/2 17-23 * * * export DATABASE_URL_GO="<syntax see above>"; cd /path/to/go-tipp; /bin/bash fetch_results.sh
+```
+
+(Runs every two minutes between 17:00 to 23:59)
