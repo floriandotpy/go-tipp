@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"math"
 	"time"
 )
 
@@ -175,7 +176,8 @@ func (m *TippModel) AllForMatch(matchId int) ([]Tipp, error) {
 // will compute and set the points in the database for all tipps that relate to completed matches
 // Returns the number of rows affected
 func (m *TippModel) UpdatePoints() (int, error) {
-	stmt := `
+	// First update result_correct, goal_difference_correct, and tendency_correct
+	stmt1 := `
 	UPDATE tipps t
 	JOIN matches m ON t.match_id = m.id
 	SET 
@@ -192,26 +194,47 @@ func (m *TippModel) UpdatePoints() (int, error) {
 				 OR (t.tipp_a = t.tipp_b AND m.result_a = m.result_b) 
 				 OR (t.tipp_a < t.tipp_b AND m.result_a < m.result_b) THEN 1 
 			ELSE 0 
-		END,
-		t.points = CASE
-			WHEN t.result_correct = 1 THEN 5
-			WHEN t.tendency_correct = 1 AND t.goal_difference_correct = 1 THEN 3
-			WHEN t.tendency_correct = 1 THEN 1
-			ELSE 0
 		END
 	WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL;
 	`
 
-	result, err := m.DB.Exec(stmt)
+	// Execute the first statement
+	result1, err := m.DB.Exec(stmt1)
 	if err != nil {
 		return 0, err
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	// Check the number of rows affected by the first statement
+	rowsAffected1, err := result1.RowsAffected()
 	if err != nil {
 		return 0, err
 	}
 
-	return int(rowsAffected), nil
+	// Second update to set the points based on the updated result_correct, goal_difference_correct, and tendency_correct
+	stmt2 := `
+	UPDATE tipps
+	SET 
+		points = CASE
+			WHEN result_correct = 1 THEN 5
+			WHEN tendency_correct = 1 AND goal_difference_correct = 1 THEN 3
+			WHEN tendency_correct = 1 THEN 1
+			ELSE 0
+		END;
+	`
 
+	// Execute the second statement
+	result2, err := m.DB.Exec(stmt2)
+	if err != nil {
+		return 0, err
+	}
+
+	// Check the number of rows affected by the second statement
+	rowsAffected2, err := result2.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	// Return the max number of rows affected by both statements
+	rowsAffected := int(math.Max(float64(rowsAffected1), float64(rowsAffected2)))
+	return rowsAffected, nil
 }

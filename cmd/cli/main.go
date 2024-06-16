@@ -77,6 +77,9 @@ func main() {
 
 	// Create a MatchModel instance
 	matchModel := &models.MatchModel{DB: db}
+	tippModel := &models.TippModel{DB: db}
+
+	var dbUpdated = false
 
 	for _, apiMatch := range matches {
 		// Parse match date and time
@@ -123,6 +126,7 @@ func main() {
 			if dbMatch.ResultA == nil && dbMatch.ResultB == nil {
 				fmt.Printf("-> Update result to %d:%d\n", endScoreTeamA, endScoreTeamB)
 				matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB)
+				dbUpdated = true
 			} else if *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB {
 				fmt.Printf("Warning: Score mismatch API (%d:%d) vs DB (%d:%d)\n", *dbMatch.ResultA, *dbMatch.ResultB, endScoreTeamA, endScoreTeamB)
 			} else {
@@ -131,6 +135,21 @@ func main() {
 		}
 
 		fmt.Printf("\n")
+	}
+
+	fmt.Printf("\n")
+
+	if dbUpdated {
+		fmt.Printf("Trigger point update for all user tipps...\n")
+		rowsAffected, err := tippModel.UpdatePoints()
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Done, updated %d db entries\n", rowsAffected)
+	} else {
+		fmt.Printf("No database updated occured, no user points were affected\n")
 	}
 }
 
