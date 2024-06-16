@@ -29,6 +29,7 @@ type MatchTipp struct {
 	TippB       *int
 	TippCreated *time.Time
 	TippChanged *time.Time
+	Points      int
 }
 
 // Define string constants for match statuses
@@ -44,6 +45,7 @@ func (mt *MatchTipp) SetTipp(tipp Tipp) {
 	mt.TippB = &tipp.TippB
 	mt.TippCreated = &tipp.Created
 	mt.TippChanged = &tipp.Changed
+	mt.Points = tipp.Points
 }
 
 type MatchTippModel struct {

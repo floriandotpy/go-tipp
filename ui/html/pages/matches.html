@@ -23,6 +23,7 @@
           <th>Team 2</th>
           <th>Ergebnis</th>
           <th>Dein Tipp</th>
+          <th>Punkte</th>
         </tr>
       </thead>
       <tbody class="">
@@ -66,6 +67,7 @@
             />
             {{else}} {{defaultStr .TippA "-"}}:{{defaultStr .TippB "-"}} {{end}}
           </td>
+          <td>{{if eq .Status "done"}} {{.Points}} {{end}}</td>
         </tr>
         {{end}}
       </tbody>
