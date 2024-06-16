@@ -66,7 +66,65 @@ func (m *MatchModel) Get(id int) (Match, error) {
 	return match, nil
 }
 
+// GetByMetadata retrieves a match based on the provided metadata
+func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Match, error) {
+	// Parse the date
+	startDate, err := time.Parse("2006-01-02", day)
+	if err != nil {
+		return Match{}, fmt.Errorf("invalid date format: %v", err)
+	}
+
+	// Prepare the SQL query
+	query := `
+		SELECT id, start, team_a, team_b, result_a, result_b, match_type
+		FROM matches
+		WHERE DATE(start) = ? AND team_a = ? AND team_b = ?
+	`
+
+	// Execute the query
+	row := m.DB.QueryRow(query, startDate, teamA, teamB)
+
+	// Create a variable to hold the result
+	var match Match
+
+	// Scan the result into the match variable
+	err = row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No matching entry found
+			return Match{}, nil
+		}
+		// An error occurred while querying
+		return Match{}, err
+	}
+
+	// Return the match
+	return match, nil
+}
+
 func (m *MatchModel) SetResults(id int, resultA int, resultB int) error {
+	// Prepare the SQL query
+	query := `
+		UPDATE matches
+		SET result_a = ?, result_b = ?
+		WHERE id = ?
+	`
+
+	// Execute the query
+	result, err := m.DB.Exec(query, resultA, resultB, id)
+	if err != nil {
+		return fmt.Errorf("could not execute update query: %v", err)
+	}
+
+	// Check if the update was successful
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not retrieve affected rows: %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no match found with id %d", id)
+	}
+
 	return nil
 }
 
