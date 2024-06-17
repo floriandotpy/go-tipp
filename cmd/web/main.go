@@ -28,6 +28,7 @@ type application struct {
 	matchTipps     *models.MatchTippModel
 	users          *models.UserModel
 	groups         *models.GroupModel
+	goals          *models.GoalModel
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -78,6 +79,7 @@ func main() {
 		matchTipps:     &matchTippModel,
 		users:          &models.UserModel{DB: db},
 		groups:         &models.GroupModel{DB: db},
+		goals:          &models.GoalModel{DB: db},
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,

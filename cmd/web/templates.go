@@ -16,6 +16,11 @@ type Leaderboard struct {
 	ID    int
 }
 
+type LiveResult struct {
+	ResultA int
+	ResultB int
+}
+
 type templateData struct {
 	CurrentYear     int
 	MatchTipps      []models.MatchTipp
@@ -23,6 +28,8 @@ type templateData struct {
 	Matches         []models.Match
 	Groups          []models.Group
 	Leaderboards    []Leaderboard
+	Goals           []models.Goal
+	LiveResult      LiveResult
 	Match           models.Match
 	Status          string // move into Match object?
 	Flash           string
@@ -103,6 +110,10 @@ func matchResult(result_a *int, result_b *int) string {
 
 }
 
+func isLast(idx int, goals []models.Goal) bool {
+	return idx == len(goals)-1
+}
+
 func defaultStr(val *int, defaultStr string) string {
 	if val == nil {
 		return defaultStr
@@ -122,6 +133,7 @@ var functions = template.FuncMap{
 	"defaultStr":    defaultStr,
 	"add":           add,
 	"germanYesNo":   germanYesNo,
+	"isLast":        isLast,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

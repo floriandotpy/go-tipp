@@ -2,9 +2,12 @@ package models
 
 import (
 	"database/sql"
+	"math"
 )
 
 type Goal struct {
+	ID             int
+	MatchId        int
 	ScoreTeamA     int
 	ScoreTeamB     int
 	MatchMinute    int
@@ -52,4 +55,54 @@ ON DUPLICATE KEY UPDATE
 
 	return int(id), nil
 
+}
+
+func (m *GoalModel) AllForMatch(matchId int) ([]Goal, error) {
+	stmt := `SELECT
+	id,
+    match_id,
+    score_team_a,
+    score_team_b,
+    match_minute,
+    goal_getter_id,
+    goal_getter_name,
+    is_penalty,
+    is_own_goal,
+    is_overtime,
+    comment TEXT
+	FROM goals WHERE match_id = ?
+	ORDER BY (IFNULL(score_team_a,0)+IFNULL(score_team_b,0)) ASC
+	`
+	rows, err := m.DB.Query(stmt, matchId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var goals []Goal
+	for rows.Next() {
+		var g Goal
+		err = rows.Scan(&g.ID, &g.MatchId, &g.ScoreTeamA, &g.ScoreTeamB,
+			&g.MatchMinute, &g.GoalGetterID, &g.GoalGetterName, &g.IsPenalty, &g.IsOwnGoal, &g.IsOvertime, &g.Comment)
+
+		if err != nil {
+			return nil, err
+		}
+		goals = append(goals, g)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return goals, nil
+}
+
+func (m *GoalModel) LiveScore(goals []Goal) (int, int) {
+	var resultA = 0
+	var resultB = 0
+	for _, goal := range goals {
+		resultA = int(math.Max(float64(resultA), float64(goal.ScoreTeamA)))
+		resultB = int(math.Max(float64(resultB), float64(goal.ScoreTeamB)))
+	}
+	return resultA, resultB
 }

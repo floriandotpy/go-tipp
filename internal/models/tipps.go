@@ -238,3 +238,26 @@ func (m *TippModel) UpdatePoints() (int, error) {
 	rowsAffected := int(math.Max(float64(rowsAffected1), float64(rowsAffected2)))
 	return rowsAffected, nil
 }
+
+func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int) []Tipp {
+	var liveTipps []Tipp
+	for _, tipp := range tipps {
+		liveTipp := tipp
+		liveTipp.ResultCorrect = tipp.TippA == resultA && tipp.TippB == resultB
+		liveTipp.GoalDifferenceCorrect = (resultA - resultB) == tipp.TippA-tipp.TippB
+		liveTipp.TendencyCorrect = ((tipp.TippA > tipp.TippB && resultA > resultB) ||
+			(tipp.TippA == tipp.TippB && resultA == resultB) ||
+			(tipp.TippA < tipp.TippB && resultA < resultB))
+
+		if liveTipp.ResultCorrect {
+			liveTipp.Points = 5
+		} else if liveTipp.TendencyCorrect && liveTipp.GoalDifferenceCorrect {
+			liveTipp.Points = 3
+		} else if liveTipp.TendencyCorrect {
+			liveTipp.Points = 1
+		}
+
+		liveTipps = append(liveTipps, liveTipp)
+	}
+	return liveTipps
+}

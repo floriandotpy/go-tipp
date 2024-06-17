@@ -11,27 +11,57 @@
       {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
       ({{.Match.Start.Format "15:04" }} Uhr)
     </p>
+    <div class="live-indicator">
+      <figure class="live-indicator__circle"></figure>
+      <span class="live-indicator__text">LIVE</span>
+    </div>
   </div>
 
   <div class="match-details">
-    <p class="match-details__subtitle">Endergebnis</p>
+    <p class="match-details__subtitle">
+      Endergebnis {{if eq $.Status "live" "pending"}} (Live-Prognose) {{end}}
+    </p>
     <p class="match-details__result">
-      {{if eq $.Status "done"}}{{.Match.ResultA}} : {{.Match.ResultB}} {{else}}
-      ? : ? {{end}}
+      {{if eq $.Status "done"}}{{.Match.ResultA}} : {{.Match.ResultB}} {{end}}
+      {{if eq $.Status "live" "pending"}}{{.LiveResult.ResultA}} :
+      {{.LiveResult.ResultB}} {{end}}
     </p>
   </div>
-  {{if .Tipps}}
+
+  {{if .Goals}}
+  <h2>Spielverlauf {{if eq $.Status "live"}}(live){{end}}</h2>
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <td>Spielminute</td>
+        <td>Ergebnis</td>
+        <td>Torschütze</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $i, $goal := .Goals}}
+      <tr {{if isLast $i $.Goals }} class="active" {{end}}>
+        <td>{{$goal.MatchMinute}}</td>
+        <td>{{$goal.ScoreTeamA}} : {{$goal.ScoreTeamB}}</td>
+        <td>{{$goal.GoalGetterName}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}} {{if .Tipps}}
   <h2>Abgegebene Tipps</h2>
   <table class="cc-table">
     <thead>
       <tr>
         <td>User</td>
         <td>Tipp</td>
-        {{if eq $.Status "done"}}
+        {{if eq $.Status "done" "live" "pending"}}
         <td>Tendenz richtig</td>
         <td>Tordifferenz richtig</td>
         <td>Ergebnis richtig</td>
-        <td>Punkte</td>
+        <td>
+          Punkte {{if eq $.Status "live" "pending"}} (Live-Prognose) {{end}}
+        </td>
         {{end}}
       </tr>
     </thead>
@@ -40,7 +70,7 @@
       <tr {{if eq $.AuthUserId .UserId}} class="active" {{end}}>
         <td>{{.UserName}}</td>
         <td>{{.TippA}} : {{.TippB}}</td>
-        {{if eq $.Status "done"}}
+        {{if eq $.Status "done" "live" "pending"}}
         <td>{{ germanYesNo .TendencyCorrect }}</td>
         <td>{{ germanYesNo .GoalDifferenceCorrect }}</td>
         <td>{{ germanYesNo .ResultCorrect }}</td>

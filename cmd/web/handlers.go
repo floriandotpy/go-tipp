@@ -140,6 +140,13 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 	status := app.matchTipps.MatchStatus(match.Start, now, match.ResultA, match.ResultB)
 	data.Status = status
 
+	// fetch goals (will work on live matches and finished matches both)
+	goals, err := app.goals.AllForMatch(matchId)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+	data.Goals = goals
+
 	// below: if tipps are no longer accepted, we can display other users' tipps
 	acceptsTipps, err := app.matches.AcceptsTipps(matchId)
 	if err != nil {
@@ -151,6 +158,16 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 			app.serverError(w, r, err)
 		}
 		data.Tipps = tipps
+
+		liveScoreA, liveScoreB := app.goals.LiveScore(goals)
+		liveTipps := app.tipps.ComputeLiveTipps(tipps, liveScoreA, liveScoreB)
+		data.Tipps = liveTipps
+
+		liveResult := LiveResult{
+			ResultA: liveScoreA,
+			ResultB: liveScoreB,
+		}
+		data.LiveResult = liveResult
 	}
 
 	app.render(w, r, http.StatusOK, "match_details.html", data)
