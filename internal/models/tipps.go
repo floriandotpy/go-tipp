@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"math"
+	"sort"
 	"time"
 )
 
@@ -259,5 +260,11 @@ func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int) []T
 
 		liveTipps = append(liveTipps, liveTipp)
 	}
+
+	// sort tipps by points descending
+	sort.Slice(liveTipps, func(i, j int) bool {
+		return liveTipps[i].Points > liveTipps[j].Points
+	})
+
 	return liveTipps
 }
