@@ -11,10 +11,13 @@
       {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
       ({{.Match.Start.Format "15:04" }} Uhr)
     </p>
+
+    {{if eq $.Status "live"}}
     <div class="live-indicator">
       <figure class="live-indicator__circle"></figure>
       <span class="live-indicator__text">LIVE</span>
     </div>
+    {{end}}
   </div>
 
   <div class="match-details">
