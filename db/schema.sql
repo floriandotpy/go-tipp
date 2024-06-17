@@ -10,6 +10,30 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `goals`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `goals` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `match_id` int NOT NULL,
+  `score_team_a` int DEFAULT NULL,
+  `score_team_b` int DEFAULT NULL,
+  `match_minute` int DEFAULT NULL,
+  `goal_getter_id` int DEFAULT NULL,
+  `goal_getter_name` varchar(255) DEFAULT NULL,
+  `is_penalty` tinyint(1) DEFAULT NULL,
+  `is_own_goal` tinyint(1) DEFAULT NULL,
+  `is_overtime` tinyint(1) DEFAULT NULL,
+  `comment` text,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_match_score` (`match_id`,`score_team_a`,`score_team_b`),
+  CONSTRAINT `goals_ibfk_1` FOREIGN KEY (`match_id`) REFERENCES `matches` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `groups`
 --
 
@@ -152,5 +176,6 @@ LOCK TABLES `schema_migrations` WRITE;
 INSERT INTO `schema_migrations` (version) VALUES
   ('20240603115052'),
   ('20240603115935'),
-  ('20240608074850');
+  ('20240608074850'),
+  ('20240617151057');
 UNLOCK TABLES;

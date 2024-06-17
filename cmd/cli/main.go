@@ -22,6 +22,19 @@ type ApiMatch struct {
 	TeamB           ApiTeam     `json:"team2"`
 	MatchResults    []ApiResult `json:"matchResults"`
 	MatchIsFinished bool        `json:"matchIsFinished"`
+	Goals           []ApiGoal   `json:"goals"`
+}
+
+type ApiGoal struct {
+	ScoreTeamA     int     `json:"scoreTeam1"`
+	ScoreTeamB     int     `json:"scoreTeam2"`
+	MatchMinute    int     `json:"matchMinute"`
+	GoalGetterID   int     `json:"goalGetterID"`
+	GoalGetterName string  `json:"goalGetterName"`
+	IsPenalty      bool    `json:"isPenalty"`
+	IsOwnGoal      bool    `json:"isOwnGoal"`
+	IsOvertime     bool    `json:"isOvertime"`
+	Comment        *string `json:"comment"`
 }
 
 type ApiTeam struct {
@@ -32,6 +45,20 @@ type ApiResult struct {
 	ResultName  string `json:"resultName"`
 	PointsTeamA int    `json:"pointsTeam1"`
 	PointsTeamB int    `json:"pointsTeam2"`
+}
+
+func ConvertApiGoalToGoal(apiGoal ApiGoal) models.Goal {
+	return models.Goal{
+		ScoreTeamA:     apiGoal.ScoreTeamA,
+		ScoreTeamB:     apiGoal.ScoreTeamB,
+		MatchMinute:    apiGoal.MatchMinute,
+		GoalGetterID:   apiGoal.GoalGetterID,
+		GoalGetterName: strings.TrimSpace(apiGoal.GoalGetterName),
+		IsPenalty:      apiGoal.IsPenalty,
+		IsOwnGoal:      apiGoal.IsOwnGoal,
+		IsOvertime:     apiGoal.IsOvertime,
+		Comment:        apiGoal.Comment,
+	}
 }
 
 func fetchMatchData(url string) ([]ApiMatch, error) {
@@ -78,6 +105,7 @@ func main() {
 	// Create a MatchModel instance
 	matchModel := &models.MatchModel{DB: db}
 	tippModel := &models.TippModel{DB: db}
+	goalModel := &models.GoalModel{DB: db}
 
 	var dbUpdated = false
 
@@ -88,20 +116,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		// Extract end score from match results
-		var endScoreTeamA, endScoreTeamB int
-		if len(apiMatch.MatchResults) == 0 || !apiMatch.MatchIsFinished {
-			fmt.Printf("Skipping match (%s vs %s) without result...\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
-			continue
-		}
-		for _, result := range apiMatch.MatchResults {
-			if strings.ToLower(result.ResultName) == "endergebnis" {
-				endScoreTeamA = result.PointsTeamA
-				endScoreTeamB = result.PointsTeamB
-				break
-			}
-		}
-
 		// Output extracted information
 		dayString := matchTime.Format("2006-01-02")
 		// timeString := matchTime.Format("15:04")
@@ -109,8 +123,6 @@ func main() {
 		// fmt.Printf("Time of the match: %s\n", timeString)
 		fmt.Printf("Name of team 1: %s\n", apiMatch.TeamA.TeamName)
 		fmt.Printf("Name of team 2: %s\n", apiMatch.TeamB.TeamName)
-		fmt.Printf("End score of team 1: %d\n", endScoreTeamA)
-		fmt.Printf("End score of team 2: %d\n", endScoreTeamB)
 
 		// Call the GetByMetadata function
 		dbMatch, err := matchModel.GetByMetadata(dayString, apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
@@ -120,27 +132,59 @@ func main() {
 		}
 
 		// Check if a match was found
-		if dbMatch.ID != 0 {
-			fmt.Printf("Match found: %d\n", dbMatch.ID)
+		if dbMatch.ID == 0 {
+			fmt.Printf("No match in database found, skipping (%s, %s vs. %s)\n", dayString, apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
+			continue
+		}
+		fmt.Printf("Match found in database: %d\n", dbMatch.ID)
 
-			if dbMatch.ResultA == nil && dbMatch.ResultB == nil {
-				fmt.Printf("-> Update result to %d:%d\n", endScoreTeamA, endScoreTeamB)
-				matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB)
-				dbUpdated = true
-			} else if *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB {
-				fmt.Printf("Warning: Score mismatch API (%d:%d) vs DB (%d:%d)\n", *dbMatch.ResultA, *dbMatch.ResultB, endScoreTeamA, endScoreTeamB)
-			} else {
-				fmt.Printf("Existing result won't be updated, score is %d:%d\n", *dbMatch.ResultA, *dbMatch.ResultB)
+		// update goals
+		for _, apiGoal := range apiMatch.Goals {
+			goal := ConvertApiGoalToGoal(apiGoal)
+			goalId, err := goalModel.InsertOrUpdate(dbMatch.ID, goal)
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				return
 			}
+			var dbOp = "added"
+			if goalId == 0 {
+				dbOp = "updated"
+			}
+			fmt.Printf("Goal %s (id %d): %d:%d (minute %d by %s)\n", dbOp, goalId, goal.ScoreTeamA, goal.ScoreTeamB, goal.MatchMinute, goal.GoalGetterName)
+		}
+
+		// match finished? update match results
+		// Extract end score from match results
+		var endScoreTeamA, endScoreTeamB int
+		if len(apiMatch.MatchResults) == 0 || !apiMatch.MatchIsFinished {
+			fmt.Printf("Skipping match (%s vs %s) without end result...\n\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
+			continue
+		}
+		for _, result := range apiMatch.MatchResults {
+			if strings.ToLower(result.ResultName) == "endergebnis" {
+				endScoreTeamA = result.PointsTeamA
+				endScoreTeamB = result.PointsTeamB
+				break
+			}
+		}
+		fmt.Printf("End score of team 1: %d\n", endScoreTeamA)
+		fmt.Printf("End score of team 2: %d\n", endScoreTeamB)
+
+		if dbMatch.ResultA == nil && dbMatch.ResultB == nil {
+			fmt.Printf("-> Update result to %d:%d\n", endScoreTeamA, endScoreTeamB)
+			matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB)
+			dbUpdated = true
+		} else if *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB {
+			fmt.Printf("Warning: Score mismatch API (%d:%d) vs DB (%d:%d)\n", *dbMatch.ResultA, *dbMatch.ResultB, endScoreTeamA, endScoreTeamB)
+		} else {
+			fmt.Printf("Existing result won't be updated, score is %d:%d\n", *dbMatch.ResultA, *dbMatch.ResultB)
 		}
 
 		fmt.Printf("\n")
 	}
 
-	fmt.Printf("\n")
-
 	if dbUpdated {
-		fmt.Printf("Trigger point update for all user tipps...\n")
+		fmt.Printf("Trigger points update for all user tipps...\n")
 		rowsAffected, err := tippModel.UpdatePoints()
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -149,7 +193,7 @@ func main() {
 
 		fmt.Printf("Done, updated %d db entries\n", rowsAffected)
 	} else {
-		fmt.Printf("No database updated occured, no user points were affected\n")
+		fmt.Printf("No database updated occured of final scores, no user points were affected\n")
 	}
 }
 
