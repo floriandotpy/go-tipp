@@ -59,7 +59,7 @@ func main() {
 	// session management
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
-	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Lifetime = 24 * 30 * time.Hour
 
 	// setup for dependency injection across our app
 	matchModel := models.MatchModel{DB: db}
