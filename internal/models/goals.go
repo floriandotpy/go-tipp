@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"math"
 )
 
 type Goal struct {
@@ -71,7 +70,7 @@ func (m *GoalModel) AllForMatch(matchId int) ([]Goal, error) {
     is_overtime,
     comment TEXT
 	FROM goals WHERE match_id = ?
-	ORDER BY (IFNULL(score_team_a,0)+IFNULL(score_team_b,0)) ASC
+	ORDER BY id ASC
 	`
 	rows, err := m.DB.Query(stmt, matchId)
 	if err != nil {
@@ -100,9 +99,12 @@ func (m *GoalModel) AllForMatch(matchId int) ([]Goal, error) {
 func (m *GoalModel) LiveScore(goals []Goal) (int, int) {
 	var resultA = 0
 	var resultB = 0
-	for _, goal := range goals {
-		resultA = int(math.Max(float64(resultA), float64(goal.ScoreTeamA)))
-		resultB = int(math.Max(float64(resultB), float64(goal.ScoreTeamB)))
+
+	if len(goals) > 0 {
+		lastGoal := goals[len(goals)-1]
+		resultA = lastGoal.ScoreTeamA
+		resultB = lastGoal.ScoreTeamB
 	}
+
 	return resultA, resultB
 }
