@@ -86,7 +86,8 @@ func main() {
 	flag.Parse()
 
 	// URL to fetch data from
-	url := "https://api.openligadb.de/getmatchdata/em/2024/1"
+	// url := "https://api.openligadb.de/getmatchdata/em/2024/1"
+	url := "https://api.openligadb.de/getmatchdata/em/2024/2"
 
 	// Fetch match data
 	matches, err := fetchMatchData(url)
