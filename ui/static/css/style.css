@@ -71,17 +71,35 @@ text-align: center;
     text-align: left; /* Align text to the left in the header */
 }
 
-.cc-table tbody tr:nth-child(even) {
+
+ /* auto-striped */
+.cc-table.cc-table-striped tbody tr:nth-child(even) {
     background-color: #f9f9f9; /* Light gray background for even rows */
 }
 
-.cc-table tbody tr:nth-child(odd) {
+.cc-table.cc-table-striped tbody tr:nth-child(odd) {
+    background-color: #ffffff; /* White background for odd rows */
+}
+
+.cc-table.cc-table-striped tbody tr:hover {
+    background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
+}
+
+/* manual striped */
+.cc-table tbody tr.even {
+    background-color: #f9f9f9; /* Light gray background for even rows */
+}
+
+.cc-table tbody tr.odd {
     background-color: #ffffff; /* White background for odd rows */
 }
 
 .cc-table tbody tr:hover {
     background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
 }
+
+
+
 .cc-table .active {
     font-weight: bold;
 }

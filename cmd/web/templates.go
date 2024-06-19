@@ -126,6 +126,14 @@ func add(x, y int) int {
 	return x + y
 }
 
+func even(x int) bool {
+	return x%2 == 0
+}
+
+func odd(x int) bool {
+	return (x+1)%2 == 0
+}
+
 var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
@@ -134,6 +142,8 @@ var functions = template.FuncMap{
 	"add":           add,
 	"germanYesNo":   germanYesNo,
 	"isLast":        isLast,
+	"even":          even,
+	"odd":           odd,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

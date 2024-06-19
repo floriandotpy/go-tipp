@@ -19,6 +19,7 @@ type User struct {
 	Points         int
 	Tipps          int
 	IsAdmin        bool
+	Place          int
 }
 
 type UserModel struct {
@@ -123,7 +124,9 @@ func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
 		return nil, err
 	}
 
-	return users, nil
+	sortedUsers := setPlaceValues(users)
+
+	return sortedUsers, nil
 }
 
 func (m *UserModel) GlobalLeaderboard() ([]User, error) {
@@ -160,5 +163,27 @@ func (m *UserModel) GlobalLeaderboard() ([]User, error) {
 		return nil, err
 	}
 
+	users = setPlaceValues(users)
+
 	return users, nil
+}
+
+func setPlaceValues(users []User) []User {
+
+	var place = 1
+	var prevScore = 9999999
+
+	var newUsers []User
+
+	for _, user := range users {
+		var newUser = user
+		newUser.Place = place
+		if user.Points < prevScore {
+			prevScore = user.Points
+			place += 1
+		}
+		newUsers = append(newUsers, newUser)
+	}
+
+	return newUsers
 }
