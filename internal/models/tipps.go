@@ -284,7 +284,7 @@ func (m *TippModel) GetScoreboardData() (ScoreboardData, error) {
 	// Perform SQL query to aggregate user points
 	query := `
 	WITH all_matches AS (
-		SELECT DISTINCT id AS match_id FROM matches
+		SELECT DISTINCT id AS match_id FROM matches WHERE result_a IS NOT NULL
 	),
 	user_matches AS (
 		SELECT
