@@ -41,6 +41,12 @@ const TEAM_GR = "Griechenland"
 
 func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	data := app.newTemplateData(req)
+
+	// if user is logged in, go to leaderboard
+	if app.isAuthenticated(req) {
+		http.Redirect(w, req, "/leaderboard", http.StatusTemporaryRedirect)
+	}
+
 	app.render(w, req, http.StatusOK, "index.html", data)
 }
 
