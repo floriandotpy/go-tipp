@@ -1,7 +1,13 @@
-{{define "title"}}Leaderboard{{end}} {{define "main"}}
+{{define "title"}}Leaderboard{{end}} {{define "assets"}}
+<script src="/static/lib/chart-4.4.3.js"></script>
+<script src="/scores.json"></script>
+<script src="/static/js/scoreboard.js"></script>
+{{end}} {{define "main"}}
 
 <div class="container">
   <h2>Leaderboard</h2>
+
+  <canvas id="scoreboard" width="400" height="150"></canvas>
 
   <p>
     Hier kannst du deinen aktuellen Platz in deiner Gruppe sehen, sowie deinen

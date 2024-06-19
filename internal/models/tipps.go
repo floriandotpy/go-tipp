@@ -26,6 +26,17 @@ type Tipp struct {
 	UserName string
 }
 
+type ScoreboardData struct {
+	Matches []int        `json:"matches"`
+	Users   []UserPoints `json:"users"`
+}
+
+type UserPoints struct {
+	Name        string `json:"name"`
+	Points      []int  `json:"points"`
+	TotalPoints []int  `json:"total_points"`
+}
+
 type TippModel struct {
 	DB *sql.DB
 }
@@ -267,4 +278,108 @@ func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int) []T
 	})
 
 	return liveTipps
+}
+
+func (m *TippModel) GetScoreboardData() (ScoreboardData, error) {
+	// Perform SQL query to aggregate user points
+	query := `
+	WITH all_matches AS (
+		SELECT DISTINCT id AS match_id FROM matches
+	),
+	user_matches AS (
+		SELECT
+			u.id AS user_id,
+			u.name,
+			m.match_id
+		FROM
+			users u
+		CROSS JOIN
+			all_matches m
+	),
+	user_tipps AS (
+		SELECT 
+			um.user_id,
+			um.match_id,
+			COALESCE(SUM(t.points), 0) AS points
+		FROM 
+			user_matches um
+		LEFT JOIN 
+			tipps t ON um.user_id = t.user_id AND um.match_id = t.match_id
+		GROUP BY 
+			um.user_id, um.match_id
+	)
+	SELECT 
+		ut.user_id,
+		u.name,
+		ut.match_id,
+		ut.points,
+		SUM(ut.points) OVER (PARTITION BY ut.user_id ORDER BY ut.match_id) AS total_points
+	FROM 
+		user_tipps ut
+	JOIN 
+		users u ON ut.user_id = u.id
+	ORDER BY 
+		ut.user_id, ut.match_id;
+    `
+
+	rows, err := m.DB.Query(query)
+	if err != nil {
+		return ScoreboardData{}, err
+	}
+	defer rows.Close()
+
+	userPointsMap := make(map[string][]int)
+	totalPointsMap := make(map[string][]int)
+	var matchesSet = make(map[int]struct{})
+
+	for rows.Next() {
+		var userId int
+		var name string
+		var matchId int
+		var points int
+		var totalPoints int
+
+		err := rows.Scan(&userId, &name, &matchId, &points, &totalPoints)
+		if err != nil {
+			return ScoreboardData{}, nil
+		}
+
+		// Collect matches
+		matchesSet[matchId] = struct{}{}
+
+		// Collect user points
+		if _, exists := userPointsMap[name]; !exists {
+			userPointsMap[name] = make([]int, 0)
+		}
+		userPointsMap[name] = append(userPointsMap[name], points)
+
+		// Collect total points
+		if _, exists := totalPointsMap[name]; !exists {
+			totalPointsMap[name] = make([]int, 0)
+		}
+		totalPointsMap[name] = append(totalPointsMap[name], totalPoints)
+	}
+
+	// Convert matches set to a sorted slice
+	matchNumbers := make([]int, 0, len(matchesSet))
+	matches := make([]int, 0, len(matchesSet))
+	var matchNumber = 1
+	for matchId := range matchesSet {
+		matches = append(matches, matchId)
+		matchNumbers = append(matchNumbers, matchNumber)
+		matchNumber += 1
+	}
+
+	// Convert map to slice of UserPoints
+	users := make([]UserPoints, 0, len(userPointsMap))
+	for name, points := range userPointsMap {
+		users = append(users, UserPoints{Name: name, Points: points, TotalPoints: totalPointsMap[name]})
+	}
+
+	data := ScoreboardData{
+		Matches: matchNumbers,
+		Users:   users,
+	}
+
+	return data, nil
 }

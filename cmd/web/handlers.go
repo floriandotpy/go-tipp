@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -88,6 +90,22 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 	data.Leaderboards = leaderboards
 
 	app.render(w, req, http.StatusOK, "leaderboard.html", data)
+}
+
+func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Request) {
+
+	response, err := app.tipps.GetScoreboardData()
+	if err != nil {
+		app.serverError(w, req, err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
 }
 
 func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request) {
