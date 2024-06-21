@@ -39,12 +39,16 @@
         </td>
         <td>
           {{if $row.Match.ResultA}}
-          {{$row.Match.ResultA}}:{{$row.Match.ResultB}} {{else}}Noch kein
-          Ergebnis{{end}}
+          {{$row.Match.ResultA}}:{{$row.Match.ResultB}} {{else}}
+          <em>Noch kein Ergebnis</em> {{end}}
         </td>
         <td>
+            {{if $row.Match.ResultA}}
           {{if $row.TippUser}} {{$row.TippUser.TippA}}:{{$row.TippUser.TippB}}
           ({{$row.TippUser.Points}} Punkte) {{end}}
+          {{else}}
+          <em>Nach Spielbeginn sichtbar</em>
+          {{end}}
         </td>
         {{if $.UserCompare.ID}}
         <td>
