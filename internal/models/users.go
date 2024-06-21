@@ -231,16 +231,18 @@ func (m *UserModel) GlobalLeaderboard() ([]User, error) {
 
 func setPlaceValues(users []User) []User {
 	var place = 0
+	var i = 0
 	var prevScore = 9999999
 
 	var newUsers []User
 
 	for _, user := range users {
+		i += 1
 		var newUser = user
 
 		if user.Points < prevScore {
 			prevScore = user.Points
-			place += 1
+			place = i
 		}
 		newUser.Place = place
 		newUsers = append(newUsers, newUser)
