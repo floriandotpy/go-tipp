@@ -71,7 +71,9 @@
     <tbody>
       {{range .Tipps}}
       <tr {{if eq $.AuthUserId .UserId}} class="active" {{end}}>
-        <td>{{.UserName}}</td>
+        <td>
+          <a href="/user/{{.UserName}}">{{.UserName}}</a>
+        </td>
         <td>{{.TippA}} : {{.TippB}}</td>
         {{if eq $.Status "done" "live" "pending"}}
         <td>{{ germanYesNo .TendencyCorrect }}</td>

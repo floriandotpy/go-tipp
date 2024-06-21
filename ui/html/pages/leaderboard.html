@@ -44,7 +44,9 @@
         {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
         {{end}}
       </td>
-      <td>{{$u.Name}}</td>
+      <td>
+        <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+      </td>
       <td>{{$u.Tipps}}</td>
       <td>{{$u.Points}}</td>
     </tr>

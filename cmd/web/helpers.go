@@ -48,7 +48,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 }
 
 func (app *application) newTemplateData(r *http.Request) templateData {
-	_, authUserId := app.authUserId(r)
+	authUserId, _ := app.authUserId(r)
 	return templateData{
 		CurrentYear:     time.Now().Year(),
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
@@ -100,12 +100,12 @@ func (app *application) isAdmin(r *http.Request) bool {
 	return isAdmin
 }
 
-func (app *application) authUserId(r *http.Request) (error, int) {
+func (app *application) authUserId(r *http.Request) (int, error) {
 	if !app.isAuthenticated(r) {
-		return models.ErrNotLoggedIn, 0
+		return 0, models.ErrNotLoggedIn
 	}
 	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
-	return nil, userId
+	return userId, nil
 }
 
 func (app *application) getGroupID(invite string) (int, error) {

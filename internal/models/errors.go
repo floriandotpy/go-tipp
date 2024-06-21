@@ -11,4 +11,5 @@ var (
 	ErrDuplicateName      = errors.New("models: duplicate user name")
 	ErrInvalidInvite      = errors.New("models: invalid invite code")
 	ErrNotLoggedIn        = errors.New("models: not logged in")
+	ErrUserNotFound       = errors.New("users: user not found")
 )

@@ -1,8 +1,10 @@
 :root {
     --russian-violet: #341E57ff;
+    --russian-violet-lighter: rgb(70, 25, 143);
     --baby-powder: #FAFBF9ff;
     --ash-gray: #C1D6BFff;
     --mantis: #65B152ff;
+    --mantis-darker: rgb(69, 144, 50);
     --tekhelet: #5A287Eff;
 }
 
@@ -32,6 +34,21 @@ text-align: center;
 .w-100 {
     width: 100%;
 }
+
+a:not(.pure-button) {
+    color: #0e76bb;
+    text-decoration: none;
+    /* border-bottom: 1px solid var(--mantis); */
+} 
+a:not(.pure-button):hover {
+    color: #07436b;;
+    text-decoration: underline;
+    /* border-bottom: 2px solid var(--mantis); */
+}
+
+/* a { color: #00e; }
+a:visited { color: #551a8b; }
+a:hover { color: #06e; }​ */
 
 .header-container {
     display: flex;
@@ -261,9 +278,6 @@ text-align: center;
     margin: 48px 0;
 }
 
-
-
-
 /* General styles for all status links */
 a.status-label {
     display: inline-block;
@@ -275,6 +289,10 @@ a.status-label {
     font-size: 14px;
     text-align: center; /* Center the emoji */
     line-height: 1.5; /* Vertically center the emoji */
+}
+a.status-label:hover {
+    color: transparent;
+    text-decoration: none;
 }
 
 a.status-live {
@@ -360,6 +378,12 @@ a.status-future::before {
 }
 .match-details__result {
     font-size: 2em;
+    margin: 0;
+}
+.muted {
+    font-size: 0.8em;
+    color: lightslategray;
+    text-transform: uppercase;
     margin: 0;
 }
 

@@ -53,7 +53,7 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
 
 	// fetch all user groups from database
-	err, userId := app.authUserId(req)
+	userId, err := app.authUserId(req)
 	if err != nil {
 		app.serverError(w, req, err)
 		return
@@ -121,7 +121,7 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		app.serverError(w, req, err)
 	}
 
-	err, userId := app.authUserId(req)
+	userId, err := app.authUserId(req)
 	if err != nil {
 		// TODO: or a proper not authenticated error?
 		app.serverError(w, req, err)
@@ -230,6 +230,91 @@ func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(w, "Tipp:\n%+v\nMatch:\n%+v", tipp, match)
 }
 
+func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	userName := r.PathValue("name")
+	if len(userName) < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	user, err := app.users.GetByUsername(userName)
+	if err != nil {
+		if errors.Is(err, models.ErrUserNotFound) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	tipps, err := app.tipps.AllForUser(user.ID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.Tipps = tipps
+	data.User = user
+
+	authUserId, err := app.authUserId(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// looking at someone else's profile?
+	// Also include current user's data for comparison
+	var tippsCompare []models.Tipp
+	if user.ID != authUserId {
+		userCompare, err := app.users.Get(authUserId)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		tippsCompare, err = app.tipps.AllForUser(authUserId)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		data.UserCompare = userCompare
+	}
+
+	// prepare tipp sets for match id lookup
+	var tippsSet = make(map[int]models.Tipp)
+	for _, tippA := range tipps {
+		tippsSet[tippA.MatchId] = tippA
+	}
+	var tippsCompareSet = make(map[int]models.Tipp)
+	for _, tippB := range tippsCompare {
+		tippsCompareSet[tippB.MatchId] = tippB
+	}
+
+	// get all matches
+	matches, err := app.matches.All()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	var matchesSet = make(map[int]models.Match)
+	var rows []UserDetailsRow
+	for i, match := range matches {
+		matchesSet[i] = match
+		row := UserDetailsRow{
+			MatchNo:         i + 1,
+			TippUser:        tippsSet[match.ID],
+			TippCompareUser: tippsCompareSet[match.ID],
+			Match:           match,
+		}
+		rows = append(rows, row)
+	}
+	data.UserDetailsRows = rows
+
+	app.render(w, r, http.StatusOK, "user_details.html", data)
+
+}
+
 func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
 	// parse form data
 	err := r.ParseForm()
@@ -239,7 +324,7 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 	}
 
 	// get user id from session
-	err, userId := app.authUserId(r)
+	userId, err := app.authUserId(r)
 	if err != nil {
 		// TODO: or a proper not authenticated error?
 		app.serverError(w, r, err)

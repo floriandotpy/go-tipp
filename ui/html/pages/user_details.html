@@ -1,0 +1,62 @@
+{{define "title"}}Spiele{{end}} {{define "assets"}}{{end}} {{define "main"}}
+<div class="container">
+  <h2>Profil</h2>
+
+  <p>
+    <strong>{{.User.Name}}</strong>
+     ist seit {{germanDate .User.Created}} 
+     beim Tippspiel angemeldet.
+    </p>
+    <p>
+        Aktuell hat {{.User.Name}} 
+        <strong>{{.User.Tipps}} Tipps</strong> 
+        abgegeben und damit bisher
+        <strong>{{.User.Points}} Punkte</strong>
+        erreicht.
+    </p>
+
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <td>Spiel</td>
+        <td>Spielausgang</td>
+        <td>Tipp {{.User.Name}}</td>
+        {{if .UserCompare.ID}}
+        <td>Tipp {{.UserCompare.Name}}</td>
+        {{end}}
+      </tr>
+    </thead>
+    <tbody>
+      {{ range $i, $row := .UserDetailsRows}}
+      <tr>
+        <td>
+          {{$row.Match.TeamA}} - {{$row.Match.TeamB}} 
+          {{if $row.Match.ResultA}}· <a href="/spiel/{{$row.Match.ID}}">Details</a> {{end}}
+          <br /><span
+            class="muted">
+            {{germanWeekday $row.Match.Start}}, {{germanDate $row.Match.Start}} {{$row.Match.Start.Format "15:04" }}</span>
+          </span>
+        </td>
+        <td>
+          {{if $row.Match.ResultA}}
+          {{$row.Match.ResultA}}:{{$row.Match.ResultB}} {{else}}Noch kein
+          Ergebnis{{end}}
+        </td>
+        <td>
+          {{if $row.TippUser}} {{$row.TippUser.TippA}}:{{$row.TippUser.TippB}}
+          ({{$row.TippUser.Points}} Punkte) {{end}}
+        </td>
+        {{if $.UserCompare.ID}}
+        <td>
+          {{if $row.TippCompareUser}}
+          {{$row.TippCompareUser.TippA}}:{{$row.TippCompareUser.TippB}}
+          ({{$row.TippCompareUser.Points}} Punkte) {{end}}
+        </td>
+        {{end}}
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+
+{{end}}

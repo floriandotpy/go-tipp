@@ -56,6 +56,67 @@ func (m *UserModel) Insert(name, email, password string) (int, error) {
 	return int(id), nil
 }
 
+func (m *UserModel) Get(id int) (User, error) {
+
+	stmt := `
+        SELECT u.id, u.name, u.email, u.created, u.admin,
+               COALESCE(SUM(t.points), 0) AS total_points,
+               COUNT(t.id) AS total_tipps
+        FROM users u
+        LEFT JOIN tipps t ON u.id = t.user_id
+        WHERE u.id = ?
+        GROUP BY u.id
+    `
+	var user User
+	err := m.DB.QueryRow(stmt, id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Created,
+		&user.IsAdmin,
+		&user.Points,
+		&user.Tipps,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrUserNotFound
+		} else {
+			return User{}, err
+		}
+	}
+	return user, nil
+}
+
+func (m *UserModel) GetByUsername(username string) (User, error) {
+	stmt := `
+        SELECT u.id, u.name, u.email, u.created, u.admin,
+               COALESCE(SUM(t.points), 0) AS total_points,
+               COUNT(t.id) AS total_tipps
+        FROM users u
+        LEFT JOIN tipps t ON u.id = t.user_id
+        WHERE u.name = ?
+        GROUP BY u.id
+    `
+	var user User
+	err := m.DB.QueryRow(stmt, username).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Created,
+		&user.IsAdmin,
+		&user.Points,
+		&user.Tipps,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrUserNotFound
+		} else {
+			return User{}, err
+		}
+	}
+	return user, nil
+}
+
 func (m *UserModel) Authenticate(email, password string) (int, bool, error) {
 
 	var id int

@@ -21,6 +21,13 @@ type LiveResult struct {
 	ResultB int
 }
 
+type UserDetailsRow struct {
+	MatchNo         int
+	TippUser        models.Tipp
+	TippCompareUser models.Tipp
+	Match           models.Match
+}
+
 type templateData struct {
 	CurrentYear     int
 	MatchTipps      []models.MatchTipp
@@ -38,6 +45,10 @@ type templateData struct {
 	IsAdmin         bool
 	CSRFToken       string
 	AuthUserId      int
+	// for user_details view
+	User            models.User
+	UserCompare     models.User
+	UserDetailsRows []UserDetailsRow
 }
 
 // prep translation mapping
