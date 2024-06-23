@@ -116,6 +116,41 @@ func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Reque
 
 func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request) {
 
+	// read phase from URL
+	selectedPhaseStr := req.URL.Query().Get("phase")
+
+	eventPhases := models.GetEventPhases()
+
+	var phaseId int
+	var err error
+
+	// phase given? convert to numeric phase id
+	if selectedPhaseStr != "" {
+		phaseId, err = strconv.Atoi(selectedPhaseStr)
+		if err != nil || phaseId < 0 {
+			http.NotFound(w, req)
+			return
+		}
+	}
+
+	// no phase id set? determine current phase
+	if phaseId == 0 {
+		// default to today's phase
+		todaysPhase := models.DetermineEventPhase(time.Now())
+		phaseId = todaysPhase.Number
+
+		// if today is not a match day, assume the event is over and show the final phase
+		if todaysPhase.Number == 0 {
+			phaseId = eventPhases[len(eventPhases)-1].Number
+		}
+	}
+
+	selectedPhase, err := models.GetEventPhaseById(phaseId)
+	if err != nil {
+		http.NotFound(w, req)
+		return
+	}
+
 	matches, err := app.matches.All()
 	if err != nil {
 		app.serverError(w, req, err)
@@ -136,6 +171,8 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	data := app.newTemplateData(req)
 	data.MatchTipps = matchTipps
 	data.Matches = matches
+	data.EventPhases = models.GetEventPhases()
+	data.SelectedPhase = selectedPhase
 
 	app.render(w, req, http.StatusOK, "matches.html", data)
 }

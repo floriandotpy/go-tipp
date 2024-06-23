@@ -2,6 +2,20 @@
 <div class="container">
   <h2>Spiele</h2>
 
+  <div>
+    <ul>
+      {{range .EventPhases}}
+      <li>
+        <a href="/spiele?phase={{.Number}}">
+          {{if eq .Number $.SelectedPhase.Number}}
+          <strong>{{.Title}}</strong>
+          {{else}} {{.Title}} {{end}}
+        </a>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+
   <form action="/tipp/update" method="post">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <div class="header-container">

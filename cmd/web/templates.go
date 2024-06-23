@@ -36,6 +36,8 @@ type templateData struct {
 	Groups          []models.Group
 	Leaderboards    []Leaderboard
 	Goals           []models.Goal
+	EventPhases     []models.EventPhase
+	SelectedPhase   models.EventPhase
 	LiveResult      LiveResult
 	Match           models.Match
 	Status          string // move into Match object?

@@ -1,11 +1,19 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"fmt"
+	"time"
+)
 
 type EventPhase struct {
 	Number int
 	Title  string
 	ApiUrl string
+}
+
+type EventsModel struct {
+	DB *sql.DB
 }
 
 var NoPhase = EventPhase{0, "Unknown", ""}
@@ -35,7 +43,20 @@ func GetEventPhases() []EventPhase {
 	for i, p := range Phases {
 		phases[i] = p.phase
 	}
+
+	// remove NoPhase
+	phases = phases[:len(phases)-1]
+
 	return phases
+}
+
+func GetEventPhaseById(id int) (EventPhase, error) {
+	for _, p := range Phases {
+		if p.phase.Number == id {
+			return p.phase, nil
+		}
+	}
+	return NoPhase, fmt.Errorf("phase with id %d not found", id)
 }
 
 func DetermineEventPhase(day time.Time) EventPhase {

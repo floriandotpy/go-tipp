@@ -33,7 +33,6 @@ func (m *MatchModel) AcceptsTipps(matchId int) (bool, error) {
 	// match has already begun
 	now := time.Now()
 
-	fmt.Printf("now = %s, matchStart = %s\n", now.String(), match.Start.String())
 	if match.Start.Before(now) {
 		return false, nil
 	} else {
