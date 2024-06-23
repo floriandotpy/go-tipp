@@ -13,6 +13,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
 )
 
@@ -86,8 +87,14 @@ func main() {
 	flag.Parse()
 
 	// URL to fetch data from
-	// url := "https://api.openligadb.de/getmatchdata/em/2024/1"
-	url := "https://api.openligadb.de/getmatchdata/em/2024/2"
+	today := time.Now().Local()
+	eventPhase := api.DetermineEventPhase(today)
+	if eventPhase.ApiUrl == "" {
+		fmt.Printf("No API URL for event phase %s\n", eventPhase.Title)
+		return
+	}
+	fmt.Printf("Fetching data for event phase %s\n", eventPhase.Title)
+	url := eventPhase.ApiUrl
 
 	// Fetch match data
 	matches, err := fetchMatchData(url)
