@@ -68,9 +68,10 @@ func (m *GoalModel) AllForMatch(matchId int) ([]Goal, error) {
     is_penalty,
     is_own_goal,
     is_overtime,
-    comment TEXT
+    comment TEXT,
+	(score_team_a + score_team_b) AS sum_score
 	FROM goals WHERE match_id = ?
-	ORDER BY id ASC
+	ORDER BY match_minute, sum_score ASC
 	`
 	rows, err := m.DB.Query(stmt, matchId)
 	if err != nil {
@@ -80,8 +81,9 @@ func (m *GoalModel) AllForMatch(matchId int) ([]Goal, error) {
 	var goals []Goal
 	for rows.Next() {
 		var g Goal
+		var sumScore int
 		err = rows.Scan(&g.ID, &g.MatchId, &g.ScoreTeamA, &g.ScoreTeamB,
-			&g.MatchMinute, &g.GoalGetterID, &g.GoalGetterName, &g.IsPenalty, &g.IsOwnGoal, &g.IsOvertime, &g.Comment)
+			&g.MatchMinute, &g.GoalGetterID, &g.GoalGetterName, &g.IsPenalty, &g.IsOwnGoal, &g.IsOvertime, &g.Comment, &sumScore)
 
 		if err != nil {
 			return nil, err
