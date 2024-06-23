@@ -151,7 +151,6 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	matches, err := app.matches.All()
 	if err != nil {
 		app.serverError(w, req, err)
 	}
@@ -163,14 +162,13 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	// fetch joined data (matches & tipps)
-	matchTipps, err := app.matchTipps.All(userId)
+	matchTipps, err := app.matchTipps.AllByDaterange(userId, selectedPhase.Start, selectedPhase.End)
 	if err != nil {
 		app.serverError(w, req, err)
 	}
 
 	data := app.newTemplateData(req)
 	data.MatchTipps = matchTipps
-	data.Matches = matches
 	data.EventPhases = models.GetEventPhases()
 	data.SelectedPhase = selectedPhase
 

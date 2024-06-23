@@ -1,11 +1,10 @@
 {{define "title"}}Spiele{{end}}{{define "assets"}}{{end}}{{define "main"}}
 <div class="container">
-  <h2>Spiele</h2>
-
-  <div>
+  <nav class="tabs">
+    <h2>Spiele</h2>
     <ul>
       {{range .EventPhases}}
-      <li>
+      <li {{if eq .Number $.SelectedPhase.Number}} class="active" {{end}}>
         <a href="/spiele?phase={{.Number}}">
           {{if eq .Number $.SelectedPhase.Number}}
           <strong>{{.Title}}</strong>
@@ -14,12 +13,14 @@
       </li>
       {{end}}
     </ul>
-  </div>
+  </nav>
 
+  {{if not .MatchTipps}}
+  <p>Es sind noch keine Spiele zum Tippen verfügbar.</p>
+  {{else}}
   <form action="/tipp/update" method="post">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <div class="header-container">
-      <h3 class="header-container__left">Gruppenphase</h3>
       <input
         type="submit"
         value="Speichern"
@@ -44,13 +45,11 @@
         {{range .MatchTipps}}
         <tr class="">
           <td>
-            {{if ne .Status "future"}}
             <a
               href="/spiel/{{.MatchId}}"
               class="status-label status-{{.Status}}"
               >status</a
             >
-            {{end}}
           </td>
           <td>{{germanWeekday .Start}}, {{germanDate .Start}}</td>
           <td>{{.Start.Format "15:04" }}</td>
@@ -95,5 +94,4 @@
     </div>
   </form>
 </div>
-
-{{end}}
+{{end}} {{end}}

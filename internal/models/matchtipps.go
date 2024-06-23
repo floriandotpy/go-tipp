@@ -79,8 +79,8 @@ func (m *MatchTippModel) AcceptsTipps(matchId int) (bool, error) {
 	return accepts, nil
 }
 
-func (m *MatchTippModel) All(userId int) ([]MatchTipp, error) {
-	matches, err := m.MatchModel.All()
+func (m *MatchTippModel) AllByDaterange(userId int, after time.Time, before time.Time) ([]MatchTipp, error) {
+	matches, err := m.MatchModel.AllByDaterange(after, before)
 	if err != nil {
 		return nil, err
 	}

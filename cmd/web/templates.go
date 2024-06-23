@@ -32,7 +32,6 @@ type templateData struct {
 	CurrentYear     int
 	MatchTipps      []models.MatchTipp
 	Tipps           []models.Tipp
-	Matches         []models.Match
 	Groups          []models.Group
 	Leaderboards    []Leaderboard
 	Goals           []models.Goal

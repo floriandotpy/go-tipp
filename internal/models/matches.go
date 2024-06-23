@@ -165,6 +165,44 @@ func (m *MatchModel) All() ([]Match, error) {
 	return matches, nil
 }
 
+// AllByDaterange returns all matches within the specified date range
+func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match, error) {
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type 
+             FROM matches 
+             WHERE start > ? AND start < ? 
+             ORDER BY start ASC`
+
+	rows, err := m.DB.Query(stmt, after, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []Match
+
+	for rows.Next() {
+		var match Match
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+		if err != nil {
+			return nil, err
+		}
+
+		// Set the timezone of the start time to local
+		match.Start, err = forceLocalTimezone(match.Start)
+		if err != nil {
+			return nil, err
+		}
+
+		matches = append(matches, match)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return matches, nil
+}
+
 func forceLocalTimezone(t time.Time) (time.Time, error) {
 	// Load the local timezone
 	loc, err := time.LoadLocation("Local")

@@ -434,3 +434,55 @@ a.status-future::before {
     60%  { transform: scale(1.5); }
     100%  { transform: scale(0); }
   }
+
+
+  /* navbar for match phase selection */
+
+  .tabs {
+    margin-top: 24px;
+    display: flex;
+    justify-content:space-between; 
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: #f1f2f2;
+  }
+  .tabs h2 {
+    font-size: 100%
+  }
+  
+  .tabs ul {
+    display: flex;
+    list-style: none; 
+  }
+  
+  .tabs li {
+    padding-left: 1rem;
+    font-size: 90%;
+  }
+  
+  .tabs .active a {
+    color: black;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  
+  .tabs a {
+    text-decoration: none;
+    color: #0d47a1
+  }
+  
+/* 
+    Small devices
+  */
+  @media only screen and (max-width: 640px) {
+    .tabs {
+      flex-direction: column;
+    }
+    .tabs ul {
+      flex-direction: column;
+      padding-top: 0.5rem;
+    }
+    .tabs li {
+      padding: 0.5rem 0;
+    }
+  } 
