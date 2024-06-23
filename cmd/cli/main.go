@@ -13,7 +13,6 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
 )
 
@@ -88,7 +87,7 @@ func main() {
 
 	// URL to fetch data from
 	today := time.Now().Local()
-	eventPhase := api.DetermineEventPhase(today)
+	eventPhase := models.DetermineEventPhase(today)
 	if eventPhase.ApiUrl == "" {
 		fmt.Printf("No API URL for event phase %s\n", eventPhase.Title)
 		return

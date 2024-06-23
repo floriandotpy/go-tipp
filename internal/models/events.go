@@ -1,4 +1,4 @@
-package api
+package models
 
 import "time"
 
@@ -8,10 +8,14 @@ type EventPhase struct {
 	ApiUrl string
 }
 
-func DetermineEventPhase(day time.Time) EventPhase {
+var NoPhase = EventPhase{0, "Unknown", ""}
+
+var Phases = func() []struct {
+	start time.Time
+	phase EventPhase
+} {
 	tz := time.Now().Local().Location()
-	nonePhase := EventPhase{0, "Unknown", ""}
-	phases := []struct {
+	return []struct {
 		start time.Time
 		phase EventPhase
 	}{
@@ -22,18 +26,28 @@ func DetermineEventPhase(day time.Time) EventPhase {
 		{time.Date(2024, time.July, 5, 0, 0, 0, 0, tz), EventPhase{5, "Viertelfinale", "https://api.openligadb.de/getmatchdata/em/2024/5"}},
 		{time.Date(2024, time.July, 9, 0, 0, 0, 0, tz), EventPhase{6, "Halbfinale", "https://api.openligadb.de/getmatchdata/em/2024/6"}},
 		{time.Date(2024, time.July, 14, 0, 0, 0, 0, tz), EventPhase{7, "Finale", "https://api.openligadb.de/getmatchdata/em/2024/7"}},
-		{time.Date(2024, time.July, 14, 23, 59, 0, 0, tz), nonePhase},
+		{time.Date(2024, time.July, 14, 23, 59, 0, 0, tz), NoPhase},
 	}
+}()
 
+func GetEventPhases() []EventPhase {
+	phases := make([]EventPhase, len(Phases))
+	for i, p := range Phases {
+		phases[i] = p.phase
+	}
+	return phases
+}
+
+func DetermineEventPhase(day time.Time) EventPhase {
 	// out of event time frame?
-	if day.After(phases[len(phases)-1].start) || day.Before(phases[0].start) {
-		return nonePhase
+	if day.After(Phases[len(Phases)-1].start) || day.Before(Phases[0].start) {
+		return NoPhase
 	}
 
-	for i, p := range phases {
+	for i, p := range Phases {
 		if day.Before(p.start) {
-			return phases[i-1].phase
+			return Phases[i-1].phase
 		}
 	}
-	return phases[len(phases)-1].phase
+	return Phases[len(Phases)-1].phase
 }
