@@ -1,23 +1,26 @@
 {{define "nav"}}
-<nav class="navbar container w-100">
-  <div class="left">
-    {{if .IsAuthenticated }}
-    <a href="/spiele" class="pure-button">⚽️ Spiele</a>
-    <a href="/leaderboard" class="pure-button">🏆 Leaderboard</a>
-    {{end}}
-  </div>
-  <div class="right">
-    {{if .IsAuthenticated }} {{if .IsAdmin}}
-    <a href="/admin" class="pure-button">🕶️ Admin</a>
-    {{end}}
-    <form action="/user/logout" method="post">
-      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
-      <button class="pure-button">➡️ Logout</button>
-    </form>
-    {{else}}
-    <a href="/user/signup" class="pure-button">🔜 Registrieren</a>
-    <a href="/user/login" class="pure-button">🔒 Login</a>
-    {{end}}
-  </div>
-</nav>
+<div class="w-100">
+  <nav class="container navbar">
+    <div class="left">
+      {{if .IsAuthenticated }}
+      <a href="/spiele" class="pure-button">⚽️ Spiele</a>
+      <a href="/leaderboard" class="pure-button">🏆 Leaderboard</a>
+      {{end}}
+    </div>
+    <div class="right">
+      {{if .IsAuthenticated }} {{if .IsAdmin}}
+      <a href="/admin" class="pure-button">🕶️ Admin</a>
+      {{end}}
+      <form action="/user/logout" method="post">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+        <button class="pure-button">➡️ Logout</button>
+      </form>
+      {{else}}
+      <a href="/user/signup" class="pure-button">🔜 Registrieren</a>
+      <a href="/user/login" class="pure-button">🔒 Login</a>
+      {{end}}
+    </div>
+  </nav>
+</div>
+
 {{end}}

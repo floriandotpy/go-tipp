@@ -31,8 +31,37 @@ text-align: center;
     max-width: 980px;
     margin: 0 auto;
 }
+/* add padding to container on small screens */
+@media (max-width: 960px) {
+    .container {
+        padding: 0 24px;
+    }
+}
+@media (max-width: 640px) {
+    .container {
+        padding: 0 12px;
+    }
+}
 .w-100 {
     width: 100%;
+}
+.w-1-12 { width: 8.33%; }
+.w-2-12 { width: 16.66%; }
+.w-3-12 { width: 25%; }
+.w-4-12 { width: 33.33%; }
+.w-5-12 { width: 41.66%; }
+.w-6-12 { width: 50%; }
+.w-7-12 { width: 58.33%; }
+.w-8-12 { width: 66.66%; }
+.w-9-12 { width: 75%; }
+.w-10-12 { width: 83.33%; }
+.w-11-12 { width: 91.66%; }
+.w-12-12 { width: 100%; }
+.text-center {
+    text-align: center;
+}
+.text-right {
+    text-align: right;
 }
 
 a:not(.pure-button) {
@@ -66,12 +95,12 @@ a:hover { color: #06e; }​ */
 }
 .logo {
     font-size: 1em;
-
 }
-.logo a {
+.logo a, .logo a:hover {
     text-decoration: none;
     color: black;
 }
+
 
 .cc-table {
     width: 100%; /* Make the table span 100% of the container's width */
@@ -83,7 +112,7 @@ a:hover { color: #06e; }​ */
     border: 1px solid #ddd; /* Add a single border around each cell */
 }
 
-.cc-table thead tr {
+.cc-table thead tr, tfoot tr {
     background-color: #f2f2f2; /* Light gray background for the header */
     text-align: left; /* Align text to the left in the header */
 }
@@ -332,7 +361,7 @@ a.status-pending::before {
 }
 
 a.status-done {
-    /* background-color: lightgrey; */
+    background-color: transparent;
     color: transparent; /* Hide the text */
     position: relative; /* Position for the pseudo-element */
 }
@@ -347,14 +376,14 @@ a.status-done::before {
 }
 
 a.status-future {
-    background-color: lightblue;
+    background-color: transparent;
     color: transparent; /* Hide the text */
     position: relative; /* Position for the pseudo-element */
 }
 
 a.status-future::before {
     content: "\23F1"; /* Unicode for stopwatch */
-    color: white;
+    color: black;
     position: absolute;
     top: 50%;
     left: 50%;

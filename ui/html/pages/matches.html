@@ -31,32 +31,32 @@
     <table class="cc-table cc-table-striped">
       <thead class="">
         <tr>
-          <th></th>
-          <th>Tag</th>
-          <th>Uhrzeit</th>
-          <th>Team 1</th>
-          <th>Team 2</th>
-          <th>Ergebnis</th>
-          <th>Dein Tipp</th>
-          <th>Punkte</th>
+          <th class="w-1-12"></th>
+          <th class="w-5-12">Spiel</th>
+          <th class="w-2-12">Ergebnis</th>
+          <th class="w-2-12">Dein Tipp</th>
+          <th class="w-2-12">Punkte</th>
         </tr>
       </thead>
-      <tbody class="">
+      <tbody>
         {{range .MatchTipps}}
-        <tr class="">
-          <td>
+        <tr>
+          <td class="text-center">
             <a
               href="/spiel/{{.MatchId}}"
               class="status-label status-{{.Status}}"
               >status</a
             >
           </td>
-          <td>{{germanWeekday .Start}}, {{germanDate .Start}}</td>
-          <td>{{.Start.Format "15:04" }}</td>
-          <td>{{.TeamA}}</td>
-          <td>{{.TeamB}}</td>
-          <td>{{matchResult .ResultA .ResultB}}</td>
-          <td>
+          <td >
+            {{.TeamA}} - {{.TeamB}}
+            <br /><span
+              class="muted">
+              {{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04" }}</span>
+            </span>
+          </td>
+          <td >{{matchResult .ResultA .ResultB}}</td>
+          <td >
             {{if .AcceptsTipps}}
             <input
               type="hidden"

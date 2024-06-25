@@ -16,11 +16,11 @@
   <h3>{{.Title}}</h3>
   <table class="cc-table">
     <thead>
-      <tr>
-        <td>Platz</td>
-        <td>Name</td>
-        <td>Tipps abgegeben</td>
-        <td>Gesamtpunkte</td>
+      <tr class="">
+        <td class="w-1-12 text-right">Platz</td>
+        <td class="w-7-12">Name</td>
+        <td class="w-2-12">Tipps abgegeben</td>
+        <td class="w-2-12">Gesamtpunkte</td>
       </tr>
     </thead>
     {{$prev_place:=0}} {{range $i, $u := .Users}}
@@ -40,7 +40,7 @@
       class="odd"
       {{end}}
     >
-      <td>
+      <td class="text-right">
         {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
         {{end}}
       </td>

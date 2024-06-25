@@ -19,6 +19,7 @@ func (app *application) routes() http.Handler {
 
 	// general routes
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.indexHandler))
+	mux.Handle("GET /regeln", dynamic.ThenFunc(app.rulesHandler))
 
 	// user auth routes
 	mux.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup))

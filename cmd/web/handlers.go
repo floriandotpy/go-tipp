@@ -50,6 +50,12 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	app.render(w, req, http.StatusOK, "index.html", data)
 }
 
+func (app *application) rulesHandler(w http.ResponseWriter, req *http.Request) {
+	data := app.newTemplateData(req)
+	fmt.Println("rulesHandler")
+	app.render(w, req, http.StatusOK, "rules.html", data)
+}
+
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
 
 	// fetch all user groups from database

@@ -1,0 +1,121 @@
+{{define "title"}}Regeln{{end}} {{define "assets"}}{{end}} {{define "main"}}
+<div class="container">
+  <h1>Regeln</h1>
+  <p>Das Tippspiel ist einfach und unkompliziert.</p>
+  <h2>Tippen</h2>
+  <p>
+    Für jedes Spiel gibst du einen Tipp ab (z.B. "2:1"). Du kannst deinen Tipp
+    bis zum Anpfiff des Spiels eintragen und ändern. Sobald das Spiel begonnen
+    hat, kannst du auch die Tipps der anderen Mitspieler sehen. Wenn das Spiel
+    vorbei ist, werden Punkte vergeben.
+  </p>
+  <h2>Punkte: Gruppenphase</h2>
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <th>Ergebnis</th>
+        <th>Punkte</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ergebnis exakt getippt</td>
+        <td>5</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 2:1</small>
+        </td>
+      </tr>
+      <tr>
+        <td>Tordifferenz richtig</td>
+        <td>3</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 3:2</small>
+        </td>
+      </tr>
+      <tr>
+        <td>Tendenz richtig</td>
+        <td>1</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 2:0</small>
+        </td>
+      </tr>
+      <tr>
+        <td>Falscher Tipp</td>
+        <td>0</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 0:0</small>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3">
+          In der Gruppenphase zählt das
+          <strong>finale Ergebnis nach 90 Minuten</strong> (plus ggf.
+          Nachspielzeit).
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+  <h2>Punkte: KO-Phase</h2>
+  <p>
+    In der KO-Phase gibt es mehr Punkte, weil die Spiele auch mehr Einfluss auf
+    den Turnierausgang haben sind. Zudem gibt jeder Tipp mindestens 1 Punkt
+    (auch falsche Tipps!). So soll es sich lohnen, auch Tipps abzugeben wenn man
+    in der Gruppenphase noch nicht so viele Punkte gesammelt hat.
+  </p>
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <th>Ergebnis</th>
+        <th>Punkte</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ergebnis exakt getippt</td>
+        <td>6</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 2:1</small>
+        </td>
+      </tr>
+      <tr>
+        <td>Tordifferenz richtig</td>
+        <td>4</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 3:2</small>
+        </td>
+      </tr>
+      <tr>
+        <td>Tendenz richtig</td>
+        <td>3</td>
+        <td>
+          <small>z.B. 2:1 getippt, Ergebnis 2:0</small>
+        </td>
+      </tr>
+      <tr>
+        <td>Falscher Tipp</td>
+        <td>1</td>
+        <td>
+          <small
+            >z.B. 2:1 getippt, Ergebnis 0:0, in der KO-Phase bringt jeder Tipp
+            einen Punkt!</small
+          >
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3">
+          In der KO-Phase zählt das
+          <strong>Ergebnis nach regulärer Spielzeit</strong> (90 Minuten plus
+          ggf. Nachspielzeit). Verlängerung und Elfmeterschießen zählen nicht.
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+{{end}}
