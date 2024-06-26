@@ -415,6 +415,9 @@ a.status-future::before {
     text-transform: uppercase;
     margin: 0;
 }
+.team-none {
+    color: rgb(116, 116, 116);
+}
 
 /* Live indicator */
 

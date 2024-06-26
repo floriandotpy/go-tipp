@@ -24,19 +24,37 @@ type MatchModel struct {
 }
 
 // check if user should still be allowed to submit a tipp for this match
-func (m *MatchModel) AcceptsTipps(matchId int) (bool, error) {
+func (m *MatchModel) MatchHasBegun(matchId int) (bool, error) {
 	match, err := m.Get(matchId)
 	if err != nil {
 		return false, err
 	}
 
-	// match has already begun
 	now := time.Now()
 
 	if match.Start.Before(now) {
 		return false, nil
 	} else {
 		return true, nil
+	}
+}
+
+func (m *MatchModel) AcceptsTipps(matchId int) (bool, error) {
+	match, err := m.Get(matchId)
+	if err != nil {
+		return false, err
+	}
+
+	now := time.Now()
+	matchHasBegun := match.Start.Before(now)
+
+	// teams are known?
+	teamsAreKnown := match.TeamA != "" && match.TeamB != ""
+
+	if !matchHasBegun && teamsAreKnown {
+		return true, nil
+	} else {
+		return false, nil
 	}
 }
 

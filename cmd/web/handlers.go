@@ -212,12 +212,12 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 	}
 	data.Goals = goals
 
-	// below: if tipps are no longer accepted, we can display other users' tipps
-	acceptsTipps, err := app.matches.AcceptsTipps(matchId)
+	// below: if match has begun, we can display other users' tipps
+	matchHasBegun, err := app.matches.MatchHasBegun(matchId)
 	if err != nil {
 		app.serverError(w, r, err)
 	}
-	if !acceptsTipps { // TODO: not pretty: runs second query
+	if !matchHasBegun { // TODO: not pretty: runs second query
 		tipps, err := app.tipps.AllForMatch(matchId)
 		if err != nil {
 			app.serverError(w, r, err)
@@ -384,7 +384,7 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 			tippAKey := "tipp_a_" + matchIdStr
 			tippBKey := "tipp_b_" + matchIdStr
 
-			// check if match still accepts tipps (i.e. it hasn't started yet)
+			// check if match accepts tipps (i.e. it hasn't started yet and both teams are known)
 			acceptsTipps, err := app.matches.AcceptsTipps(matchId)
 			if err != nil {
 				app.serverError(w, r, err)

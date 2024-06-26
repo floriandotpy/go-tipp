@@ -48,15 +48,25 @@
               >status</a
             >
           </td>
-          <td >
-            {{.TeamA}} - {{.TeamB}}
+          <td>
+            {{if eq .TeamA ""}}
+            <span class="team-none">(Noch offen)</span>
+            {{else}}
+            {{.TeamA}}
+            {{end}}
+            -
+            {{if eq .TeamB ""}}
+            <span class="team-none">(Noch offen)</span>
+            {{else}}
+            {{.TeamB}}
+            {{end}}
             <br /><span
               class="muted">
               {{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04" }}</span>
             </span>
           </td>
-          <td >{{matchResult .ResultA .ResultB}}</td>
-          <td >
+          <td>{{matchResult .ResultA .ResultB}}</td>
+          <td>
             {{if .AcceptsTipps}}
             <input
               type="hidden"
@@ -68,7 +78,7 @@
               min="0"
               max="99"
               name="tipp_a_{{.MatchId}}"
-              value='{{defaultStr .TippA ""}}'
+              value='{{defaultIntStr .TippA ""}}'
             />
             :
             <input
@@ -76,9 +86,15 @@
               min="0"
               max="99"
               name="tipp_b_{{.MatchId}}"
-              value='{{defaultStr .TippB ""}}'
+              value='{{defaultIntStr .TippB ""}}'
             />
-            {{else}} {{defaultStr .TippA "-"}}:{{defaultStr .TippB "-"}} {{end}}
+            {{else}} 
+              {{ if eq "-" (defaultIntStr .TippA "-") }}
+              <small>Kein Tipp möglich</small>
+              {{ else }}
+              {{defaultIntStr .TippA "-"}}:{{defaultIntStr .TippB "-"}} 
+              {{ end }}
+            {{end}}
           </td>
           <td>{{if eq .Status "done"}} {{.Points}} {{end}}</td>
         </tr>

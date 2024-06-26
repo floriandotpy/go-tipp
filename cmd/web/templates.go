@@ -126,7 +126,15 @@ func isLast(idx int, goals []models.Goal) bool {
 	return idx == len(goals)-1
 }
 
-func defaultStr(val *int, defaultStr string) string {
+func defaultStr(val *string, defaultStr string) string {
+	if val == nil || *val == "" {
+		return defaultStr
+	} else {
+		return *val
+	}
+}
+
+func defaultIntStr(val *int, defaultStr string) string {
 	if val == nil {
 		return defaultStr
 	} else {
@@ -150,6 +158,7 @@ var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
 	"matchResult":   matchResult,
+	"defaultIntStr": defaultIntStr,
 	"defaultStr":    defaultStr,
 	"add":           add,
 	"germanYesNo":   germanYesNo,
