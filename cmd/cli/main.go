@@ -93,7 +93,8 @@ func main() {
 		return
 	}
 	fmt.Printf("Fetching data for event phase %s\n", eventPhase.Title)
-	url := eventPhase.ApiUrl
+	// url := eventPhase.ApiUrl
+	url := "https://api.openligadb.de/getmatchdata/em/2024/3"
 
 	// Fetch match data
 	matches, err := fetchMatchData(url)
@@ -141,6 +142,7 @@ func main() {
 		// Check if a match was found
 		if dbMatch.ID == 0 {
 			fmt.Printf("No match in database found, skipping (%s, %s vs. %s)\n", dayString, apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
+			fmt.Printf("  -> YOU SHOULD ADD THIS MATCH MANUALLY!\n\n")
 			continue
 		}
 		fmt.Printf("Match found in database: %d\n", dbMatch.ID)
@@ -160,31 +162,33 @@ func main() {
 			fmt.Printf("Goal %s (id %d): %d:%d (minute %d by %s)\n", dbOp, goalId, goal.ScoreTeamA, goal.ScoreTeamB, goal.MatchMinute, goal.GoalGetterName)
 		}
 
-		// match finished? update match results
-		// Extract end score from match results
+		// read end result from api response api (also while game is still running, to get current score)
 		var endScoreTeamA, endScoreTeamB int
-		if len(apiMatch.MatchResults) == 0 || !apiMatch.MatchIsFinished {
-			fmt.Printf("Skipping match (%s vs %s) without end result...\n\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
-			continue
-		}
+		var endResultFound = false
 		for _, result := range apiMatch.MatchResults {
 			if strings.ToLower(result.ResultName) == "endergebnis" {
 				endScoreTeamA = result.PointsTeamA
 				endScoreTeamB = result.PointsTeamB
+				endResultFound = true
 				break
 			}
 		}
+
+		if !endResultFound {
+			fmt.Printf("Skipping match (%s vs %s) without reported end result...\n\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
+			continue
+		}
+
+		fmt.Printf("Match finished: %t\n", apiMatch.MatchIsFinished)
 		fmt.Printf("End score of team 1: %d\n", endScoreTeamA)
 		fmt.Printf("End score of team 2: %d\n", endScoreTeamB)
 
-		if dbMatch.ResultA == nil && dbMatch.ResultB == nil {
-			fmt.Printf("-> Update result to %d:%d\n", endScoreTeamA, endScoreTeamB)
-			matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB)
+		if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB || dbMatch.Finished != apiMatch.MatchIsFinished {
+			fmt.Printf("-> Update result to %d:%d (finished: %t)\n", endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
+			matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
 			dbUpdated = true
-		} else if *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB {
-			fmt.Printf("Warning: Score mismatch API (%d:%d) vs DB (%d:%d)\n", *dbMatch.ResultA, *dbMatch.ResultB, endScoreTeamA, endScoreTeamB)
 		} else {
-			fmt.Printf("Existing result won't be updated, score is %d:%d\n", *dbMatch.ResultA, *dbMatch.ResultB)
+			fmt.Printf("Existing result won't be updated, score is %d:%d (finished: %t)\n", *dbMatch.ResultA, *dbMatch.ResultB, dbMatch.Finished)
 		}
 
 		fmt.Printf("\n")
@@ -202,6 +206,7 @@ func main() {
 	} else {
 		fmt.Printf("No database updated occured of final scores, no user points were affected\n")
 	}
+
 }
 
 func openDB(dsn string) (*sql.DB, error) {

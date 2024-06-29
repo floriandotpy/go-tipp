@@ -13,6 +13,7 @@ type Match struct {
 	TeamB     string
 	Start     time.Time
 	MatchType string
+	Finished  bool
 
 	// goal numbers
 	ResultA *int
@@ -63,9 +64,9 @@ func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchTy
 }
 
 func (m *MatchModel) Get(id int) (Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type FROM matches WHERE id = ?`
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished FROM matches WHERE id = ?`
 	var match Match
-	err := m.DB.QueryRow(stmt, id).Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+	err := m.DB.QueryRow(stmt, id).Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord
@@ -93,7 +94,7 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 
 	// Prepare the SQL query
 	query := `
-		SELECT id, start, team_a, team_b, result_a, result_b, match_type
+		SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished
 		FROM matches
 		WHERE DATE(start) = ? AND team_a = ? AND team_b = ?
 	`
@@ -105,7 +106,7 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 	var match Match
 
 	// Scan the result into the match variable
-	err = row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+	err = row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No matching entry found
@@ -119,16 +120,16 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 	return match, nil
 }
 
-func (m *MatchModel) SetResults(id int, resultA int, resultB int) error {
+func (m *MatchModel) SetResults(id int, resultA int, resultB int, finished bool) error {
 	// Prepare the SQL query
 	query := `
 		UPDATE matches
-		SET result_a = ?, result_b = ?
+		SET result_a = ?, result_b = ?, finished = ?
 		WHERE id = ?
 	`
 
 	// Execute the query
-	result, err := m.DB.Exec(query, resultA, resultB, id)
+	result, err := m.DB.Exec(query, resultA, resultB, finished, id)
 	if err != nil {
 		return fmt.Errorf("could not execute update query: %v", err)
 	}
@@ -152,7 +153,7 @@ func (m *MatchModel) Upcoming() ([]Match, error) {
 
 // will return all matches
 func (m *MatchModel) All() ([]Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type FROM matches ORDER BY start ASC`
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished FROM matches ORDER BY start ASC`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return nil, err
@@ -164,7 +165,7 @@ func (m *MatchModel) All() ([]Match, error) {
 
 	for rows.Next() {
 		var match Match
-		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
 		if err != nil {
 			return nil, err
 		}
@@ -185,7 +186,7 @@ func (m *MatchModel) All() ([]Match, error) {
 
 // AllByDaterange returns all matches within the specified date range
 func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type 
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished
              FROM matches 
              WHERE start > ? AND start < ? 
              ORDER BY start ASC`
@@ -200,7 +201,7 @@ func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match,
 
 	for rows.Next() {
 		var match Match
-		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType)
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
 		if err != nil {
 			return nil, err
 		}
