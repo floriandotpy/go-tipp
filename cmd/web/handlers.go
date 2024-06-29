@@ -202,7 +202,7 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 	data.Match = match
 
 	now := time.Now()
-	status := app.matchTipps.MatchStatus(match.Start, now, match.ResultA, match.ResultB)
+	status := app.matchTipps.MatchStatus(match, now)
 	data.Status = status
 
 	// fetch goals (will work on live matches and finished matches both)
@@ -230,7 +230,11 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		}
 		data.Tipps = tipps
 
-		scoreA, scoreB := *match.ResultA, *match.ResultB
+		var scoreA, scoreB = 0, 0 // no live data yet? default to 0:0
+		if match.ResultA != nil && match.ResultB != nil {
+			scoreA, scoreB = *match.ResultA, *match.ResultB
+		}
+
 		liveTipps, err := app.tipps.ComputeLiveTipps(tipps, scoreA, scoreB, eventPhaseType)
 		if err != nil {
 			app.serverError(w, r, err)

@@ -54,15 +54,15 @@ type MatchTippModel struct {
 	TippModel  *TippModel
 }
 
-func (m *MatchTippModel) MatchStatus(start time.Time, now time.Time, resultA *int, resultB *int) string {
-	if now.Before(start) {
+func (m *MatchTippModel) MatchStatus(match Match, now time.Time) string {
+	if now.Before(match.Start) {
 		return MatchFuture
-	} else if resultA != nil && resultB != nil {
+	} else if match.Finished {
 		return MatchDone
-	} else if now.Sub(start) >= 120*time.Minute && resultA == nil && resultB == nil {
-		return MatchPending
-	} else {
+	} else if !match.Finished {
 		return MatchLive
+	} else {
+		return MatchPending
 	}
 }
 
@@ -104,7 +104,7 @@ func (m *MatchTippModel) AllByDaterange(userId int, after time.Time, before time
 		if err != nil {
 			return nil, err
 		}
-		status := m.MatchStatus(match.Start, now, match.ResultA, match.ResultB)
+		status := m.MatchStatus(match, now)
 		mt := MatchTipp{
 			MatchId:      match.ID,
 			TeamA:        match.TeamA,
