@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"tipp.casualcoding.com/internal/scoring"
 )
 
 type Match struct {
@@ -18,13 +20,14 @@ type Match struct {
 	// goal numbers
 	ResultA *int
 	ResultB *int
+
+	EventPhase int
 }
 
 type MatchModel struct {
 	DB *sql.DB
 }
 
-// check if user should still be allowed to submit a tipp for this match
 func (m *MatchModel) MatchHasBegun(matchId int) (bool, error) {
 	match, err := m.Get(matchId)
 	if err != nil {
@@ -34,12 +37,13 @@ func (m *MatchModel) MatchHasBegun(matchId int) (bool, error) {
 	now := time.Now()
 
 	if match.Start.Before(now) {
-		return false, nil
-	} else {
 		return true, nil
+	} else {
+		return false, nil
 	}
 }
 
+// check if user should still be allowed to submit a tipp for this match
 func (m *MatchModel) AcceptsTipps(matchId int) (bool, error) {
 	match, err := m.Get(matchId)
 	if err != nil {
@@ -64,9 +68,9 @@ func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchTy
 }
 
 func (m *MatchModel) Get(id int) (Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished FROM matches WHERE id = ?`
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase FROM matches WHERE id = ?`
 	var match Match
-	err := m.DB.QueryRow(stmt, id).Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
+	err := m.DB.QueryRow(stmt, id).Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord
@@ -94,7 +98,7 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 
 	// Prepare the SQL query
 	query := `
-		SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished
+		SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase
 		FROM matches
 		WHERE DATE(start) = ? AND team_a = ? AND team_b = ?
 	`
@@ -106,7 +110,7 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 	var match Match
 
 	// Scan the result into the match variable
-	err = row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
+	err = row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No matching entry found
@@ -153,7 +157,7 @@ func (m *MatchModel) Upcoming() ([]Match, error) {
 
 // will return all matches
 func (m *MatchModel) All() ([]Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished FROM matches ORDER BY start ASC`
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase FROM matches ORDER BY start ASC`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return nil, err
@@ -165,7 +169,7 @@ func (m *MatchModel) All() ([]Match, error) {
 
 	for rows.Next() {
 		var match Match
-		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +190,7 @@ func (m *MatchModel) All() ([]Match, error) {
 
 // AllByDaterange returns all matches within the specified date range
 func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase
              FROM matches 
              WHERE start > ? AND start < ? 
              ORDER BY start ASC`
@@ -201,7 +205,7 @@ func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match,
 
 	for rows.Next() {
 		var match Match
-		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished)
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
 		if err != nil {
 			return nil, err
 		}
@@ -235,4 +239,15 @@ func forceLocalTimezone(t time.Time) (time.Time, error) {
 		t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), loc,
 	)
 	return localTime, nil
+}
+
+func InferEventPhaseType(match *Match) (string, error) {
+	switch match.EventPhase {
+	case 1, 2, 3:
+		return scoring.PhaseGroup, nil
+	case 4, 5, 6, 7:
+		return scoring.PhaseKO, nil
+	default:
+		return "", fmt.Errorf("invalid EventPhase on match object: %d", match.EventPhase)
+	}
 }

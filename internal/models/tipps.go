@@ -3,9 +3,13 @@ package models
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
+
+	"tipp.casualcoding.com/internal/scoring"
 )
 
 type Tipp struct {
@@ -223,16 +227,7 @@ func (m *TippModel) UpdatePoints() (int, error) {
 	}
 
 	// Second update to set the points based on the updated result_correct, goal_difference_correct, and tendency_correct
-	stmt2 := `
-	UPDATE tipps
-	SET 
-		points = CASE
-			WHEN result_correct = 1 THEN 5
-			WHEN tendency_correct = 1 AND goal_difference_correct = 1 THEN 3
-			WHEN tendency_correct = 1 THEN 1
-			ELSE 0
-		END;
-	`
+	stmt2 := buildUpdatePointsQuery(scoring.PhasePointsMap)
 
 	// Execute the second statement
 	result2, err := m.DB.Exec(stmt2)
@@ -251,7 +246,51 @@ func (m *TippModel) UpdatePoints() (int, error) {
 	return rowsAffected, nil
 }
 
-func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int) []Tipp {
+func buildUpdatePointsQuery(phasePointsMap map[string]scoring.PhasePoints) string {
+	groupPoints := phasePointsMap[scoring.PhaseGroup]
+	koPoints := phasePointsMap[scoring.PhaseKO]
+
+	queryTemplate := `
+    UPDATE tipps t
+    JOIN matches m ON t.match_id = m.id
+    SET t.points = CASE
+        WHEN m.event_phase IN (1, 2, 3) THEN
+            CASE
+                WHEN t.result_correct = 1 THEN %d
+                WHEN t.tendency_correct = 1 AND t.goal_difference_correct = 1 THEN %d
+                WHEN t.tendency_correct = 1 THEN %d
+                ELSE 0
+            END
+        WHEN m.event_phase IN (4, 5, 6, 7) THEN
+            CASE
+                WHEN t.result_correct = 1 THEN %d
+                WHEN t.tendency_correct = 1 AND t.goal_difference_correct = 1 THEN %d
+                WHEN t.tendency_correct = 1 THEN %d
+                ELSE 0
+            END
+        ELSE 0
+    END;
+    `
+
+	query := fmt.Sprintf(queryTemplate,
+		groupPoints.CorrectResult,
+		groupPoints.CorrectTendencyAndDiff,
+		groupPoints.CorrectTendency,
+		koPoints.CorrectResult,
+		koPoints.CorrectTendencyAndDiff,
+		koPoints.CorrectTendency,
+	)
+
+	return strings.TrimSpace(query)
+}
+
+func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int, event_phase_type string) ([]Tipp, error) {
+
+	points, ok := scoring.PhasePointsMap[event_phase_type]
+	if !ok {
+		return nil, errors.New("Unknown event phase type")
+	}
+
 	var liveTipps []Tipp
 	for _, tipp := range tipps {
 		liveTipp := tipp
@@ -262,11 +301,11 @@ func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int) []T
 			(tipp.TippA < tipp.TippB && resultA < resultB))
 
 		if liveTipp.ResultCorrect {
-			liveTipp.Points = 5
+			liveTipp.Points = points.CorrectResult
 		} else if liveTipp.TendencyCorrect && liveTipp.GoalDifferenceCorrect {
-			liveTipp.Points = 3
+			liveTipp.Points = points.CorrectTendencyAndDiff
 		} else if liveTipp.TendencyCorrect {
-			liveTipp.Points = 1
+			liveTipp.Points = points.CorrectTendency
 		}
 
 		liveTipps = append(liveTipps, liveTipp)
@@ -277,7 +316,7 @@ func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int) []T
 		return liveTipps[i].Points > liveTipps[j].Points
 	})
 
-	return liveTipps
+	return liveTipps, nil
 }
 
 func (m *TippModel) GetScoreboardData() (ScoreboardData, error) {

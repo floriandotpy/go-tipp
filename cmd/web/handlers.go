@@ -217,20 +217,29 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		app.serverError(w, r, err)
 	}
-	if !matchHasBegun { // TODO: not pretty: runs second query
+
+	eventPhaseType, err := models.InferEventPhaseType(&match)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+
+	if matchHasBegun { // TODO: not pretty: runs second query
 		tipps, err := app.tipps.AllForMatch(matchId)
 		if err != nil {
 			app.serverError(w, r, err)
 		}
 		data.Tipps = tipps
 
-		liveScoreA, liveScoreB := app.goals.LiveScore(goals)
-		liveTipps := app.tipps.ComputeLiveTipps(tipps, liveScoreA, liveScoreB)
+		scoreA, scoreB := *match.ResultA, *match.ResultB
+		liveTipps, err := app.tipps.ComputeLiveTipps(tipps, scoreA, scoreB, eventPhaseType)
+		if err != nil {
+			app.serverError(w, r, err)
+		}
 		data.Tipps = liveTipps
 
 		liveResult := LiveResult{
-			ResultA: liveScoreA,
-			ResultB: liveScoreB,
+			ResultA: scoreA,
+			ResultB: scoreB,
 		}
 		data.LiveResult = liveResult
 	}
