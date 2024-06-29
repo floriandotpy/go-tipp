@@ -85,6 +85,10 @@ a:hover { color: #06e; }​ */
     justify-content: space-between; /* Push items to the edges */
     margin: 12px 0;
 }
+.header-notice {
+    color: #888;
+    font-size: 14px;
+}
 
 .header-container__left {
     margin: 0; /* Remove default margin to avoid unexpected spacing */
@@ -164,6 +168,16 @@ a:hover { color: #06e; }​ */
     padding: 1em 1em;
     text-align: center;
 }
+.cc-alert {
+    background: #f2f2f2;
+    border-radius: 3px;
+    color: #333;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 14px;
+    margin: 12px 0;
+}
+
 
 .navbar form { 
     display: inline-block;

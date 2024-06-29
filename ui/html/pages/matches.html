@@ -21,6 +21,13 @@
   <form action="/tipp/update?phase={{.SelectedPhase.Number}}" method="post">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <div class="header-container">
+      {{if isKOPhase .SelectedPhase}}
+      <p class="header-notice">
+        ℹ️
+        KO-Phase: Du tippst du auf das <strong>Ergebnis
+        nach regulärer Spielzeit</strong> (90 Minuten plus ggf. Nachspielzeit).
+      </p>
+      {{end}}
       <input
         type="submit"
         value="Speichern"

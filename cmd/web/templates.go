@@ -154,6 +154,10 @@ func odd(x int) bool {
 	return (x+1)%2 == 0
 }
 
+func isKOPhase(phase models.EventPhase) bool {
+	return phase.Number >= 4
+}
+
 var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
@@ -165,6 +169,7 @@ var functions = template.FuncMap{
 	"isLast":        isLast,
 	"even":          even,
 	"odd":           odd,
+	"isKOPhase":     isKOPhase,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
