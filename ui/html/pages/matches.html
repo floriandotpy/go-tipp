@@ -18,7 +18,7 @@
   {{if not .MatchTipps}}
   <p>Es sind noch keine Spiele zum Tippen verfügbar.</p>
   {{else}}
-  <form action="/tipp/update" method="post">
+  <form action="/tipp/update?phase={{.SelectedPhase.Number}}" method="post">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <div class="header-container">
       <input

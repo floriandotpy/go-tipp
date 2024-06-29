@@ -364,6 +364,12 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	// get phase from request
+	phase, err := strconv.Atoi(r.URL.Query().Get("phase"))
+	if err != nil {
+		phase = 0
+	}
+
 	// get user id from session
 	userId, err := app.authUserId(r)
 	if err != nil {
@@ -436,7 +442,12 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 
 	app.sessionManager.Put(r.Context(), "flash", "Tipps gespeichert!")
 
-	http.Redirect(w, r, "/spiele", http.StatusSeeOther)
+	var redirectUrl = "/spiele"
+	if phase != 0 {
+		redirectUrl = fmt.Sprintf("/spiele?phase=%d", phase)
+	}
+
+	http.Redirect(w, r, redirectUrl, http.StatusSeeOther)
 }
 
 // Create a new userSignupForm struct.
