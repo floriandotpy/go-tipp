@@ -93,8 +93,7 @@ func main() {
 		return
 	}
 	fmt.Printf("Fetching data for event phase %s\n", eventPhase.Title)
-	// url := eventPhase.ApiUrl
-	url := "https://api.openligadb.de/getmatchdata/em/2024/3"
+	url := eventPhase.ApiUrl
 
 	// Fetch match data
 	matches, err := fetchMatchData(url)
