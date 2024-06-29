@@ -1,3 +1,3 @@
 #!/bin/zsh
-go run ./cmd/web -addr=":8090" -dsn=$DATABASE_URL_GO -https
+exec go run ./cmd/web -addr=":8090" -dsn=$DATABASE_URL_GO -https
 
