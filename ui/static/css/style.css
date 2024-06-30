@@ -148,11 +148,25 @@ a:hover { color: #06e; }​ */
     background-color: #f1f1f1; /* Slightly darker gray on hover for better interactivity */
 }
 
-
-
 .cc-table .active {
     font-weight: bold;
 }
+
+/* Media query for small viewports */
+@media (max-width: 640px) {
+    .cc-table {
+        font-size: 12px;
+    }
+
+    .cc-table th, .cc-table td {
+        padding: 8px 4px; /* Adjust padding for better readability on small screens */
+    }
+    .cc-table thead {
+        font-size: 10px;
+    }
+}
+
+
 
 .cc-alert-flash {
     background: #1f8dd6;

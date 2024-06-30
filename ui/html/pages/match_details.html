@@ -59,9 +59,6 @@
         <td>User</td>
         <td>Tipp</td>
         {{if eq $.Status "done" "live" "pending"}}
-        <td>Tendenz richtig</td>
-        <td>Tordifferenz richtig</td>
-        <td>Ergebnis richtig</td>
         <td>
           Punkte {{if eq $.Status "live" "pending"}} (Live-Prognose) {{end}}
         </td>
@@ -76,9 +73,6 @@
         </td>
         <td>{{.TippA}} : {{.TippB}}</td>
         {{if eq $.Status "done" "live" "pending"}}
-        <td>{{ germanYesNo .TendencyCorrect }}</td>
-        <td>{{ germanYesNo .GoalDifferenceCorrect }}</td>
-        <td>{{ germanYesNo .ResultCorrect }}</td>
         <td>{{ .Points }}</td>
         {{end}}
       </tr>
