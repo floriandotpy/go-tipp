@@ -82,6 +82,8 @@
             >
           </td>
           <td>
+            <a
+              href="/spiel/{{.MatchId}}">
             {{if eq .TeamA ""}}
             <span class="team-none">(Noch offen)</span>
             {{else}}
@@ -97,6 +99,7 @@
               class="muted">
               {{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04" }}</span>
             </span>
+          </a>
           </td>
           <td>{{matchResult .ResultA .ResultB}}</td>
           <td>
