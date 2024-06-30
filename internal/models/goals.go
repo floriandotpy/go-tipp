@@ -56,6 +56,14 @@ ON DUPLICATE KEY UPDATE
 
 }
 
+func (m *GoalModel) DeleteAllForMatch(matchId int) error {
+	_, err := m.DB.Exec("DELETE FROM goals WHERE match_id = ?", matchId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *GoalModel) AllForMatch(matchId int) ([]Goal, error) {
 	stmt := `SELECT
 	id,

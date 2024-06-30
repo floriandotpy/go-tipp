@@ -146,7 +146,14 @@ func main() {
 		}
 		fmt.Printf("Match found in database: %d\n", dbMatch.ID)
 
-		// update goals
+		// remove all goals for this match
+		// this will fix the issue that a previous goal has been revoked (e.g. due to VAR)
+		// this has happened during Euro 2024 several times and I had to fix it manually in the DB
+		// (this is a bit of a hack, but it works)
+		fmt.Printf("Removing all goals for this match from db...\n")
+		goalModel.DeleteAllForMatch(dbMatch.ID)
+
+		// insert (or update goals)
 		for _, apiGoal := range apiMatch.Goals {
 			goal := ConvertApiGoalToGoal(apiGoal)
 			goalId, err := goalModel.InsertOrUpdate(dbMatch.ID, goal)
