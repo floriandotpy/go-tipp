@@ -27,6 +27,44 @@ text-align: center;
 .footer a {
     color: #333;
 }
+
+/* Utilities */
+
+.margin-top-xs {
+    margin-top: 2px;
+}
+.margin-top-s {
+    margin-top: 6px;
+}
+.margin-top-m {
+    margin-top: 12px;
+}
+.margin-top-l {
+    margin-top: 24px;
+}
+.margin-top-xl {
+    margin-top: 48px;
+}
+
+@media (max-width: 640px) {
+    .hide-small {
+        display: none !important
+    }
+}
+
+@media (min-width: 641px) and (max-width: 960px) {
+    .hide-medium {
+        display: none !important;
+    }
+}
+
+@media (min-width: 961px) {
+    .hide-large {
+        display: none !important;
+    }
+}
+
+
 .container {
     max-width: 980px;
     margin: 0 auto;
@@ -63,6 +101,8 @@ text-align: center;
 .text-right {
     text-align: right;
 }
+
+
 
 a:not(.pure-button) {
     color: #0e76bb;
@@ -532,7 +572,7 @@ a.status-future::before {
   }
   
 /* 
-    Small devices
+    Tabs: Small devices
   */
   @media only screen and (max-width: 640px) {
     .tabs {
@@ -546,3 +586,78 @@ a.status-future::before {
       padding: 0.5rem 0;
     }
   } 
+
+
+/*
+Prev/next buttons for mobile view
+*/
+
+.pagination {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .pagination ul {
+    display: flex;
+    justify-content: space-between;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    gap: 10px;
+  }
+  
+  .pagination li {
+    text-align: center;
+  }
+  
+  .pagination li:first-child,
+  .pagination li:last-child {
+    flex: 1;
+  }
+  
+  .pagination li:nth-child(2) {
+    flex: 2;
+  }
+  
+  .pagination a, .pagination .disabled {
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  .pagination .disabled {
+    color: #7d7d7d;
+    background-color: #fff;
+    border: none;
+  }
+  
+  .pagination a:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .pagination li:nth-child(2) a {
+    font-weight: bold;
+    background-color: #ffffff;
+    color: rgb(0, 0, 0);
+  }
+  
+  .pagination li:first-child a,
+  .pagination li:last-child a {
+    font-size: 14px;
+  }
+  
+  @media (max-width: 480px) {
+    .pagination a,  .pagination .disabled {
+      padding: 8px 5px;
+      font-size: 14px;
+    }
+    
+    .pagination ul {
+      gap: 5px;
+    }
+  }

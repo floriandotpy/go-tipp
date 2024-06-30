@@ -1,6 +1,6 @@
 {{define "title"}}Spiele{{end}}{{define "assets"}}{{end}}{{define "main"}}
 <div class="container">
-  <nav class="tabs">
+  <nav class="tabs hide-small hide-medium">
     <h2>Spiele</h2>
     <ul>
       {{range .EventPhases}}
@@ -15,6 +15,32 @@
     </ul>
   </nav>
 
+  <div class="margin-top-l">
+    <nav class="pagination hide-large">
+      <ul>
+        <li>
+          {{ if .PrevLink }}
+          <a href="{{.PrevLink}}">←</a>
+          {{ else }}
+          <span class="disabled"></span>
+          {{ end }}
+        </li>
+        <li>
+          <a href="/spiele?phase={{.SelectedPhase.Number}}">
+            <strong>{{.SelectedPhase.Title}}</strong>
+          </a>
+        </li>
+        <li>
+          {{ if .NextLink }}
+          <a href="{{.NextLink}}">→</a>
+          {{ else }}
+          <span class="disabled"></span>
+          {{ end }}
+        </li>
+      </ul>
+    </nav>
+  </div>
+ 
   {{if not .MatchTipps}}
   <p>Es sind noch keine Spiele zum Tippen verfügbar.</p>
   {{else}}

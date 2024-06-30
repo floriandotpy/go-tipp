@@ -156,6 +156,13 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		http.NotFound(w, req)
 		return
 	}
+	var nextLink, prevLink string
+	if phaseId > 1 {
+		prevLink = fmt.Sprintf("/spiele?phase=%d", phaseId-1)
+	}
+	if phaseId < len(eventPhases) {
+		nextLink = fmt.Sprintf("/spiele?phase=%d", phaseId+1)
+	}
 
 	if err != nil {
 		app.serverError(w, req, err)
@@ -177,6 +184,8 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	data.MatchTipps = matchTipps
 	data.EventPhases = models.GetEventPhases()
 	data.SelectedPhase = selectedPhase
+	data.NextLink = nextLink
+	data.PrevLink = prevLink
 
 	app.render(w, req, http.StatusOK, "matches.html", data)
 }

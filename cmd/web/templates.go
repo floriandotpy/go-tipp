@@ -50,6 +50,9 @@ type templateData struct {
 	User            models.User
 	UserCompare     models.User
 	UserDetailsRows []UserDetailsRow
+	// pagination of matches
+	NextLink string
+	PrevLink string
 }
 
 // prep translation mapping
