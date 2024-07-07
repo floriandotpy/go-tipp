@@ -63,6 +63,10 @@ CREATE TABLE `matches` (
   `match_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `event_phase` int NOT NULL DEFAULT '1',
   `finished` tinyint(1) NOT NULL DEFAULT '0',
+  `result_aet_a` int DEFAULT NULL,
+  `result_aet_b` int DEFAULT NULL,
+  `result_apen_a` int DEFAULT NULL,
+  `result_apen_b` int DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -183,5 +187,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20240626171110'),
   ('20240626172034'),
   ('20240626175034'),
-  ('20240629115542');
+  ('20240629115542'),
+  ('20240707084250');
 UNLOCK TABLES;
