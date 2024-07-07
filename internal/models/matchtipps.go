@@ -14,12 +14,16 @@ type MatchTipp struct {
 	TippId  *int
 
 	// data from match
-	TeamA     string
-	TeamB     string
-	Start     time.Time
-	MatchType string
-	ResultA   *int
-	ResultB   *int
+	TeamA       string
+	TeamB       string
+	Start       time.Time
+	MatchType   string
+	ResultA     *int
+	ResultB     *int
+	ResultAETA  *int
+	ResultAETB  *int
+	ResultAPenA *int
+	ResultAPenB *int
 
 	AcceptsTipps bool
 	Status       string
@@ -113,6 +117,10 @@ func (m *MatchTippModel) AllByDaterange(userId int, after time.Time, before time
 			MatchType:    match.MatchType,
 			ResultA:      match.ResultA,
 			ResultB:      match.ResultB,
+			ResultAETA:   match.ResultAETA,
+			ResultAETB:   match.ResultAETB,
+			ResultAPenA:  match.ResultAPenA,
+			ResultAPenB:  match.ResultAPenB,
 			AcceptsTipps: acceptsTipps,
 			Status:       status,
 		}

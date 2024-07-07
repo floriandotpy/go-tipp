@@ -114,7 +114,7 @@ func main() {
 	tippModel := &models.TippModel{DB: db}
 	goalModel := &models.GoalModel{DB: db}
 
-	var dbUpdated = false
+	var recomputeUserScores = false
 
 	for _, apiMatch := range matches {
 		// Parse match date and time
@@ -169,38 +169,109 @@ func main() {
 		}
 
 		// read end result from api response api (also while game is still running, to get current score)
-		var endScoreTeamA, endScoreTeamB int
-		var endResultFound = false
+		results := make(map[string]map[string]int)
+		RESULT_END := "Endergebnis"
+		RESULT_AET := "nach Verlängerung"
+		RESULT_APEN := "nach Elfmeterschießen"
+
 		for _, result := range apiMatch.MatchResults {
-			if strings.ToLower(result.ResultName) == "endergebnis" {
-				endScoreTeamA = result.PointsTeamA
-				endScoreTeamB = result.PointsTeamB
-				endResultFound = true
-				break
+			if result.ResultName == RESULT_END || result.ResultName == RESULT_AET || result.ResultName == RESULT_APEN {
+				results[result.ResultName] = map[string]int{
+					"teamA": result.PointsTeamA,
+					"teamB": result.PointsTeamB,
+				}
 			}
 		}
 
-		if !endResultFound {
-			fmt.Printf("Skipping match (%s vs %s) without reported end result...\n\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
-			continue
+		// print results
+		fmt.Printf("Results from API response (raw):\n")
+		for key, value := range results {
+			fmt.Printf("  %s: %d:%d\n", key, value["teamA"], value["teamB"])
 		}
+
+		// fix some issues with the API data
+		// sometimes "nach Elfmeterschießen" is reported but it doesn't differ from the end result, so we can ignore it
+		// note: for "nach Verlängerung" it's a valid case that it could be the same as the end result, so we don't ignore it
+		if _, ok := results[RESULT_APEN]; ok {
+			if results[RESULT_APEN]["teamA"] == results[RESULT_END]["teamA"] && results[RESULT_APEN]["teamB"] == results[RESULT_END]["teamB"] {
+				fmt.Printf("Ignoring result after penalty shootout, because it's the same as the end result\n")
+				delete(results, RESULT_APEN)
+			}
+		}
+
+		// print results
+		fmt.Printf("Results from API response (cleaned):\n")
+		for key, value := range results {
+			fmt.Printf("  %s: %d:%d\n", key, value["teamA"], value["teamB"])
+		}
+
+		// set end result in db
+		if _, ok := results[RESULT_END]; ok {
+			endScoreTeamA := results[RESULT_END]["teamA"]
+			endScoreTeamB := results[RESULT_END]["teamB"]
+			if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB {
+				fmt.Printf("-> Update result to %d:%d\n", endScoreTeamA, endScoreTeamB)
+				matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB)
+			} else {
+				fmt.Printf("Existing result won't be updated, score is %d:%d\n", *dbMatch.ResultA, *dbMatch.ResultB)
+			}
+		}
+
+		// set result after extension in db
+		if _, ok := results[RESULT_AET]; ok {
+			aetScoreTeamA := results[RESULT_AET]["teamA"]
+			aetScoreTeamB := results[RESULT_AET]["teamB"]
+			if dbMatch.ResultAETA == nil || dbMatch.ResultAETB == nil || *dbMatch.ResultAETA != aetScoreTeamA || *dbMatch.ResultAETB != aetScoreTeamB {
+				fmt.Printf("-> Update result after extension to %d:%d\n", aetScoreTeamA, aetScoreTeamB)
+				matchModel.SetResultsAfterExtension(dbMatch.ID, aetScoreTeamA, aetScoreTeamB)
+			} else {
+				fmt.Printf("Existing result after extension won't be updated, score is %d:%d\n", *dbMatch.ResultAETA, *dbMatch.ResultAETB)
+			}
+
+		}
+
+		// set result after penalty shootout in db
+		if _, ok := results[RESULT_APEN]; ok {
+			apenScoreTeamA := results[RESULT_APEN]["teamA"]
+			apenScoreTeamB := results[RESULT_APEN]["teamB"]
+			if dbMatch.ResultAPenA == nil || dbMatch.ResultAPenB == nil || *dbMatch.ResultAPenA != apenScoreTeamA || *dbMatch.ResultAPenB != apenScoreTeamB {
+				fmt.Printf("-> Update result after penalty shootout to %d:%d\n", apenScoreTeamA, apenScoreTeamB)
+				matchModel.SetResultsAfterPenalty(dbMatch.ID, apenScoreTeamA, apenScoreTeamB)
+			} else {
+				fmt.Printf("Existing result after penalty shootout won't be updated, score is %d:%d\n", *dbMatch.ResultAPenA, *dbMatch.ResultAPenB)
+			}
+		}
+
+		// set match is finished in db
+		if dbMatch.Finished != apiMatch.MatchIsFinished {
+			fmt.Printf("-> Update match to finished = %t\n", apiMatch.MatchIsFinished)
+			matchModel.SetMatchIsFinished(dbMatch.ID, apiMatch.MatchIsFinished)
+			recomputeUserScores = true
+		}
+
+		// if !endResultFound {
+		// 	fmt.Printf("Skipping match (%s vs %s) without reported end result...\n\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
+		// 	continue
+		// }
 
 		fmt.Printf("Match finished: %t\n", apiMatch.MatchIsFinished)
-		fmt.Printf("End score of team 1: %d\n", endScoreTeamA)
-		fmt.Printf("End score of team 2: %d\n", endScoreTeamB)
-
-		if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB || dbMatch.Finished != apiMatch.MatchIsFinished {
-			fmt.Printf("-> Update result to %d:%d (finished: %t)\n", endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
-			matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
-			dbUpdated = true
-		} else {
-			fmt.Printf("Existing result won't be updated, score is %d:%d (finished: %t)\n", *dbMatch.ResultA, *dbMatch.ResultB, dbMatch.Finished)
+		if _, ok := results[RESULT_END]; ok {
+			fmt.Printf("End score of team 1: %d\n", results[RESULT_END]["teamA"])
+			fmt.Printf("End score of team 2: %d\n", results[RESULT_END]["teamB"])
 		}
+
+		// if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB || dbMatch.Finished != apiMatch.MatchIsFinished {
+		// 	fmt.Printf("-> Update result to %d:%d (finished: %t)\n", endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
+		// 	matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
+		// 	recomputeUserScores = true
+		// } else {
+		// 	fmt.Printf("Existing result won't be updated, score is %d:%d (finished: %t)\n", *dbMatch.ResultA, *dbMatch.ResultB, dbMatch.Finished)
+		// }
 
 		fmt.Printf("\n")
 	}
 
-	if dbUpdated {
+	if recomputeUserScores {
 		fmt.Printf("Trigger points update for all user tipps...\n")
 		rowsAffected, err := tippModel.UpdatePoints()
 		if err != nil {

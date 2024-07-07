@@ -101,7 +101,20 @@
             </span>
           </a>
           </td>
-          <td>{{matchResult .ResultA .ResultB}}</td>
+          <td>{{matchResult .ResultA .ResultB}}
+            {{ if .ResultAPenA}}
+            <br>
+            <span class="result-details">
+              (n.E. {{.ResultAPenA}}:{{.ResultAPenB}})
+            </span>
+            {{ else if .ResultAETA}}
+            <br>
+            <span class="result-details">
+              (n.V. {{.ResultAETA}}:{{.ResultAETB}}) 
+            </span>
+            {{end}}
+
+          </td>
           <td>
             {{if .AcceptsTipps}}
             <input

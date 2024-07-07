@@ -21,14 +21,27 @@
   </div>
 
   <div class="match-details">
-    <p class="match-details__subtitle">
-      Endergebnis {{if eq $.Status "live" "pending"}} (Live-Prognose) {{end}}
-    </p>
+    <p class="match-details__subtitle">Endergebnis (nach 90 Minuten)</p>
     <p class="match-details__result">
       {{if eq $.Status "done"}}{{.Match.ResultA}} : {{.Match.ResultB}} {{end}}
       {{if eq $.Status "live" "pending"}}{{.LiveResult.ResultA}} :
       {{.LiveResult.ResultB}} {{end}}
     </p>
+  </div>
+  <div class="match-details">
+    {{if .Match.ResultAETA}}
+    <p class="match-details__subtitle">Nach Verlängerung</p>
+    <p class="match-details__result">
+      {{.Match.ResultAETA}} : {{.Match.ResultAETB}}
+    </p>
+  </div>
+  <div class="match-details">
+    {{end}} {{if .Match.ResultAPenA}}
+    <p class="match-details__subtitle">Nach Elfmeterschießen</p>
+    <p class="match-details__result">
+      {{.Match.ResultAPenA}} : {{.Match.ResultAPenB}}
+    </p>
+    {{end}}
   </div>
 
   {{if .Goals}}

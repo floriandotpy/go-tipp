@@ -18,8 +18,12 @@ type Match struct {
 	Finished  bool
 
 	// goal numbers
-	ResultA *int
-	ResultB *int
+	ResultA     *int
+	ResultB     *int
+	ResultAETA  *int
+	ResultAETB  *int
+	ResultAPenA *int
+	ResultAPenB *int
 
 	EventPhase int
 }
@@ -68,9 +72,16 @@ func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchTy
 }
 
 func (m *MatchModel) Get(id int) (Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase FROM matches WHERE id = ?`
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b,
+	result_aet_a, result_aet_b, result_apen_a, result_apen_b,
+	match_type, finished, event_phase FROM matches WHERE id = ?`
 	var match Match
-	err := m.DB.QueryRow(stmt, id).Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
+	err := m.DB.QueryRow(stmt, id).Scan(
+		&match.ID, &match.Start, &match.TeamA, &match.TeamB,
+		&match.ResultA, &match.ResultB,
+		&match.ResultAETA, &match.ResultAETB,
+		&match.ResultAPenA, &match.ResultAPenB,
+		&match.MatchType, &match.Finished, &match.EventPhase)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord
@@ -98,7 +109,11 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 
 	// Prepare the SQL query
 	query := `
-		SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase
+		SELECT id, start, team_a, team_b, 
+		result_a, result_b, 
+		result_aet_a, result_aet_b,
+		result_apen_a, result_apen_b,
+		match_type, finished, event_phase
 		FROM matches
 		WHERE DATE(start) = ? AND team_a = ? AND team_b = ?
 	`
@@ -110,7 +125,12 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 	var match Match
 
 	// Scan the result into the match variable
-	err = row.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
+	err = row.Scan(&match.ID, &match.Start,
+		&match.TeamA, &match.TeamB,
+		&match.ResultA, &match.ResultB,
+		&match.ResultAETA, &match.ResultAETB,
+		&match.ResultAPenA, &match.ResultAPenB,
+		&match.MatchType, &match.Finished, &match.EventPhase)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No matching entry found
@@ -124,16 +144,93 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 	return match, nil
 }
 
-func (m *MatchModel) SetResults(id int, resultA int, resultB int, finished bool) error {
+func (m *MatchModel) SetMatchIsFinished(id int, finished bool) error {
 	// Prepare the SQL query
 	query := `
 		UPDATE matches
-		SET result_a = ?, result_b = ?, finished = ?
+		SET finished = ?
 		WHERE id = ?
 	`
 
 	// Execute the query
-	result, err := m.DB.Exec(query, resultA, resultB, finished, id)
+	result, err := m.DB.Exec(query, finished, id)
+	if err != nil {
+		return fmt.Errorf("could not execute update query: %v", err)
+	}
+
+	// Check if the update was successful
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not retrieve affected rows: %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no match found with id %d", id)
+	}
+
+	return nil
+}
+
+func (m *MatchModel) SetResults(id int, resultA int, resultB int) error {
+	// Prepare the SQL query
+	query := `
+		UPDATE matches
+		SET result_a = ?, result_b = ?
+		WHERE id = ?
+	`
+
+	// Execute the query
+	result, err := m.DB.Exec(query, resultA, resultB, id)
+	if err != nil {
+		return fmt.Errorf("could not execute update query: %v", err)
+	}
+
+	// Check if the update was successful
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not retrieve affected rows: %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no match found with id %d", id)
+	}
+
+	return nil
+}
+
+func (m *MatchModel) SetResultsAfterExtension(id int, resultAfterExtensionA int, resultAfterExtensionB int) error {
+	// Prepare the SQL query
+	query := `
+		UPDATE matches
+		SET result_aet_a = ?, result_aet_b = ?
+		WHERE id = ?
+	`
+	// Execute the query
+	result, err := m.DB.Exec(query, resultAfterExtensionA, resultAfterExtensionB, id)
+	if err != nil {
+		return fmt.Errorf("could not execute update query: %v", err)
+	}
+
+	// Check if the update was successful
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not retrieve affected rows: %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no match found with id %d", id)
+	}
+
+	return nil
+
+}
+
+func (m *MatchModel) SetResultsAfterPenalty(id int, resultAfterPenaltyA int, resultAfterPenaltyB int) error {
+	// Prepare the SQL query
+	query := `
+		UPDATE matches
+		SET result_apen_a = ?, result_apen_b = ?
+		WHERE id = ?
+	`
+	// Execute the query
+	result, err := m.DB.Exec(query, resultAfterPenaltyA, resultAfterPenaltyB, id)
 	if err != nil {
 		return fmt.Errorf("could not execute update query: %v", err)
 	}
@@ -190,7 +287,11 @@ func (m *MatchModel) All() ([]Match, error) {
 
 // AllByDaterange returns all matches within the specified date range
 func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase
+	stmt := `SELECT id, start, team_a, team_b, 
+	result_a, result_b,
+	result_aet_a, result_aet_b,
+	result_apen_a, result_apen_b,
+	match_type, finished, event_phase
              FROM matches 
              WHERE start > ? AND start < ? 
              ORDER BY start ASC`
@@ -205,7 +306,11 @@ func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match,
 
 	for rows.Next() {
 		var match Match
-		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB,
+			&match.ResultA, &match.ResultB,
+			&match.ResultAETA, &match.ResultAETB,
+			&match.ResultAPenA, &match.ResultAPenB,
+			&match.MatchType, &match.Finished, &match.EventPhase)
 		if err != nil {
 			return nil, err
 		}

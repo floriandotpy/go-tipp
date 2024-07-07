@@ -483,6 +483,11 @@ a.status-future::before {
     text-transform: uppercase;
     margin: 0;
 }
+.result-details {
+    font-size: 0.8em;
+    color: lightslategray;
+    margin: 0;
+}
 .team-none {
     color: rgb(116, 116, 116);
 }
