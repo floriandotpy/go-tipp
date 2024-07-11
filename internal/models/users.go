@@ -229,6 +229,56 @@ func (m *UserModel) GlobalLeaderboard() ([]User, error) {
 	return users, nil
 }
 
+func (m *UserModel) GetBestInSelectedPhases(groupId int, phaseIds []int) ([]User, error) {
+
+	stmt := `SELECT
+		u.id AS user_id,
+		u.name AS user_name,
+		COALESCE(SUM(t.points), 0) AS total_points,
+		COUNT(t.id) AS tipps_count
+	FROM users u
+	JOIN user_groups ug ON u.id = ug.user_id
+	LEFT JOIN tipps t ON u.id = t.user_id
+	JOIN matches m ON t.match_id = m.id
+	WHERE ug.group_id = ? AND m.event_phase IN (` + strings.Repeat("?,", len(phaseIds)-1) + `?)
+	GROUP BY u.id, u.name
+	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
+
+	// Create a slice of interface{} to hold all parameters
+	params := make([]interface{}, 0, len(phaseIds)+1)
+	params = append(params, groupId)
+	for _, phase := range phaseIds {
+		params = append(params, phase)
+	}
+
+	rows, err := m.DB.Query(stmt, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	users = setPlaceValues(users)
+
+	return users, nil
+}
+
 func setPlaceValues(users []User) []User {
 	var place = 0
 	var i = 0

@@ -36,6 +36,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /spiele", protected.ThenFunc(app.matchesHandler))
 	mux.Handle("GET /spiel/{matchID}", protected.ThenFunc(app.matchDetailsHandler))
 	mux.Handle("GET /user/{name}", protected.ThenFunc(app.userDetailsHandler))
+	mux.Handle("GET /wrapped", protected.ThenFunc(app.wrappedHandler))
 	mux.Handle("GET /leaderboard", protected.ThenFunc(app.leaderboardHandler))
 	mux.Handle("GET /scores.json", protected.ThenFunc(app.scoresJsonHandler))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))

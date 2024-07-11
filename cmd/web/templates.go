@@ -28,6 +28,23 @@ type UserDetailsRow struct {
 	Match           models.Match
 }
 
+// type EventStats struct {
+// 	MatchCount          int
+// 	GoalCount           int
+// 	TeamWithMostGoals   string
+// 	PlayerWithMostGoals string
+// 	EarliestGoal        models.Goal
+// 	LatestGoal          models.Goal
+// }
+
+type WrappedStats struct {
+	Group            models.Group
+	Leaderboard      Leaderboard
+	BestInGroupPhase []models.User
+	BestInKoPhase    []models.User
+	ClosestGoalCount []models.User
+}
+
 type templateData struct {
 	CurrentYear     int
 	MatchTipps      []models.MatchTipp
@@ -53,6 +70,8 @@ type templateData struct {
 	// pagination of matches
 	NextLink string
 	PrevLink string
+	// wrapped stats
+	WrappedStatsList []WrappedStats
 }
 
 // prep translation mapping

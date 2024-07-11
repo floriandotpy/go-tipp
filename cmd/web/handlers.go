@@ -378,6 +378,61 @@ func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Reques
 
 }
 
+func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
+
+	userId, err := app.authUserId(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	groups, err := app.groups.AllForUser(userId)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	var stats = []WrappedStats{}
+	for _, group := range groups {
+		users, err := app.users.GroupLeaderboard(group.ID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		var leaderboard = Leaderboard{
+			Title: fmt.Sprintf("%s Leaderboard", group.Name),
+			ID:    group.ID,
+			Users: users,
+		}
+
+		bestInGrouphase, err := app.users.GetBestInSelectedPhases(group.ID, []int{1, 2, 3})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		bestInKoPhase, err := app.users.GetBestInSelectedPhases(group.ID, []int{4, 5, 6, 7})
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		var closestGoalCount []models.User
+
+		var wrappedStats = WrappedStats{
+			Group:            group,
+			Leaderboard:      leaderboard,
+			BestInGroupPhase: bestInGrouphase,
+			BestInKoPhase:    bestInKoPhase,
+			ClosestGoalCount: closestGoalCount,
+		}
+		stats = append(stats, wrappedStats)
+	}
+	data.WrappedStatsList = stats
+	app.render(w, r, http.StatusOK, "wrapped.html", data)
+}
+
 func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
 	// parse form data
 	err := r.ParseForm()

@@ -1,0 +1,155 @@
+{{define "title"}}Spiele{{end}}{{define "assets"}}{{end}}{{define "main"}}
+<div class="container">
+  <h2>Tippspiel <em>wrapped</em></h2>
+
+  {{range $j, $stats := .WrappedStatsList}}
+  <hr />
+  <h1>Tippgruppe: {{$stats.Group.Name}}</h1>
+
+  <h2>Gesamtsieger</h2>
+
+  {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}} {{ if gt $i 2
+  }} {{ break }} {{end}}
+  <div class="wrapped-podium">
+    <div class="wrapped-podium-line-1">
+      {{if ne $u.Place $prev_place}} {{$prev_place = $u.Place}} Platz
+      <span class="badge-place badge-place-{{$u.Place}}"> {{$u.Place}}</span>
+
+      {{else}} Platz
+      <span class="badge-place badge-place-{{$prev_place}} ">
+        {{$prev_place}}
+      </span>
+
+      {{end}}
+    </div>
+    <div>
+      <strong>{{$u.Name}}</strong>
+    </div>
+
+    <div>{{$u.Points}} Punkte</div>
+  </div>
+  {{end}}
+
+  <table class="cc-table">
+    <thead>
+      <tr class="">
+        <td class="w-1-12 text-right">Platz</td>
+        <td class="w-7-12">Name</td>
+        <td class="w-2-12">Tipps abgegeben</td>
+        <td class="w-2-12">Gesamtpunkte</td>
+      </tr>
+    </thead>
+    {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}}
+    <tr
+      {{if
+      eq
+      $.AuthUserId
+      $u.ID}}
+      class="active"
+      {{end}}
+      {{if
+      even
+      $u.Place
+      }}
+      class="even"
+      {{else}}
+      class="odd"
+      {{end}}
+    >
+      <td class="text-right">
+        {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
+        {{end}}
+      </td>
+      <td>
+        <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+      </td>
+      <td>{{$u.Tipps}}</td>
+      <td>{{$u.Points}}</td>
+    </tr>
+    {{end}}
+  </table>
+
+  <h2>Top-Punktesammler in der Gruppenphase</h2>
+  <table class="cc-table">
+    <thead>
+      <tr class="">
+        <td class="w-1-12 text-right">Platz</td>
+        <td class="w-7-12">Name</td>
+        <td class="w-2-12">Punkte gesammelt</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{$prev_place:=0}} {{range $i, $u := $stats.BestInGroupPhase}} {{ if gt $i
+      2 }} {{ break }} {{end}}
+      <tr
+        {{if
+        eq
+        $.AuthUserId
+        $u.ID}}
+        class="active"
+        {{end}}
+        {{if
+        even
+        $u.Place
+        }}
+        class="even"
+        {{else}}
+        class="odd"
+        {{end}}
+      >
+        <td class="text-right">
+          {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
+          {{end}}
+        </td>
+        <td>
+          <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+        </td>
+        <td>{{$u.Points}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  <h2>Top Punktesammler in der KO-Phase</h2>
+  <table class="cc-table">
+    <thead>
+      <tr class="">
+        <td class="w-1-12 text-right">Platz</td>
+        <td class="w-7-12">Name</td>
+        <td class="w-2-12">Punkte gesammelt</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{$prev_place:=0}} {{range $i, $u := $stats.BestInKoPhase}} {{ if gt $i 2
+      }} {{ break }} {{end}}
+      <tr
+        {{if
+        eq
+        $.AuthUserId
+        $u.ID}}
+        class="active"
+        {{end}}
+        {{if
+        even
+        $u.Place
+        }}
+        class="even"
+        {{else}}
+        class="odd"
+        {{end}}
+      >
+        <td class="text-right">
+          {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
+          {{end}}
+        </td>
+        <td>
+          <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+        </td>
+        <td>{{$u.Points}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  {{end}} {{end}}
+</div>

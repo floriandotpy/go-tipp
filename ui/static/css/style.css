@@ -666,3 +666,47 @@ Prev/next buttons for mobile view
       gap: 5px;
     }
   }
+
+
+  /* wrapped page */
+  .wrapped-podium {
+    font-size: 20px;
+    padding: 24px 12px;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    margin: 24px 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .wrapped-podium-line-1 { 
+    /* margin-bottom: 6px; */
+  }
+  .badge-place {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .badge-place-1 {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    border: 2px solid #DAA520;
+  }
+  
+  .badge-place-2 {
+    background: linear-gradient(45deg, #C0C0C0, #A9A9A9);
+    border: 2px solid #808080;
+  }
+  
+  .badge-place-3 {
+    background: linear-gradient(45deg, #CD7F32, #8B4513);
+    border: 2px solid #A0522D;
+  }
