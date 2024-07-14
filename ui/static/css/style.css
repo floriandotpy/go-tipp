@@ -102,7 +102,11 @@ text-align: center;
     text-align: right;
 }
 
-
+.responsive-img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
 
 a:not(.pure-button) {
     color: #0e76bb;
@@ -678,7 +682,15 @@ Prev/next buttons for mobile view
     display: flex;
     justify-content: space-around;
     align-items: center;
+    background: linear-gradient(0deg, #e4e4e4, #f7f7f7);
   }
+  @media (max-width: 480px) {
+    .wrapped-podium {
+      justify-content: space-between;
+    }
+  }
+
+
   .wrapped-podium-line-1 { 
     /* margin-bottom: 6px; */
   }

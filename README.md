@@ -71,3 +71,11 @@ MAILTO=""
 ```
 
 (Runs every two minutes between 17:00 to 23:59)
+
+# Resources
+
+- Favicon source (licensed under CC-BY 4.0): https://favicon.io/emoji-favicons/soccer-ball
+
+# License
+
+All code that is not included from a third party is licensed under the MIT License.

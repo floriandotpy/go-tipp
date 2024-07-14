@@ -13,13 +13,19 @@
 </div>
 
 <div class="container">
-  <h2>Tippspiel <em>wrapped</em></h2>
+  <div class="margin-top-s w-100">
+    <img
+      src="/static/img/trophy.jpg"
+      alt="Trophäe"
+      width="1280"
+      height="640"
+      class="responsive-img"
+    />
+  </div>
 
   {{range $j, $stats := .WrappedStatsList}}
-  <hr />
-  <h1>Tippgruppe: {{$stats.Group.Name}}</h1>
 
-  <h2>Gesamtsieger</h2>
+  <h2>Gesamtsieger <em>{{$stats.Group.Name}}</em></h2>
 
   {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}} {{ if gt $i 2
   }} {{ break }} {{end}}
