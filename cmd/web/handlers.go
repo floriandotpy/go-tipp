@@ -105,8 +105,24 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 }
 
 func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Request) {
+	// read phase from URL
+	groupsStr := req.URL.Query().Get("groups")
 
-	response, err := app.tipps.GetScoreboardData()
+	// split string "1,2,3" into array of int {1,2,3}
+	groupsArr := strings.Split(groupsStr, ",")
+	var groups []int
+	for _, g := range groupsArr {
+		gInt, err := strconv.Atoi(g)
+		if err != nil {
+			http.NotFound(w, req)
+			return
+		}
+		groups = append(groups, gInt)
+	}
+
+	fmt.Println("groups:", groups)
+
+	response, err := app.tipps.GetScoreboardData(groups)
 	if err != nil {
 		app.serverError(w, req, err)
 	}

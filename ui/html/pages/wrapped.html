@@ -1,4 +1,7 @@
-{{define "title"}}Spiele{{end}}{{define "assets"}}{{end}}{{define "main"}}
+{{define "title"}}Spiele{{end}} {{define "assets"}}
+<script src="/static/lib/chart-4.4.3.js"></script>
+<script src="/static/js/scoreboard.js"></script>
+{{end}} {{define "main"}}
 <div class="confetti-container">
   <div class="confetti"></div>
   <div class="confetti"></div>
@@ -175,6 +178,13 @@
       {{end}}
     </tbody>
   </table>
+
+  {{ $lid := .Group.ID }} {{ if eq $lid 0 }} {{ $lid = "1,2" }} {{ end }}
+  <div>
+    <div class="w-8-12-sm margin-lr-auto">
+      <canvas data-chart="{{$lid}}" width="400" height="400"></canvas>
+    </div>
+  </div>
 
   {{end}} {{end}}
 </div>

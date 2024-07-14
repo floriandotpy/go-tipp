@@ -319,7 +319,10 @@ func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int, eve
 	return liveTipps, nil
 }
 
-func (m *TippModel) GetScoreboardData() (ScoreboardData, error) {
+func (m *TippModel) GetScoreboardData(groupIds []int) (ScoreboardData, error) {
+	// Convert groupIds to a comma-separated string for the SQL query
+	groupIdsStr := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(groupIds)), ","), "[]")
+
 	// Perform SQL query to aggregate user points
 	query := `
 	WITH all_matches AS (
@@ -334,6 +337,12 @@ func (m *TippModel) GetScoreboardData() (ScoreboardData, error) {
 			users u
 		CROSS JOIN
 			all_matches m
+		WHERE
+			EXISTS (
+				SELECT 1 
+				FROM user_groups ug 
+				WHERE ug.user_id = u.id AND ug.group_id IN (` + groupIdsStr + `)
+			)
 	),
 	user_tipps AS (
 		SELECT 

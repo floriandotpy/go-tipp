@@ -26,7 +26,7 @@ function getRandomColor(user_name) {
 }
 
 // Function to create chart with the fetched data
-function createChart(data) {
+function createChart(canvas, data) {
     const matches = data.matches;
     const users = data.users;
 
@@ -68,16 +68,35 @@ function createChart(data) {
     };
 
     // Render the chart
-    const ctx = document.getElementById('scoreboard').getContext('2d');
+    const ctx = canvas.getContext('2d');
     new Chart(ctx, config);
+
 }
 
-// Fetch data from the API and create the chart
-fetch('/scores.json')
-    .then(response => response.json())
-    .then(data => {
-        createChart(data);
-    })
-    .catch(error => {
-        console.error('Error fetching data:', error);
+
+// Function to fetch data and create chart for a single canvas element
+function fetchDataAndCreateChart(canvas) {
+    const groupIds = canvas.dataset.chart;
+    let url = '/scores.json?groups=' + groupIds;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            createChart(canvas, data);
+        })
+        .catch(error => {
+            console.error(`Error fetching data for group ${groupId}:`, error);
+        });
+}
+
+// Select all canvas elements with data-chart attribute and create charts
+document.addEventListener('DOMContentLoaded', () => {
+    const chartCanvases = document.querySelectorAll('canvas[data-chart]');
+    chartCanvases.forEach(canvas => {
+        fetchDataAndCreateChart(canvas);
     });
+});
+
+
+
+

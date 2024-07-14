@@ -1,6 +1,5 @@
 {{define "title"}}Leaderboard{{end}} {{define "assets"}}
 <script src="/static/lib/chart-4.4.3.js"></script>
-<script src="/scores.json"></script>
 <script src="/static/js/scoreboard.js"></script>
 {{end}} {{define "main"}}
 
@@ -53,10 +52,15 @@
     {{end}}
   </table>
 
-  {{end}}
+  {{ $lid := .ID }} {{ if eq $lid 0 }} {{ $lid = "1,2" }} {{ end }}
+  <h3>{{.Title}} Leaderboard Verlauf</h3>
+  <div>
+    <div class="w-8-12-sm margin-lr-auto">
+      <canvas data-chart="{{$lid}}" width="400" height="400"></canvas>
+    </div>
+  </div>
 
-  <h3>Global Leaderboard (Chart)</h3>
-  <canvas id="scoreboard" width="400" height="200"></canvas>
+  {{end}}
 </div>
 
 {{end}}

@@ -113,6 +113,26 @@ text-align: center;
 .w-10-12 { width: 83.33%; }
 .w-11-12 { width: 91.66%; }
 .w-12-12 { width: 100%; }
+
+@media (min-width: 641px) {
+    .w-1-12-sm { width: 8.33%; }
+    .w-2-12-sm { width: 16.66%; }
+    .w-3-12-sm { width: 25%; }
+    .w-4-12-sm { width: 33.33%; }
+    .w-5-12-sm { width: 41.66%; }
+    .w-6-12-sm { width: 50%; }
+    .w-7-12-sm { width: 58.33%; }
+    .w-8-12-sm { width: 66.66%; }
+    .w-9-12-sm { width: 75%; }
+    .w-10-12-sm { width: 83.33%; }
+    .w-11-12-sm { width: 91.66%; }
+    .w-12-12-sm { width: 100%; }
+}
+.margin-lr-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .text-center {
     text-align: center;
 }
