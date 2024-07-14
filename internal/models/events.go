@@ -58,7 +58,7 @@ func GetEventPhaseById(id int) (EventPhase, error) {
 
 func DetermineEventPhase(day time.Time) EventPhase {
 	// out of event time frame?
-	if day.After(Phases[len(Phases)-1].Start) || day.Before(Phases[0].Start) {
+	if day.Before(Phases[0].Start) {
 		return NoPhase
 	}
 
