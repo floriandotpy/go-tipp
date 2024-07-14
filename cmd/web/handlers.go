@@ -52,7 +52,6 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 
 func (app *application) rulesHandler(w http.ResponseWriter, req *http.Request) {
 	data := app.newTemplateData(req)
-	fmt.Println("rulesHandler")
 	app.render(w, req, http.StatusOK, "rules.html", data)
 }
 
@@ -119,8 +118,6 @@ func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Reque
 		}
 		groups = append(groups, gInt)
 	}
-
-	fmt.Println("groups:", groups)
 
 	response, err := app.tipps.GetScoreboardData(groups)
 	if err != nil {

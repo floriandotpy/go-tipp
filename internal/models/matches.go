@@ -339,8 +339,6 @@ func (m *MatchModel) AllMatchesFinished() (bool, error) {
 		return false, err
 	}
 
-	fmt.Println("count: ", count)
-
 	if count == 0 {
 		return true, nil
 	} else {
