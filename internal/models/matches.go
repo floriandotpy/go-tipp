@@ -331,6 +331,24 @@ func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match,
 	return matches, nil
 }
 
+func (m *MatchModel) AllMatchesFinished() (bool, error) {
+	stmt := `SELECT COUNT(*) FROM matches WHERE finished = 0`
+	var count int
+	err := m.DB.QueryRow(stmt).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	fmt.Println("count: ", count)
+
+	if count == 0 {
+		return true, nil
+	} else {
+		return false, nil
+	}
+
+}
+
 func forceLocalTimezone(t time.Time) (time.Time, error) {
 	// Load the local timezone
 	loc, err := time.LoadLocation("Local")

@@ -46,6 +46,24 @@ text-align: center;
     margin-top: 48px;
 }
 
+.margin-v-xs {
+    margin: 2px 0;
+}
+.margin-v-s {
+    margin: 6px 0;
+}
+.margin-v-m {
+    margin: 12px 0;
+}
+.margin-v-l {
+    margin: 24px 0;
+}
+.margin-v-xl {
+    margin: 48px 0;
+}
+
+
+
 @media (max-width: 640px) {
     .hide-small {
         display: none !important
@@ -226,6 +244,18 @@ a:hover { color: #06e; }​ */
     padding: 1em 1em;
     text-align: center;
 }
+.cc-alert-success {
+    background: var(--mantis);
+    border-radius: 3px;
+    color: #fff;
+    padding: 1em 1em;
+    text-align: center;
+}
+.cc-alert-success a {
+    color: #fff;
+    text-decoration: underline;
+}
+
 .cc-alert {
     background: #f2f2f2;
     border-radius: 3px;
@@ -235,6 +265,7 @@ a:hover { color: #06e; }​ */
     font-size: 14px;
     margin: 12px 0;
 }
+
 
 
 .navbar form { 

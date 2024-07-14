@@ -47,6 +47,7 @@ type WrappedStats struct {
 
 type templateData struct {
 	CurrentYear     int
+	EventIsFinished bool
 	MatchTipps      []models.MatchTipp
 	Tipps           []models.Tipp
 	Groups          []models.Group

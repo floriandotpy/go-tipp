@@ -49,6 +49,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 
 func (app *application) newTemplateData(r *http.Request) templateData {
 	authUserId, _ := app.authUserId(r)
+	eventFinished, _ := app.eventIsFinished()
 	return templateData{
 		CurrentYear:     time.Now().Year(),
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
@@ -56,6 +57,7 @@ func (app *application) newTemplateData(r *http.Request) templateData {
 		IsAdmin:         app.isAdmin(r),
 		CSRFToken:       nosurf.Token(r),
 		AuthUserId:      authUserId,
+		EventIsFinished: eventFinished,
 	}
 }
 
@@ -106,6 +108,14 @@ func (app *application) authUserId(r *http.Request) (int, error) {
 	}
 	userId := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
 	return userId, nil
+}
+
+func (app *application) eventIsFinished() (bool, error) {
+	finished, err := app.matches.AllMatchesFinished()
+	if err != nil {
+		return false, err
+	}
+	return finished, nil
 }
 
 func (app *application) getGroupID(invite string) (int, error) {

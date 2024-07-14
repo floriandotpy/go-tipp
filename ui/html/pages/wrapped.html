@@ -23,7 +23,13 @@
     />
   </div>
 
-  {{range $j, $stats := .WrappedStatsList}}
+  {{ if eq .EventIsFinished false }}
+  <div class="container">
+    <div class="cc-alert-flash margin-v-m">
+      ⏳ Das Tippspiel läuft noch. Die Gewinner sind also noch nicht final.
+    </div>
+  </div>
+  {{ end }} {{range $j, $stats := .WrappedStatsList}}
 
   <h2>Gesamtsieger <em>{{$stats.Group.Name}}</em></h2>
 

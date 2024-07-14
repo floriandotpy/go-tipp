@@ -22,6 +22,15 @@
       {{end}}
     </div>
   </nav>
+
+  {{if .EventIsFinished}}
+  <div class="container">
+    <div class="cc-alert-success margin-v-m">
+      🏆 Die EM 2024 ist vorbei. Vielen Dank fürs Mitmachen!
+      <a href="/wrapped">Und wer hat das Tippspiel gewonnen</a>?
+    </div>
+  </div>
+  {{end}}
 </div>
 
 {{end}}
