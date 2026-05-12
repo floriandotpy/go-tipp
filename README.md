@@ -1,81 +1,71 @@
 ## go-tipp
 
-A self-hosted sport betting game for me an my friends, written in Go.
+A self-hosted sport betting game for me and my friends, written in Go.
 
-# Requirements and Setup
+## Prerequisites
 
-1. Install Go
-2. Install MySQL
-3. Create user and database (suggested: db name `gotipp` and user name `gotipp`).
-4. Run database setup (see below)
-5. Setup a local certificate for https (see below)
+- [Go](https://go.dev/dl/) (1.22+)
+- [Docker](https://www.docker.com/products/docker-desktop/)
+- [just](https://github.com/casey/just) (`brew install just`)
+- [dbmate](https://github.com/amacneil/dbmate) (`brew install dbmate`)
 
-## Database setup
-
-1. Add the database connection string to your environment variables
-
-```
-export DATABASE_URL="mysql://DB_USER:DB_PASSWORD@HOST:PORT/DB_NAME"
-export DATABASE_URL_GO="DB_USER:DB_PASSWORD/DB_NAME?parseTime=true"
-```
-
-Note: Replace DB_USER, DB_PASSWORD and DB_NAME with the values for your system.
-
-2. Install dbmate for database migrations: https://github.com/amacneil/dbmate
-3. (optional) Run `dbmate create` to create a new database (if you haven't done that manually)
-4. Run `dbmate up` to run the migrations which create the schema and insert initial data
-
-## TLS setup
-
-For local development, create a self-signed certificate.
-
-```
-mkdir tls && cd tls
-go run /usr/local//Cellar/go/1.22.3/libexec/src/crypto/tls/generate_cert.go --rsa-bits=2048 --host=localhost
-```
-
-Note: The path to `generate_cert.go` may be different on your system, but it should come included with your Go installation.
-
-# Run
-
-Note: Replace db name, user name and password with your own names in the following statement:
-
-Run with https enabled (using local self-signed certificate)
+## Local Development
 
 ```sh
-sh runhttps.sh
+just dev
 ```
 
-Run with http disabled (for example in production: using the https of a production server, behind a reverse proxy)
+This will:
+1. Start a MySQL 8.0 container (or reuse an existing one)
+2. Run database migrations
+3. Start the web server at http://localhost:8090
 
-```sh
-sh run.sh
+### Other Commands
+
+| Command | Description |
+|---------|-------------|
+| `just dev` | Start everything (DB + migrations + server) |
+| `just db-shell` | Open a MySQL prompt |
+| `just db-down` | Stop the MySQL container |
+| `just db-destroy` | Remove container and all data |
+| `just fetch-results` | Fetch live match results from API |
+| `just migrate` | Run migrations without starting the server |
+| `just build` | Compile binaries to `bin/` |
+
+## Deployment (Coolify)
+
+The app ships with a Dockerfile. Point Coolify at the repo and it will build and deploy automatically.
+
+**Required environment variables:**
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `DATABASE_URL` | Used by dbmate for migrations | `mysql://gotipp:pass@mysql:3306/gotipp` |
+| `DATABASE_URL_GO` | Used by the Go app | `gotipp:pass@tcp(mysql:3306)/gotipp?parseTime=true` |
+
+**Coolify settings:**
+- Build: Dockerfile
+- Port: `8090`
+- Health check path: `/health`
+
+TLS is handled by Coolify's Traefik proxy — the app runs plain HTTP inside the container. Migrations run automatically on each deploy via the entrypoint.
+
+## Fetching Results Automatically
+
+The CLI tool fetches match results from [openligadb.de](https://www.openligadb.de/) and updates scores in the database.
+
+For production, set up a cron job:
+
+```
+*/2 17-23 * * * export DATABASE_URL_GO="user:pass@tcp(host:3306)/gotipp?parseTime=true"; cd /path/to/go-tipp; go run ./cmd/cli -dsn=$DATABASE_URL_GO
 ```
 
-In your browser, open:
+(Runs every two minutes between 17:00–23:59)
 
-```
-https://localhost:8090/
-```
-
-# Update scores automatically using API
-
-Run this script to fetch results from
-
-Set up cronjob (configured to run on [Uberspace](https://manual.uberspace.de/daemons-cron/)):
-
-```
-MAILTO=""
-# disable emails of crontab output (errors will still be mailed)
-*/2 17-23 * * * export DATABASE_URL_GO="<syntax see above>"; cd /path/to/go-tipp; /bin/bash fetch_results.sh
-```
-
-(Runs every two minutes between 17:00 to 23:59)
-
-# Resources
+## Resources
 
 - Favicon source (licensed under CC-BY 4.0): https://favicon.io/emoji-favicons/soccer-ball
 
-# License
+## License
 
 All code that is not included from a third party is licensed under the MIT License.

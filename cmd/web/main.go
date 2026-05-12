@@ -34,11 +34,18 @@ type application struct {
 	sessionManager *scs.SessionManager
 }
 
+func envOrDefault(key, fallback string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return fallback
+}
+
 func main() {
-	// CLI flags
-	addr := flag.String("addr", ":8090", "HTTP network address")
-	dsn := flag.String("dsn", "user:pass@/dbname?parseTime=true", "MySQL data source name")
-	https := flag.Bool("https", false, "Enable TLS for https")
+	// CLI flags (with env var fallbacks for container deployments)
+	addr := flag.String("addr", envOrDefault("ADDR", ":8090"), "HTTP network address")
+	dsn := flag.String("dsn", envOrDefault("DATABASE_URL_GO", "user:pass@/dbname?parseTime=true"), "MySQL data source name")
+	https := flag.Bool("https", os.Getenv("HTTPS_ENABLED") == "true", "Enable TLS for https")
 	flag.Parse()
 
 	// logger

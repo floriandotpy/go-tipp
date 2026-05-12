@@ -1,2 +1,5 @@
 tls/
 db/backups
+bin/
+web
+cli

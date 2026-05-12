@@ -1,0 +1,10 @@
+.git
+.gitignore
+.DS_Store
+bin/
+tls/
+db/backups/
+*.sh
+!entrypoint.sh
+justfile
+README.md

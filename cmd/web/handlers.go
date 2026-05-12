@@ -39,6 +39,11 @@ const TEAM_PL = "Polen"
 const TEAM_UA = "Ukraine"
 const TEAM_GR = "Griechenland"
 
+func (app *application) healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
+}
+
 func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 	data := app.newTemplateData(req)
 
