@@ -14,6 +14,9 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
 
+	// health check (no middleware, used by load balancer / Coolify)
+	mux.HandleFunc("GET /health", app.healthHandler)
+
 	// unprotected app routes (no auth required)
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf)
 

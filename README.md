@@ -32,6 +32,24 @@ This will:
 | `just migrate` | Run migrations without starting the server |
 | `just build` | Compile binaries to `bin/` |
 
+## Deployment (Coolify)
+
+The app ships with a Dockerfile. Point Coolify at the repo and it will build and deploy automatically.
+
+**Required environment variables:**
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `DATABASE_URL` | Used by dbmate for migrations | `mysql://gotipp:pass@mysql:3306/gotipp` |
+| `DATABASE_URL_GO` | Used by the Go app | `gotipp:pass@tcp(mysql:3306)/gotipp?parseTime=true` |
+
+**Coolify settings:**
+- Build: Dockerfile
+- Port: `8090`
+- Health check path: `/health`
+
+TLS is handled by Coolify's Traefik proxy — the app runs plain HTTP inside the container. Migrations run automatically on each deploy via the entrypoint.
+
 ## Fetching Results Automatically
 
 The CLI tool fetches match results from [openligadb.de](https://www.openligadb.de/) and updates scores in the database.
