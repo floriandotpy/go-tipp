@@ -66,8 +66,21 @@ func (m *MatchModel) AcceptsTipps(matchId int) (bool, error) {
 	}
 }
 
-func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchType string) (int, error) {
-	return 0, nil
+func (m *MatchModel) Insert(teamA, teamB string, start time.Time, matchType string, eventPhase int, eventID int) (int, error) {
+	stmt := `INSERT INTO matches (team_a, team_b, start, match_type, finished, event_phase, event_id)
+	         VALUES (?, ?, ?, ?, FALSE, ?, ?)`
+
+	result, err := m.DB.Exec(stmt, teamA, teamB, start, matchType, eventPhase, eventID)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
 }
 
 func (m *MatchModel) Get(id int) (Match, error) {
@@ -328,6 +341,16 @@ func (m *MatchModel) AllByDaterange(eventID int, after time.Time, before time.Ti
 	}
 
 	return matches, nil
+}
+
+// CountByEventAndPhase returns the number of matches for a given event and phase number.
+func (m *MatchModel) CountByEventAndPhase(eventID, phaseNumber int) (int, error) {
+	var count int
+	err := m.DB.QueryRow(`SELECT COUNT(*) FROM matches WHERE event_id = ? AND event_phase = ?`, eventID, phaseNumber).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (m *MatchModel) AllMatchesFinished(eventID int) (bool, error) {

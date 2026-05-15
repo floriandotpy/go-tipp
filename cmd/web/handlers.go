@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
 	"tipp.casualcoding.com/internal/validator"
 )
@@ -768,6 +769,7 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 
 	// Load phases grouped by event
 	phasesMap := make(map[int][]models.EventPhase)
+	phaseMatchCounts := make(map[int]int)
 	for _, event := range events {
 		phases, err := app.eventPhases.AllForEvent(event.ID)
 		if err != nil {
@@ -775,8 +777,17 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		phasesMap[event.ID] = phases
+		for _, phase := range phases {
+			count, err := app.matches.CountByEventAndPhase(event.ID, phase.Number)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			phaseMatchCounts[phase.ID] = count
+		}
 	}
 	data.EventPhasesMap = phasesMap
+	data.PhaseMatchCounts = phaseMatchCounts
 
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
@@ -1253,5 +1264,153 @@ func (app *application) adminDeletePhasePost(w http.ResponseWriter, r *http.Requ
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich gelöscht!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// --- Admin Import ---
+
+type ImportPreviewMatch struct {
+	Index       int
+	Date        string
+	Time        string
+	TeamA       string
+	TeamB       string
+	PhaseNum    int
+	IsDuplicate bool
+}
+
+func (app *application) adminImportPhaseGet(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	phase, err := app.eventPhases.Get(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	event, err := app.events.Get(phase.EventID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.SelectedPhase = phase
+	data.Event = event
+
+	// Construct API URL and fetch match data
+	url := event.ApiBaseURL + phase.ApiPath
+	apiMatches, err := api.FetchMatchData(url)
+	if err != nil {
+		data.ImportError = fmt.Sprintf("Fehler beim Abrufen der API-Daten: %v", err)
+		app.render(w, r, http.StatusOK, "admin_phase_import.html", data)
+		return
+	}
+
+	// Build preview matches with duplicate detection
+	var previewMatches []ImportPreviewMatch
+	for i, am := range apiMatches {
+		parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+		if parseErr != nil {
+			data.ImportError = fmt.Sprintf("Fehler beim Parsen des Datums für Spiel %d: %v", i+1, parseErr)
+			app.render(w, r, http.StatusOK, "admin_phase_import.html", data)
+			return
+		}
+
+		day := parsedTime.Format("2006-01-02")
+		existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		isDuplicate := existing.ID != 0
+
+		previewMatches = append(previewMatches, ImportPreviewMatch{
+			Index:       i,
+			Date:        day,
+			Time:        parsedTime.Format("15:04"),
+			TeamA:       am.TeamA.TeamName,
+			TeamB:       am.TeamB.TeamName,
+			PhaseNum:    phase.Number,
+			IsDuplicate: isDuplicate,
+		})
+	}
+
+	data.ImportPreviewMatches = previewMatches
+	app.render(w, r, http.StatusOK, "admin_phase_import.html", data)
+}
+
+func (app *application) adminImportPhasePost(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	phase, err := app.eventPhases.Get(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	event, err := app.events.Get(phase.EventID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Re-fetch API data
+	url := event.ApiBaseURL + phase.ApiPath
+	apiMatches, err := api.FetchMatchData(url)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Parse form values
+	err = r.ParseForm()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	selectedIndices := r.PostForm["selected_matches"]
+
+	count := 0
+	for _, idxStr := range selectedIndices {
+		idx, err := strconv.Atoi(idxStr)
+		if err != nil || idx < 0 || idx >= len(apiMatches) {
+			continue
+		}
+
+		am := apiMatches[idx]
+		parsedTime, err := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		_, err = app.matches.Insert(am.TeamA.TeamName, am.TeamB.TeamName, parsedTime, phase.PhaseType, phase.Number, event.ID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		count++
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", fmt.Sprintf("%d Spiele erfolgreich importiert!", count))
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

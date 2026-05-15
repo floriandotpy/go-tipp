@@ -69,6 +69,10 @@ func (app *application) routes() http.Handler {
 	// Delete phase
 	mux.Handle("POST /admin/phases/{phaseID}/delete", admin.ThenFunc(app.adminDeletePhasePost))
 
+	// Import phase matches
+	mux.Handle("GET /admin/phases/{phaseID}/import", admin.ThenFunc(app.adminImportPhaseGet))
+	mux.Handle("POST /admin/phases/{phaseID}/import", admin.ThenFunc(app.adminImportPhasePost))
+
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
 

@@ -77,6 +77,11 @@ type templateData struct {
 	PrevLink string
 	// wrapped stats
 	WrappedStatsList []WrappedStats
+	// admin phase match counts: key is phase ID
+	PhaseMatchCounts map[int]int
+	// import preview
+	ImportPreviewMatches []ImportPreviewMatch
+	ImportError          string
 }
 
 // prep translation mapping
