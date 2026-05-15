@@ -9,6 +9,7 @@ var (
 	ErrInvalidCredentials = errors.New("models: invalid credentials")
 	ErrDuplicateEmail     = errors.New("models: duplicate email")
 	ErrDuplicateName      = errors.New("models: duplicate user name")
+	ErrDuplicateSlug      = errors.New("models: duplicate event slug")
 	ErrInvalidInvite      = errors.New("models: invalid invite code")
 	ErrNotLoggedIn        = errors.New("models: not logged in")
 	ErrUserNotFound       = errors.New("users: user not found")

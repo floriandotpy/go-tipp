@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"tipp.casualcoding.com/internal/scoring"
 )
 
 type Match struct {
@@ -26,6 +24,7 @@ type Match struct {
 	ResultAPenB *int
 
 	EventPhase int
+	EventID    int
 }
 
 type MatchModel struct {
@@ -74,14 +73,14 @@ func (m *MatchModel) Insert(teamA string, teamB string, start time.Time, matchTy
 func (m *MatchModel) Get(id int) (Match, error) {
 	stmt := `SELECT id, start, team_a, team_b, result_a, result_b,
 	result_aet_a, result_aet_b, result_apen_a, result_apen_b,
-	match_type, finished, event_phase FROM matches WHERE id = ?`
+	match_type, finished, event_phase, event_id FROM matches WHERE id = ?`
 	var match Match
 	err := m.DB.QueryRow(stmt, id).Scan(
 		&match.ID, &match.Start, &match.TeamA, &match.TeamB,
 		&match.ResultA, &match.ResultB,
 		&match.ResultAETA, &match.ResultAETB,
 		&match.ResultAPenA, &match.ResultAPenB,
-		&match.MatchType, &match.Finished, &match.EventPhase)
+		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord
@@ -113,7 +112,7 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 		result_a, result_b, 
 		result_aet_a, result_aet_b,
 		result_apen_a, result_apen_b,
-		match_type, finished, event_phase
+		match_type, finished, event_phase, event_id
 		FROM matches
 		WHERE DATE(start) = ? AND team_a = ? AND team_b = ?
 	`
@@ -130,7 +129,7 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 		&match.ResultA, &match.ResultB,
 		&match.ResultAETA, &match.ResultAETB,
 		&match.ResultAPenA, &match.ResultAPenB,
-		&match.MatchType, &match.Finished, &match.EventPhase)
+		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No matching entry found
@@ -252,10 +251,10 @@ func (m *MatchModel) Upcoming() ([]Match, error) {
 	return nil, nil
 }
 
-// will return all matches
-func (m *MatchModel) All() ([]Match, error) {
-	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase FROM matches ORDER BY start ASC`
-	rows, err := m.DB.Query(stmt)
+// will return all matches for the given event
+func (m *MatchModel) All(eventID int) ([]Match, error) {
+	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase, event_id FROM matches WHERE event_id = ? ORDER BY start ASC`
+	rows, err := m.DB.Query(stmt, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +265,7 @@ func (m *MatchModel) All() ([]Match, error) {
 
 	for rows.Next() {
 		var match Match
-		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase)
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB, &match.ResultA, &match.ResultB, &match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
 		if err != nil {
 			return nil, err
 		}
@@ -285,18 +284,18 @@ func (m *MatchModel) All() ([]Match, error) {
 	return matches, nil
 }
 
-// AllByDaterange returns all matches within the specified date range
-func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match, error) {
+// AllByDaterange returns all matches for the given event within the specified date range
+func (m *MatchModel) AllByDaterange(eventID int, after time.Time, before time.Time) ([]Match, error) {
 	stmt := `SELECT id, start, team_a, team_b, 
 	result_a, result_b,
 	result_aet_a, result_aet_b,
 	result_apen_a, result_apen_b,
-	match_type, finished, event_phase
+	match_type, finished, event_phase, event_id
              FROM matches 
-             WHERE start > ? AND start < ? 
+             WHERE event_id = ? AND start > ? AND start < ? 
              ORDER BY start ASC`
 
-	rows, err := m.DB.Query(stmt, after, before)
+	rows, err := m.DB.Query(stmt, eventID, after, before)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +309,7 @@ func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match,
 			&match.ResultA, &match.ResultB,
 			&match.ResultAETA, &match.ResultAETB,
 			&match.ResultAPenA, &match.ResultAPenB,
-			&match.MatchType, &match.Finished, &match.EventPhase)
+			&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
 		if err != nil {
 			return nil, err
 		}
@@ -331,10 +330,10 @@ func (m *MatchModel) AllByDaterange(after time.Time, before time.Time) ([]Match,
 	return matches, nil
 }
 
-func (m *MatchModel) AllMatchesFinished() (bool, error) {
-	stmt := `SELECT COUNT(*) FROM matches WHERE finished = 0`
+func (m *MatchModel) AllMatchesFinished(eventID int) (bool, error) {
+	stmt := `SELECT COUNT(*) FROM matches WHERE event_id = ? AND finished = 0`
 	var count int
-	err := m.DB.QueryRow(stmt).Scan(&count)
+	err := m.DB.QueryRow(stmt, eventID).Scan(&count)
 	if err != nil {
 		return false, err
 	}
@@ -362,13 +361,17 @@ func forceLocalTimezone(t time.Time) (time.Time, error) {
 	return localTime, nil
 }
 
-func InferEventPhaseType(match *Match) (string, error) {
-	switch match.EventPhase {
-	case 1, 2, 3:
-		return scoring.PhaseGroup, nil
-	case 4, 5, 6, 7:
-		return scoring.PhaseKO, nil
-	default:
-		return "", fmt.Errorf("invalid EventPhase on match object: %d", match.EventPhase)
+// InferEventPhaseType queries the event_phases table to determine the phase_type
+// for the given match based on its event_id and event_phase number.
+func InferEventPhaseType(db *sql.DB, match *Match) (string, error) {
+	var phaseType string
+	stmt := `SELECT phase_type FROM event_phases WHERE event_id = ? AND number = ?`
+	err := db.QueryRow(stmt, match.EventID, match.EventPhase).Scan(&phaseType)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("no event_phase found for event_id=%d, number=%d", match.EventID, match.EventPhase)
+		}
+		return "", err
 	}
+	return phaseType, nil
 }

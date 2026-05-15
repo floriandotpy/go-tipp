@@ -1,0 +1,106 @@
+{{define "title"}}Neue Phase{{end}}{{define "assets"}}{{end}}{{define "main"}}
+<div class="container">
+  <h2>Neue Phase hinzufügen</h2>
+  <form
+    action="/admin/events/{{.Event.ID}}/phases/new"
+    method="POST"
+    novalidate
+    class="pure-form pure-form-aligned"
+  >
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+    <fieldset>
+      <div class="pure-control-group">
+        <label for="number">Phasen-Nummer:</label>
+        <input
+          type="number"
+          id="number"
+          name="number"
+          min="1"
+          value="{{.Form.Number}}"
+          {{if .Form.FieldErrors.number}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.number}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label for="title">Titel:</label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          placeholder="z.B. Gruppenphase 1"
+          value="{{.Form.Title}}"
+          {{if .Form.FieldErrors.title}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.title}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label for="api_path">API Path:</label>
+        <input
+          type="text"
+          id="api_path"
+          name="api_path"
+          placeholder="z.B. /getmatchdata/em/2024/1"
+          value="{{.Form.ApiPath}}"
+          {{if .Form.FieldErrors.api_path}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.api_path}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label for="phase_type">Phase Type:</label>
+        <select
+          id="phase_type"
+          name="phase_type"
+          {{if .Form.FieldErrors.phase_type}}class="error"{{end}}
+        >
+          <option value="">-- Bitte wählen --</option>
+          <option value="phase_group" {{if eq .Form.PhaseType "phase_group"}}selected{{end}}>Gruppenphase (phase_group)</option>
+          <option value="phase_ko" {{if eq .Form.PhaseType "phase_ko"}}selected{{end}}>KO-Phase (phase_ko)</option>
+        </select>
+        {{with .Form.FieldErrors.phase_type}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label for="start">Start:</label>
+        <input
+          type="datetime-local"
+          id="start"
+          name="start"
+          value="{{.Form.Start}}"
+          {{if .Form.FieldErrors.start}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.start}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label for="end">Ende:</label>
+        <input
+          type="datetime-local"
+          id="end"
+          name="end"
+          value="{{.Form.End}}"
+          {{if .Form.FieldErrors.end}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.end}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-controls">
+        <input
+          type="submit"
+          value="Phase erstellen"
+          class="pure-button pure-button-primary"
+        />
+        <a href="/admin" class="pure-button">Abbrechen</a>
+      </div>
+    </fieldset>
+  </form>
+</div>
+{{end}}

@@ -8,6 +8,44 @@
     <button class="pure-button">Neueste Punkte verteilen</button>
   </form>
 
+  <h2>Events</h2>
+  <p><a href="/admin/events/new" class="pure-button pure-button-primary">Neues Event erstellen</a></p>
+  {{if .Events}}
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <td>ID</td>
+        <td>Name</td>
+        <td>Slug</td>
+        <td>Aktiv</td>
+        <td>Aktionen</td>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Events}}
+    <tr>
+      <td>{{.ID}}</td>
+      <td>{{.Name}}</td>
+      <td>{{.Slug}}</td>
+      <td>{{germanYesNo .IsActive}}</td>
+      <td>
+        {{if not .IsActive}}
+        <form action="/admin/events/setactive" method="post" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}" />
+          <input type="hidden" name="event_id" value="{{.ID}}" />
+          <button class="pure-button" type="submit">Aktivieren</button>
+        </form>
+        {{end}}
+        <a href="/admin/events/{{.ID}}/phases/new" class="pure-button">Phase hinzufügen</a>
+      </td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p>Keine Events vorhanden.</p>
+  {{end}}
+
   <h2>Gruppen</h2>
   <table class="cc-table">
     <thead>

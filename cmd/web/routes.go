@@ -18,7 +18,7 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /health", app.healthHandler)
 
 	// unprotected app routes (no auth required)
-	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf)
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.resolveEvent)
 
 	// general routes
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.indexHandler))
@@ -49,6 +49,11 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /admin", admin.ThenFunc(app.adminIndex))
 	mux.Handle("POST /admin/newinvite", admin.ThenFunc(app.adminCreateInvitePost))
 	mux.Handle("POST /admin/updatepoints", admin.ThenFunc(app.adminUpdatePoints))
+	mux.Handle("GET /admin/events/new", admin.ThenFunc(app.adminCreateEvent))
+	mux.Handle("POST /admin/events/new", admin.ThenFunc(app.adminCreateEventPost))
+	mux.Handle("POST /admin/events/setactive", admin.ThenFunc(app.adminSetActiveEventPost))
+	mux.Handle("GET /admin/events/{eventID}/phases/new", admin.ThenFunc(app.adminAddPhase))
+	mux.Handle("POST /admin/events/{eventID}/phases/new", admin.ThenFunc(app.adminAddPhasePost))
 
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,8 @@ import (
 	"tipp.casualcoding.com/internal/models"
 	"tipp.casualcoding.com/internal/validator"
 )
+
+var slugRX = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 const TEAM_DE = "Deutschland"
 const TEAM_DK = "Dänemark"
@@ -62,6 +65,8 @@ func (app *application) rulesHandler(w http.ResponseWriter, req *http.Request) {
 
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
 
+	event := eventFromContext(req)
+
 	// fetch all user groups from database
 	userId, err := app.authUserId(req)
 	if err != nil {
@@ -76,7 +81,7 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 
 	var leaderboards []Leaderboard
 	for _, group := range groups {
-		users, err := app.users.GroupLeaderboard(group.ID)
+		users, err := app.users.GroupLeaderboard(group.ID, event.ID)
 		if err != nil {
 			app.serverError(w, req, err)
 			return
@@ -91,7 +96,7 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 		leaderboards = append(leaderboards, leaderboard)
 	}
 
-	globalLeaderboardUsers, err := app.users.GlobalLeaderboard()
+	globalLeaderboardUsers, err := app.users.GlobalLeaderboard(event.ID)
 	if err != nil {
 		app.serverError(w, req, err)
 		return
@@ -109,6 +114,9 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 }
 
 func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Request) {
+
+	event := eventFromContext(req)
+
 	// read phase from URL
 	groupsStr := req.URL.Query().Get("groups")
 
@@ -124,7 +132,7 @@ func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Reque
 		groups = append(groups, gInt)
 	}
 
-	response, err := app.tipps.GetScoreboardData(groups)
+	response, err := app.tipps.GetScoreboardData(groups, event.ID)
 	if err != nil {
 		app.serverError(w, req, err)
 	}
@@ -140,13 +148,18 @@ func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Reque
 
 func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request) {
 
+	event := eventFromContext(req)
+
 	// read phase from URL
 	selectedPhaseStr := req.URL.Query().Get("phase")
 
-	eventPhases := models.GetEventPhases()
+	eventPhases, err := app.eventPhases.AllForEvent(event.ID)
+	if err != nil {
+		app.serverError(w, req, err)
+		return
+	}
 
 	var phaseId int
-	var err error
 
 	// phase given? convert to numeric phase id
 	if selectedPhaseStr != "" {
@@ -160,16 +173,20 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	// no phase id set? determine current phase
 	if phaseId == 0 {
 		// default to today's phase
-		todaysPhase := models.DetermineEventPhase(time.Now())
-		phaseId = todaysPhase.Number
-
-		// if today is not a match day, assume the event is over and show the final phase
-		if todaysPhase.Number == 0 {
-			phaseId = eventPhases[len(eventPhases)-1].Number
+		todaysPhase, phaseErr := app.eventPhases.DetermineCurrentPhase(event.ID, time.Now())
+		if phaseErr != nil {
+			// if today is not a match day, assume the event is over and show the final phase
+			if len(eventPhases) > 0 {
+				phaseId = eventPhases[len(eventPhases)-1].Number
+			} else {
+				phaseId = 1
+			}
+		} else {
+			phaseId = todaysPhase.Number
 		}
 	}
 
-	selectedPhase, err := models.GetEventPhaseById(phaseId)
+	selectedPhase, err := app.eventPhases.GetByEventAndNumber(event.ID, phaseId)
 	if err != nil {
 		http.NotFound(w, req)
 		return
@@ -182,10 +199,6 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		nextLink = fmt.Sprintf("/spiele?phase=%d", phaseId+1)
 	}
 
-	if err != nil {
-		app.serverError(w, req, err)
-	}
-
 	userId, err := app.authUserId(req)
 	if err != nil {
 		// TODO: or a proper not authenticated error?
@@ -193,14 +206,14 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	// fetch joined data (matches & tipps)
-	matchTipps, err := app.matchTipps.AllByDaterange(userId, selectedPhase.Start, selectedPhase.End)
+	matchTipps, err := app.matchTipps.AllByDaterange(userId, event.ID, selectedPhase.Start, selectedPhase.End)
 	if err != nil {
 		app.serverError(w, req, err)
 	}
 
 	data := app.newTemplateData(req)
 	data.MatchTipps = matchTipps
-	data.EventPhases = models.GetEventPhases()
+	data.EventPhases = eventPhases
 	data.SelectedPhase = selectedPhase
 	data.NextLink = nextLink
 	data.PrevLink = prevLink
@@ -209,6 +222,8 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 }
 
 func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Request) {
+
+	event := eventFromContext(r)
 
 	matchId, err := strconv.Atoi(r.PathValue("matchID"))
 	if err != nil || matchId < 0 {
@@ -222,6 +237,12 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		} else {
 			app.serverError(w, r, err)
 		}
+		return
+	}
+
+	// Verify match belongs to the resolved event
+	if match.EventID != event.ID {
+		http.NotFound(w, r)
 		return
 	}
 
@@ -245,7 +266,8 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		app.serverError(w, r, err)
 	}
 
-	eventPhaseType, err := models.InferEventPhaseType(&match)
+	// Look up phase type from DB
+	eventPhaseType, err := models.InferEventPhaseType(app.matches.DB, &match)
 	if err != nil {
 		app.serverError(w, r, err)
 	}
@@ -312,6 +334,9 @@ func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Request) {
+
+	event := eventFromContext(r)
+
 	userName := r.PathValue("name")
 	if len(userName) < 1 {
 		http.NotFound(w, r)
@@ -371,8 +396,8 @@ func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Reques
 		tippsCompareSet[tippB.MatchId] = tippB
 	}
 
-	// get all matches
-	matches, err := app.matches.All()
+	// get all matches for the event
+	matches, err := app.matches.All(event.ID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -398,6 +423,8 @@ func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 
+	event := eventFromContext(r)
+
 	userId, err := app.authUserId(r)
 	if err != nil {
 		app.serverError(w, r, err)
@@ -413,7 +440,7 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
 	var stats = []WrappedStats{}
 	for _, group := range groups {
-		users, err := app.users.GroupLeaderboard(group.ID)
+		users, err := app.users.GroupLeaderboard(group.ID, event.ID)
 		if err != nil {
 			app.serverError(w, r, err)
 			return
@@ -425,13 +452,13 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 			Users: users,
 		}
 
-		bestInGrouphase, err := app.users.GetBestInSelectedPhases(group.ID, []int{1, 2, 3})
+		bestInGrouphase, err := app.users.GetBestInSelectedPhases(group.ID, event.ID, []int{1, 2, 3})
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
 
-		bestInKoPhase, err := app.users.GetBestInSelectedPhases(group.ID, []int{4, 5, 6, 7})
+		bestInKoPhase, err := app.users.GetBestInSelectedPhases(group.ID, event.ID, []int{4, 5, 6, 7})
 		if err != nil {
 			app.serverError(w, r, err)
 			return
@@ -452,6 +479,16 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
+
+	event := eventFromContext(r)
+
+	// Only allow tipp submissions for the active event
+	if !isActiveEvent(r) {
+		app.sessionManager.Put(r.Context(), "flash", "Tipps können nur für das aktive Event abgegeben werden.")
+		http.Redirect(w, r, "/spiele", http.StatusSeeOther)
+		return
+	}
+
 	// parse form data
 	err := r.ParseForm()
 	if err != nil {
@@ -480,6 +517,17 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 			if err != nil {
 				app.clientError(w, http.StatusBadRequest)
 				return
+			}
+
+			// Verify match belongs to the active event
+			match, err := app.matches.Get(matchId)
+			if err != nil {
+				// skip matches that can't be found
+				continue
+			}
+			if match.EventID != event.ID {
+				// skip matches that don't belong to the active event
+				continue
 			}
 
 			tippAKey := "tipp_a_" + matchIdStr
@@ -710,6 +758,14 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.Groups = groups
+
+	events, err := app.events.All()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Events = events
+
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
@@ -719,7 +775,9 @@ func (app *application) adminCreateInvitePost(w http.ResponseWriter, r *http.Req
 
 func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request) {
 
-	rowsAffected, err := app.tipps.UpdatePoints()
+	event := eventFromContext(r)
+
+	rowsAffected, err := app.tipps.UpdatePoints(event.ID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -730,4 +788,205 @@ func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request
 
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 
+}
+
+// --- Admin Event CRUD ---
+
+type eventCreateForm struct {
+	Name               string `form:"name"`
+	Slug               string `form:"slug"`
+	ApiBaseURL         string `form:"api_base_url"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminCreateEvent(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.Form = eventCreateForm{}
+	app.render(w, r, http.StatusOK, "admin_event_new.html", data)
+}
+
+func (app *application) adminCreateEventPost(w http.ResponseWriter, r *http.Request) {
+	var form eventCreateForm
+
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate name: 1-100 chars
+	form.CheckField(validator.NotBlank(form.Name), "name", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.Name, 100), "name", "Maximal 100 Zeichen")
+
+	// Validate slug: 1-100 chars, lowercase alphanumeric and hyphens only
+	form.CheckField(validator.NotBlank(form.Slug), "slug", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.Slug, 100), "slug", "Maximal 100 Zeichen")
+	form.CheckField(validator.Matches(form.Slug, slugRX), "slug", "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt")
+
+	// Validate api_base_url: 1-255 chars
+	form.CheckField(validator.NotBlank(form.ApiBaseURL), "api_base_url", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.ApiBaseURL, 255), "api_base_url", "Maximal 255 Zeichen")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_event_new.html", data)
+		return
+	}
+
+	_, err = app.events.Insert(form.Name, form.Slug, form.ApiBaseURL)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateSlug) {
+			form.AddFieldError("slug", "Dieser Slug ist bereits vergeben")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "admin_event_new.html", data)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Event erfolgreich erstellt!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminSetActiveEventPost(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	eventIDStr := r.PostForm.Get("event_id")
+	eventID, err := strconv.Atoi(eventIDStr)
+	if err != nil || eventID < 1 {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err = app.events.SetActive(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.clientError(w, http.StatusNotFound)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Aktives Event erfolgreich geändert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// --- Admin Phase CRUD ---
+
+type phaseCreateForm struct {
+	Number             int    `form:"number"`
+	Title              string `form:"title"`
+	ApiPath            string `form:"api_path"`
+	PhaseType          string `form:"phase_type"`
+	Start              string `form:"start"`
+	End                string `form:"end"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminAddPhase(w http.ResponseWriter, r *http.Request) {
+	eventIDStr := r.PathValue("eventID")
+	eventID, err := strconv.Atoi(eventIDStr)
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.Form = phaseCreateForm{}
+	// Store the event ID in the Event field so the template can reference it
+	data.Event = models.Event{ID: eventID}
+	app.render(w, r, http.StatusOK, "admin_phase_new.html", data)
+}
+
+func (app *application) adminAddPhasePost(w http.ResponseWriter, r *http.Request) {
+	eventIDStr := r.PathValue("eventID")
+	eventID, err := strconv.Atoi(eventIDStr)
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var form phaseCreateForm
+
+	err = app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate number: >= 1
+	form.CheckField(form.Number >= 1, "number", "Muss mindestens 1 sein")
+
+	// Validate title: 1-100 chars
+	form.CheckField(validator.NotBlank(form.Title), "title", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.Title, 100), "title", "Maximal 100 Zeichen")
+
+	// Validate api_path: 1-255 chars
+	form.CheckField(validator.NotBlank(form.ApiPath), "api_path", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.ApiPath, 255), "api_path", "Maximal 255 Zeichen")
+
+	// Validate phase_type: must be "phase_group" or "phase_ko"
+	form.CheckField(validator.NotBlank(form.PhaseType), "phase_type", "Darf nicht leer sein")
+	form.CheckField(validator.PermittedValue(form.PhaseType, "phase_group", "phase_ko"), "phase_type", "Muss 'phase_group' oder 'phase_ko' sein")
+
+	// Parse and validate start/end timestamps
+	const timeLayout = "2006-01-02T15:04"
+	var startTime, endTime time.Time
+
+	form.CheckField(validator.NotBlank(form.Start), "start", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.End), "end", "Darf nicht leer sein")
+
+	if validator.NotBlank(form.Start) {
+		startTime, err = time.Parse(timeLayout, form.Start)
+		if err != nil {
+			form.AddFieldError("start", "Ungültiges Datumsformat (erwartet: YYYY-MM-DDTHH:MM)")
+		}
+	}
+
+	if validator.NotBlank(form.End) {
+		endTime, err = time.Parse(timeLayout, form.End)
+		if err != nil {
+			form.AddFieldError("end", "Ungültiges Datumsformat (erwartet: YYYY-MM-DDTHH:MM)")
+		}
+	}
+
+	// Validate start < end (only if both parsed successfully)
+	if !startTime.IsZero() && !endTime.IsZero() {
+		form.CheckField(startTime.Before(endTime), "end", "Ende muss nach dem Start liegen")
+	}
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		data.Event = models.Event{ID: eventID}
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_phase_new.html", data)
+		return
+	}
+
+	ep := models.EventPhase{
+		EventID:   eventID,
+		Number:    form.Number,
+		Title:     form.Title,
+		ApiPath:   form.ApiPath,
+		PhaseType: form.PhaseType,
+		Start:     startTime,
+		End:       endTime,
+	}
+
+	_, err = app.eventPhases.Insert(ep)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich erstellt!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

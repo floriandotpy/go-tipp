@@ -190,8 +190,8 @@ func (m *TippModel) AllForMatch(matchId int) ([]Tipp, error) {
 }
 
 // will compute and set the points in the database for all tipps that relate to completed matches
-// Returns the number of rows affected
-func (m *TippModel) UpdatePoints() (int, error) {
+// for the given event. Returns the number of rows affected.
+func (m *TippModel) UpdatePoints(eventID int) (int, error) {
 	// First update result_correct, goal_difference_correct, and tendency_correct
 	stmt1 := `
 	UPDATE tipps t
@@ -211,11 +211,12 @@ func (m *TippModel) UpdatePoints() (int, error) {
 				 OR (t.tipp_a < t.tipp_b AND m.result_a < m.result_b) THEN 1 
 			ELSE 0 
 		END
-	WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL;
+	WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL
+	AND m.event_id = ?;
 	`
 
 	// Execute the first statement
-	result1, err := m.DB.Exec(stmt1)
+	result1, err := m.DB.Exec(stmt1, eventID)
 	if err != nil {
 		return 0, err
 	}
@@ -230,7 +231,7 @@ func (m *TippModel) UpdatePoints() (int, error) {
 	stmt2 := buildUpdatePointsQuery(scoring.PhasePointsMap)
 
 	// Execute the second statement
-	result2, err := m.DB.Exec(stmt2)
+	result2, err := m.DB.Exec(stmt2, eventID)
 	if err != nil {
 		return 0, err
 	}
@@ -253,15 +254,16 @@ func buildUpdatePointsQuery(phasePointsMap map[string]scoring.PhasePoints) strin
 	queryTemplate := `
     UPDATE tipps t
     JOIN matches m ON t.match_id = m.id
+    LEFT JOIN event_phases ep ON m.event_id = ep.event_id AND m.event_phase = ep.number
     SET t.points = CASE
-        WHEN m.event_phase IN (1, 2, 3) THEN
+        WHEN ep.phase_type = '%s' THEN
             CASE
                 WHEN t.result_correct = 1 THEN %d
                 WHEN t.tendency_correct = 1 AND t.goal_difference_correct = 1 THEN %d
                 WHEN t.tendency_correct = 1 THEN %d
                 ELSE 0
             END
-        WHEN m.event_phase IN (4, 5, 6, 7) THEN
+        WHEN ep.phase_type = '%s' THEN
             CASE
                 WHEN t.result_correct = 1 THEN %d
                 WHEN t.tendency_correct = 1 AND t.goal_difference_correct = 1 THEN %d
@@ -269,13 +271,16 @@ func buildUpdatePointsQuery(phasePointsMap map[string]scoring.PhasePoints) strin
                 ELSE 0
             END
         ELSE 0
-    END;
+    END
+    WHERE m.event_id = ?;
     `
 
 	query := fmt.Sprintf(queryTemplate,
+		scoring.PhaseGroup,
 		groupPoints.CorrectResult,
 		groupPoints.CorrectTendencyAndDiff,
 		groupPoints.CorrectTendency,
+		scoring.PhaseKO,
 		koPoints.CorrectResult,
 		koPoints.CorrectTendencyAndDiff,
 		koPoints.CorrectTendency,
@@ -319,14 +324,14 @@ func (m *TippModel) ComputeLiveTipps(tipps []Tipp, resultA int, resultB int, eve
 	return liveTipps, nil
 }
 
-func (m *TippModel) GetScoreboardData(groupIds []int) (ScoreboardData, error) {
+func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardData, error) {
 	// Convert groupIds to a comma-separated string for the SQL query
 	groupIdsStr := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(groupIds)), ","), "[]")
 
 	// Perform SQL query to aggregate user points
 	query := `
 	WITH all_matches AS (
-		SELECT DISTINCT id AS match_id FROM matches WHERE result_a IS NOT NULL
+		SELECT DISTINCT m.id AS match_id FROM matches m WHERE m.result_a IS NOT NULL AND m.event_id = ?
 	),
 	user_matches AS (
 		SELECT
@@ -370,7 +375,7 @@ func (m *TippModel) GetScoreboardData(groupIds []int) (ScoreboardData, error) {
 		ut.user_id, ut.match_id;
     `
 
-	rows, err := m.DB.Query(query)
+	rows, err := m.DB.Query(query, eventID)
 	if err != nil {
 		return ScoreboardData{}, err
 	}

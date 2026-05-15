@@ -44,6 +44,7 @@
   {{if not .MatchTipps}}
   <p>Es sind noch keine Spiele zum Tippen verfügbar.</p>
   {{else}}
+  {{if .IsActiveEvent}}
   <form action="/tipp/update?phase={{.SelectedPhase.Number}}" method="post">
     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
     <div class="header-container">
@@ -60,6 +61,7 @@
         class="pure-button pure-button-primary header-container__right"
       />
     </div>
+  {{end}}
 
     <table class="cc-table cc-table-striped">
       <thead class="">
@@ -116,7 +118,7 @@
 
           </td>
           <td>
-            {{if .AcceptsTipps}}
+            {{if and $.IsActiveEvent .AcceptsTipps}}
             <input
               type="hidden"
               name="match_id_{{.MatchId}}"
@@ -150,6 +152,8 @@
         {{end}}
       </tbody>
     </table>
+
+  {{if .IsActiveEvent}}
     <div class="header-container">
       <input
         type="submit"
@@ -158,5 +162,6 @@
       />
     </div>
   </form>
+  {{end}}
 </div>
 {{end}} {{end}}
