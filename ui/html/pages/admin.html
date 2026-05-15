@@ -37,6 +37,50 @@
         </form>
         {{end}}
         <a href="/admin/events/{{.ID}}/phases/new" class="pure-button">Phase hinzufügen</a>
+        <a href="/admin/events/{{.ID}}/edit" class="pure-button">Bearbeiten</a>
+        <form method="POST" action="/admin/events/{{.ID}}/delete" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+          <button class="pure-button" type="submit" onclick="return confirm('Wirklich löschen?')">Löschen</button>
+        </form>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="5">
+        {{$phases := index $.EventPhasesMap .ID}}
+        {{if $phases}}
+        <table class="cc-table" style="margin-left: 2em; margin-top: 0.5em; margin-bottom: 0.5em;">
+          <thead>
+            <tr>
+              <td>Nr.</td>
+              <td>Titel</td>
+              <td>Typ</td>
+              <td>Start</td>
+              <td>Ende</td>
+              <td>Aktionen</td>
+            </tr>
+          </thead>
+          <tbody>
+          {{range $phases}}
+            <tr>
+              <td>{{.Number}}</td>
+              <td>{{.Title}}</td>
+              <td>{{.PhaseType}}</td>
+              <td>{{.Start.Format "02.01.2006 15:04"}}</td>
+              <td>{{.End.Format "02.01.2006 15:04"}}</td>
+              <td>
+                <a href="/admin/phases/{{.ID}}/edit" class="pure-button">Bearbeiten</a>
+                <form method="POST" action="/admin/phases/{{.ID}}/delete" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                  <button class="pure-button" type="submit" onclick="return confirm('Wirklich löschen?')">Löschen</button>
+                </form>
+              </td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+        {{else}}
+        <p style="margin-left: 2em;">Keine Phasen konfiguriert.</p>
+        {{end}}
       </td>
     </tr>
     {{end}}

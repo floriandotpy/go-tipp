@@ -92,6 +92,60 @@ func (m *EventPhaseModel) DetermineCurrentPhase(eventID int, now time.Time) (Eve
 	return ep, nil
 }
 
+// Get returns a single phase by ID, or ErrNoRecord if not found.
+func (m *EventPhaseModel) Get(id int) (EventPhase, error) {
+	stmt := `SELECT id, event_id, number, title, api_path, phase_type, start, end
+		FROM event_phases WHERE id = ?`
+	var ep EventPhase
+	err := m.DB.QueryRow(stmt, id).Scan(
+		&ep.ID, &ep.EventID, &ep.Number, &ep.Title,
+		&ep.ApiPath, &ep.PhaseType, &ep.Start, &ep.End,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return EventPhase{}, ErrNoRecord
+		}
+		return EventPhase{}, err
+	}
+	return ep, nil
+}
+
+// Update modifies an existing phase's fields.
+// Returns ErrNoRecord if the phase doesn't exist.
+func (m *EventPhaseModel) Update(ep EventPhase) error {
+	stmt := `UPDATE event_phases
+		SET number = ?, title = ?, api_path = ?, phase_type = ?, start = ?, end = ?
+		WHERE id = ?`
+	result, err := m.DB.Exec(stmt, ep.Number, ep.Title, ep.ApiPath, ep.PhaseType, ep.Start, ep.End, ep.ID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNoRecord
+	}
+	return nil
+}
+
+// Delete removes a phase by ID. Returns ErrNoRecord if not found.
+func (m *EventPhaseModel) Delete(id int) error {
+	result, err := m.DB.Exec(`DELETE FROM event_phases WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNoRecord
+	}
+	return nil
+}
+
 // Insert inserts a new event phase and returns the new phase ID.
 func (m *EventPhaseModel) Insert(ep EventPhase) (int, error) {
 	stmt := `INSERT INTO event_phases (event_id, number, title, api_path, phase_type, start, end)

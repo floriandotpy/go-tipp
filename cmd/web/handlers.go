@@ -766,6 +766,18 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Events = events
 
+	// Load phases grouped by event
+	phasesMap := make(map[int][]models.EventPhase)
+	for _, event := range events {
+		phases, err := app.eventPhases.AllForEvent(event.ID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		phasesMap[event.ID] = phases
+	}
+	data.EventPhasesMap = phasesMap
+
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
@@ -851,6 +863,87 @@ func (app *application) adminCreateEventPost(w http.ResponseWriter, r *http.Requ
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
+type eventEditForm struct {
+	Name                string `form:"name"`
+	Slug                string `form:"slug"`
+	ApiBaseURL          string `form:"api_base_url"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminEditEvent(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	event, err := app.events.Get(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.Form = eventEditForm{
+		Name:       event.Name,
+		Slug:       event.Slug,
+		ApiBaseURL: event.ApiBaseURL,
+	}
+	data.Event = event
+	app.render(w, r, http.StatusOK, "admin_event_edit.html", data)
+}
+
+func (app *application) adminEditEventPost(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var form eventEditForm
+	err = app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(validator.NotBlank(form.Name), "name", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.Slug), "slug", "Darf nicht leer sein")
+	form.CheckField(validator.Matches(form.Slug, slugRX), "slug", "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt")
+	form.CheckField(validator.NotBlank(form.ApiBaseURL), "api_base_url", "Darf nicht leer sein")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		data.Event = models.Event{ID: eventID}
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_event_edit.html", data)
+		return
+	}
+
+	err = app.events.Update(eventID, form.Name, form.Slug, form.ApiBaseURL)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateSlug) {
+			form.AddFieldError("slug", "Dieser Slug ist bereits vergeben")
+			data := app.newTemplateData(r)
+			data.Form = form
+			data.Event = models.Event{ID: eventID}
+			app.render(w, r, http.StatusUnprocessableEntity, "admin_event_edit.html", data)
+		} else if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Event erfolgreich aktualisiert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
 func (app *application) adminSetActiveEventPost(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -876,6 +969,27 @@ func (app *application) adminSetActiveEventPost(w http.ResponseWriter, r *http.R
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Aktives Event erfolgreich geändert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminDeleteEventPost(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = app.events.Delete(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Event erfolgreich gelöscht!")
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
@@ -988,5 +1102,156 @@ func (app *application) adminAddPhasePost(w http.ResponseWriter, r *http.Request
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich erstellt!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// --- Admin Phase Edit ---
+
+type phaseEditForm struct {
+	Number              int    `form:"number"`
+	Title               string `form:"title"`
+	ApiPath             string `form:"api_path"`
+	PhaseType           string `form:"phase_type"`
+	Start               string `form:"start"`
+	End                 string `form:"end"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminEditPhase(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	phase, err := app.eventPhases.Get(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	const timeLayout = "2006-01-02T15:04"
+	data := app.newTemplateData(r)
+	data.Form = phaseEditForm{
+		Number:    phase.Number,
+		Title:     phase.Title,
+		ApiPath:   phase.ApiPath,
+		PhaseType: phase.PhaseType,
+		Start:     phase.Start.Format(timeLayout),
+		End:       phase.End.Format(timeLayout),
+	}
+	data.Event = models.Event{ID: phase.EventID}
+	app.render(w, r, http.StatusOK, "admin_phase_edit.html", data)
+}
+
+func (app *application) adminEditPhasePost(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var form phaseEditForm
+	err = app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(form.Number >= 1, "number", "Muss mindestens 1 sein")
+	form.CheckField(validator.NotBlank(form.Title), "title", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.ApiPath), "api_path", "Darf nicht leer sein")
+	form.CheckField(validator.PermittedValue(form.PhaseType, "phase_group", "phase_ko"), "phase_type", "Muss 'phase_group' oder 'phase_ko' sein")
+
+	const timeLayout = "2006-01-02T15:04"
+	var startTime, endTime time.Time
+
+	form.CheckField(validator.NotBlank(form.Start), "start", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.End), "end", "Darf nicht leer sein")
+
+	if validator.NotBlank(form.Start) {
+		startTime, err = time.Parse(timeLayout, form.Start)
+		if err != nil {
+			form.AddFieldError("start", "Ungültiges Datumsformat")
+		}
+	}
+	if validator.NotBlank(form.End) {
+		endTime, err = time.Parse(timeLayout, form.End)
+		if err != nil {
+			form.AddFieldError("end", "Ungültiges Datumsformat")
+		}
+	}
+	if !startTime.IsZero() && !endTime.IsZero() {
+		form.CheckField(startTime.Before(endTime), "end", "Ende muss nach dem Start liegen")
+	}
+
+	if !form.Valid() {
+		// Look up the phase to get the event ID for the template
+		phase, _ := app.eventPhases.Get(phaseID)
+		data := app.newTemplateData(r)
+		data.Form = form
+		data.Event = models.Event{ID: phase.EventID}
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_phase_edit.html", data)
+		return
+	}
+
+	// Look up existing phase to get event_id
+	existingPhase, err := app.eventPhases.Get(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	ep := models.EventPhase{
+		ID:        phaseID,
+		EventID:   existingPhase.EventID,
+		Number:    form.Number,
+		Title:     form.Title,
+		ApiPath:   form.ApiPath,
+		PhaseType: form.PhaseType,
+		Start:     startTime,
+		End:       endTime,
+	}
+
+	err = app.eventPhases.Update(ep)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich aktualisiert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminDeletePhasePost(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = app.eventPhases.Delete(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich gelöscht!")
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

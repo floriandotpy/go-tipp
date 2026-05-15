@@ -55,6 +55,20 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /admin/events/{eventID}/phases/new", admin.ThenFunc(app.adminAddPhase))
 	mux.Handle("POST /admin/events/{eventID}/phases/new", admin.ThenFunc(app.adminAddPhasePost))
 
+	// Edit event
+	mux.Handle("GET /admin/events/{eventID}/edit", admin.ThenFunc(app.adminEditEvent))
+	mux.Handle("POST /admin/events/{eventID}/edit", admin.ThenFunc(app.adminEditEventPost))
+
+	// Delete event
+	mux.Handle("POST /admin/events/{eventID}/delete", admin.ThenFunc(app.adminDeleteEventPost))
+
+	// Edit phase
+	mux.Handle("GET /admin/phases/{phaseID}/edit", admin.ThenFunc(app.adminEditPhase))
+	mux.Handle("POST /admin/phases/{phaseID}/edit", admin.ThenFunc(app.adminEditPhasePost))
+
+	// Delete phase
+	mux.Handle("POST /admin/phases/{phaseID}/delete", admin.ThenFunc(app.adminDeletePhasePost))
+
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
 
