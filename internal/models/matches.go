@@ -305,8 +305,8 @@ func (m *MatchModel) AllByDaterange(eventID int, after time.Time, before time.Ti
 	result_apen_a, result_apen_b,
 	match_type, finished, event_phase, event_id
              FROM matches 
-             WHERE event_id = ? AND start > ? AND start < ? 
-             ORDER BY start ASC`
+             WHERE event_id = ? AND start >= ? AND start <= ? 
+             ORDER BY start ASC, id ASC`
 
 	rows, err := m.DB.Query(stmt, eventID, after, before)
 	if err != nil {
