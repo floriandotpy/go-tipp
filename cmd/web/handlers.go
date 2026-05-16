@@ -18,31 +18,6 @@ import (
 
 var slugRX = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
-const TEAM_DE = "Deutschland"
-const TEAM_DK = "Dänemark"
-const TEAM_ES = "Spanien"
-const TEAM_SCO = "Schottland"
-const TEAM_FR = "Frankreich"
-const TEAM_NL = "Niederlande"
-const TEAM_EN = "England"
-const TEAM_IT = "Italien"
-const TEAM_TR = "Türkei"
-const TEAM_HR = "Kroatien"
-const TEAM_AL = "Albanien"
-const TEAM_CZ = "Tschechien"
-const TEAM_BE = "Belgien"
-const TEAM_AT = "Österreich"
-const TEAM_HU = "Ungarn"
-const TEAM_RS = "Serbien"
-const TEAM_SI = "Slowenien"
-const TEAM_RO = "Rumänien"
-const TEAM_CH = "Schweiz"
-const TEAM_PT = "Portugal"
-const TEAM_SK = "Slowakei"
-const TEAM_PL = "Polen"
-const TEAM_UA = "Ukraine"
-const TEAM_GR = "Griechenland"
-
 func (app *application) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
