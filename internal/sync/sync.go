@@ -32,7 +32,7 @@ func GroupMatches(matches []api.ApiMatch) map[int][]api.ApiMatch {
 }
 
 // PhaseFromGroup constructs an EventPhase from a group of API matches.
-// It sets Number, Title, PhaseType, Start, End, and ApiPath (empty string).
+// It sets Number, Title, PhaseType, Start, and End.
 func PhaseFromGroup(eventID int, groupOrderID int, groupName string, matches []api.ApiMatch) (models.EventPhase, error) {
 	var earliest, latest time.Time
 	for _, m := range matches {
@@ -52,7 +52,6 @@ func PhaseFromGroup(eventID int, groupOrderID int, groupName string, matches []a
 		EventID:   eventID,
 		Number:    groupOrderID,
 		Title:     groupName,
-		ApiPath:   "",
 		PhaseType: InferPhaseType(groupName),
 		Start:     earliest,
 		End:       latestEnd(earliest, latest),

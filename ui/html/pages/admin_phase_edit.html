@@ -37,20 +37,6 @@
         {{end}}
       </div>
       <div class="pure-control-group">
-        <label for="api_path">API Path:</label>
-        <input
-          type="text"
-          id="api_path"
-          name="api_path"
-          placeholder="z.B. /getmatchdata/em/2024/1"
-          value="{{.Form.ApiPath}}"
-          {{if .Form.FieldErrors.api_path}}class="error"{{end}}
-        />
-        {{with .Form.FieldErrors.api_path}}
-        <label class="error pure-form-message-inline">{{.}}</label>
-        {{end}}
-      </div>
-      <div class="pure-control-group">
         <label for="phase_type">Phase Type:</label>
         <select
           id="phase_type"

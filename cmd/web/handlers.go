@@ -1021,7 +1021,6 @@ func (app *application) adminDeleteEventPost(w http.ResponseWriter, r *http.Requ
 type phaseEditForm struct {
 	Number              int    `form:"number"`
 	Title               string `form:"title"`
-	ApiPath             string `form:"api_path"`
 	PhaseType           string `form:"phase_type"`
 	Start               string `form:"start"`
 	End                 string `form:"end"`
@@ -1050,7 +1049,6 @@ func (app *application) adminEditPhase(w http.ResponseWriter, r *http.Request) {
 	data.Form = phaseEditForm{
 		Number:    phase.Number,
 		Title:     phase.Title,
-		ApiPath:   phase.ApiPath,
 		PhaseType: phase.PhaseType,
 		Start:     phase.Start.Format(timeLayout),
 		End:       phase.End.Format(timeLayout),
@@ -1125,7 +1123,6 @@ func (app *application) adminEditPhasePost(w http.ResponseWriter, r *http.Reques
 		EventID:   existingPhase.EventID,
 		Number:    form.Number,
 		Title:     form.Title,
-		ApiPath:   form.ApiPath,
 		PhaseType: form.PhaseType,
 		Start:     startTime,
 		End:       endTime,
@@ -1242,29 +1239,17 @@ func (app *application) adminSyncEventGet(w http.ResponseWriter, r *http.Request
 			isDuplicate := false
 			isUpdate := false
 
-			// Primary lookup: by API match ID
-			if am.MatchID > 0 {
-				existing, err := app.matches.GetByApiMatchID(am.MatchID)
-				if err != nil {
-					app.serverError(w, r, err)
-					return
-				}
-				if existing.ID != 0 {
-					// Match exists — check if anything changed
-					if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
-						isUpdate = true
-					} else {
-						isDuplicate = true
-					}
-				}
-			} else {
-				// Fallback: legacy lookup by metadata
-				existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
-				if err != nil {
-					app.serverError(w, r, err)
-					return
-				}
-				if existing.ID != 0 {
+			// Look up by API match ID
+			existing, err := app.matches.GetByApiMatchID(am.MatchID)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			if existing.ID != 0 {
+				// Match exists — check if anything changed
+				if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
+					isUpdate = true
+				} else {
 					isDuplicate = true
 				}
 			}
@@ -1340,7 +1325,7 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 			phasesUpdated++
 		}
 
-		// Insert non-duplicate matches
+		// Upsert matches by API match ID
 		for _, am := range groupMatches {
 			parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
 			if parseErr != nil {
@@ -1348,39 +1333,25 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 				return
 			}
 
-			// Primary lookup: by API match ID
-			if am.MatchID > 0 {
-				existing, err := app.matches.GetByApiMatchID(am.MatchID)
-				if err != nil {
-					app.serverError(w, r, err)
-					return
-				}
-				if existing.ID != 0 {
-					// Match exists — update if anything changed
-					if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
-						err = app.matches.UpdateMatch(existing.ID, am.TeamA.TeamName, am.TeamB.TeamName, parsedTime, phase.PhaseType, groupOrderID)
-						if err != nil {
-							app.serverError(w, r, err)
-							return
-						}
-						matchesUpdated++
+			existing, err := app.matches.GetByApiMatchID(am.MatchID)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			if existing.ID != 0 {
+				// Match exists — update if anything changed
+				if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
+					err = app.matches.UpdateMatch(existing.ID, am.TeamA.TeamName, am.TeamB.TeamName, parsedTime, phase.PhaseType, groupOrderID)
+					if err != nil {
+						app.serverError(w, r, err)
+						return
 					}
-					continue // already exists, skip insert
+					matchesUpdated++
 				}
-			} else {
-				// Fallback: legacy lookup by metadata
-				day := parsedTime.Format("2006-01-02")
-				existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
-				if err != nil {
-					app.serverError(w, r, err)
-					return
-				}
-				if existing.ID != 0 {
-					continue // duplicate, skip
-				}
+				continue
 			}
 
-			_, err = app.matches.InsertWithApiMatchID(
+			_, err = app.matches.Insert(
 				am.TeamA.TeamName, am.TeamB.TeamName,
 				parsedTime, phase.PhaseType, groupOrderID, eventID, am.MatchID,
 			)

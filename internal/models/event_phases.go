@@ -11,7 +11,6 @@ type EventPhase struct {
 	EventID   int
 	Number    int
 	Title     string
-	ApiPath   string
 	PhaseType string // "phase_group" or "phase_ko"
 	Start     time.Time
 	End       time.Time
@@ -23,7 +22,7 @@ type EventPhaseModel struct {
 
 // AllForEvent returns all phases for an event ordered by number ascending.
 func (m *EventPhaseModel) AllForEvent(eventID int) ([]EventPhase, error) {
-	stmt := `SELECT id, event_id, number, title, api_path, phase_type, start, end
+	stmt := `SELECT id, event_id, number, title, phase_type, start, end
              FROM event_phases
              WHERE event_id = ?
              ORDER BY number ASC`
@@ -38,7 +37,7 @@ func (m *EventPhaseModel) AllForEvent(eventID int) ([]EventPhase, error) {
 
 	for rows.Next() {
 		var ep EventPhase
-		err = rows.Scan(&ep.ID, &ep.EventID, &ep.Number, &ep.Title, &ep.ApiPath, &ep.PhaseType, &ep.Start, &ep.End)
+		err = rows.Scan(&ep.ID, &ep.EventID, &ep.Number, &ep.Title, &ep.PhaseType, &ep.Start, &ep.End)
 		if err != nil {
 			return nil, err
 		}
@@ -55,13 +54,13 @@ func (m *EventPhaseModel) AllForEvent(eventID int) ([]EventPhase, error) {
 // GetByEventAndNumber returns a single phase for the given event and number,
 // or ErrNoRecord if not found.
 func (m *EventPhaseModel) GetByEventAndNumber(eventID, number int) (EventPhase, error) {
-	stmt := `SELECT id, event_id, number, title, api_path, phase_type, start, end
+	stmt := `SELECT id, event_id, number, title, phase_type, start, end
              FROM event_phases
              WHERE event_id = ? AND number = ?`
 
 	var ep EventPhase
 	err := m.DB.QueryRow(stmt, eventID, number).Scan(
-		&ep.ID, &ep.EventID, &ep.Number, &ep.Title, &ep.ApiPath, &ep.PhaseType, &ep.Start, &ep.End)
+		&ep.ID, &ep.EventID, &ep.Number, &ep.Title, &ep.PhaseType, &ep.Start, &ep.End)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return EventPhase{}, ErrNoRecord
@@ -75,13 +74,13 @@ func (m *EventPhaseModel) GetByEventAndNumber(eventID, number int) (EventPhase, 
 // DetermineCurrentPhase returns the phase where start <= now <= end for the given event.
 // Returns ErrNoRecord if no phase matches the current time.
 func (m *EventPhaseModel) DetermineCurrentPhase(eventID int, now time.Time) (EventPhase, error) {
-	stmt := `SELECT id, event_id, number, title, api_path, phase_type, start, end
+	stmt := `SELECT id, event_id, number, title, phase_type, start, end
              FROM event_phases
              WHERE event_id = ? AND start <= ? AND end >= ?`
 
 	var ep EventPhase
 	err := m.DB.QueryRow(stmt, eventID, now, now).Scan(
-		&ep.ID, &ep.EventID, &ep.Number, &ep.Title, &ep.ApiPath, &ep.PhaseType, &ep.Start, &ep.End)
+		&ep.ID, &ep.EventID, &ep.Number, &ep.Title, &ep.PhaseType, &ep.Start, &ep.End)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return EventPhase{}, ErrNoRecord
@@ -94,12 +93,12 @@ func (m *EventPhaseModel) DetermineCurrentPhase(eventID int, now time.Time) (Eve
 
 // Get returns a single phase by ID, or ErrNoRecord if not found.
 func (m *EventPhaseModel) Get(id int) (EventPhase, error) {
-	stmt := `SELECT id, event_id, number, title, api_path, phase_type, start, end
+	stmt := `SELECT id, event_id, number, title, phase_type, start, end
 		FROM event_phases WHERE id = ?`
 	var ep EventPhase
 	err := m.DB.QueryRow(stmt, id).Scan(
 		&ep.ID, &ep.EventID, &ep.Number, &ep.Title,
-		&ep.ApiPath, &ep.PhaseType, &ep.Start, &ep.End,
+		&ep.PhaseType, &ep.Start, &ep.End,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -113,9 +112,9 @@ func (m *EventPhaseModel) Get(id int) (EventPhase, error) {
 // Update modifies an existing phase's fields.
 func (m *EventPhaseModel) Update(ep EventPhase) error {
 	stmt := `UPDATE event_phases
-		SET number = ?, title = ?, api_path = ?, phase_type = ?, start = ?, end = ?
+		SET number = ?, title = ?, phase_type = ?, start = ?, end = ?
 		WHERE id = ?`
-	_, err := m.DB.Exec(stmt, ep.Number, ep.Title, ep.ApiPath, ep.PhaseType, ep.Start, ep.End, ep.ID)
+	_, err := m.DB.Exec(stmt, ep.Number, ep.Title, ep.PhaseType, ep.Start, ep.End, ep.ID)
 	return err
 }
 
@@ -161,10 +160,10 @@ func (m *EventPhaseModel) Upsert(ep EventPhase) (int, bool, error) {
 
 // Insert inserts a new event phase and returns the new phase ID.
 func (m *EventPhaseModel) Insert(ep EventPhase) (int, error) {
-	stmt := `INSERT INTO event_phases (event_id, number, title, api_path, phase_type, start, end)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`
+	stmt := `INSERT INTO event_phases (event_id, number, title, phase_type, start, end)
+             VALUES (?, ?, ?, ?, ?, ?)`
 
-	result, err := m.DB.Exec(stmt, ep.EventID, ep.Number, ep.Title, ep.ApiPath, ep.PhaseType, ep.Start, ep.End)
+	result, err := m.DB.Exec(stmt, ep.EventID, ep.Number, ep.Title, ep.PhaseType, ep.Start, ep.End)
 	if err != nil {
 		return 0, err
 	}
