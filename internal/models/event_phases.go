@@ -146,6 +146,30 @@ func (m *EventPhaseModel) Delete(id int) error {
 	return nil
 }
 
+// Upsert inserts a new phase or updates an existing one based on event_id and number.
+// Returns the phase ID and whether it was newly created (true) or updated (false).
+func (m *EventPhaseModel) Upsert(ep EventPhase) (int, bool, error) {
+	existing, err := m.GetByEventAndNumber(ep.EventID, ep.Number)
+	if err != nil && !errors.Is(err, ErrNoRecord) {
+		return 0, false, err
+	}
+
+	if errors.Is(err, ErrNoRecord) {
+		id, err := m.Insert(ep)
+		if err != nil {
+			return 0, false, err
+		}
+		return id, true, nil
+	}
+
+	ep.ID = existing.ID
+	err = m.Update(ep)
+	if err != nil {
+		return 0, false, err
+	}
+	return existing.ID, false, nil
+}
+
 // Insert inserts a new event phase and returns the new phase ID.
 func (m *EventPhaseModel) Insert(ep EventPhase) (int, error) {
 	stmt := `INSERT INTO event_phases (event_id, number, title, api_path, phase_type, start, end)

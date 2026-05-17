@@ -7,12 +7,14 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
+	appsync "tipp.casualcoding.com/internal/sync"
 	"tipp.casualcoding.com/internal/validator"
 )
 
@@ -979,118 +981,6 @@ func (app *application) adminDeleteEventPost(w http.ResponseWriter, r *http.Requ
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
-// --- Admin Phase CRUD ---
-
-type phaseCreateForm struct {
-	Number             int    `form:"number"`
-	Title              string `form:"title"`
-	ApiPath            string `form:"api_path"`
-	PhaseType          string `form:"phase_type"`
-	Start              string `form:"start"`
-	End                string `form:"end"`
-	validator.Validator `form:"-"`
-}
-
-func (app *application) adminAddPhase(w http.ResponseWriter, r *http.Request) {
-	eventIDStr := r.PathValue("eventID")
-	eventID, err := strconv.Atoi(eventIDStr)
-	if err != nil || eventID < 1 {
-		http.NotFound(w, r)
-		return
-	}
-
-	data := app.newTemplateData(r)
-	data.Form = phaseCreateForm{}
-	// Store the event ID in the Event field so the template can reference it
-	data.Event = models.Event{ID: eventID}
-	app.render(w, r, http.StatusOK, "admin_phase_new.html", data)
-}
-
-func (app *application) adminAddPhasePost(w http.ResponseWriter, r *http.Request) {
-	eventIDStr := r.PathValue("eventID")
-	eventID, err := strconv.Atoi(eventIDStr)
-	if err != nil || eventID < 1 {
-		http.NotFound(w, r)
-		return
-	}
-
-	var form phaseCreateForm
-
-	err = app.decodePostForm(r, &form)
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	// Validate number: >= 1
-	form.CheckField(form.Number >= 1, "number", "Muss mindestens 1 sein")
-
-	// Validate title: 1-100 chars
-	form.CheckField(validator.NotBlank(form.Title), "title", "Darf nicht leer sein")
-	form.CheckField(validator.MaxChars(form.Title, 100), "title", "Maximal 100 Zeichen")
-
-	// Validate api_path: 1-255 chars
-	form.CheckField(validator.NotBlank(form.ApiPath), "api_path", "Darf nicht leer sein")
-	form.CheckField(validator.MaxChars(form.ApiPath, 255), "api_path", "Maximal 255 Zeichen")
-
-	// Validate phase_type: must be "phase_group" or "phase_ko"
-	form.CheckField(validator.NotBlank(form.PhaseType), "phase_type", "Darf nicht leer sein")
-	form.CheckField(validator.PermittedValue(form.PhaseType, "phase_group", "phase_ko"), "phase_type", "Muss 'phase_group' oder 'phase_ko' sein")
-
-	// Parse and validate start/end timestamps
-	const timeLayout = "2006-01-02T15:04"
-	var startTime, endTime time.Time
-
-	form.CheckField(validator.NotBlank(form.Start), "start", "Darf nicht leer sein")
-	form.CheckField(validator.NotBlank(form.End), "end", "Darf nicht leer sein")
-
-	if validator.NotBlank(form.Start) {
-		startTime, err = time.Parse(timeLayout, form.Start)
-		if err != nil {
-			form.AddFieldError("start", "Ungültiges Datumsformat (erwartet: YYYY-MM-DDTHH:MM)")
-		}
-	}
-
-	if validator.NotBlank(form.End) {
-		endTime, err = time.Parse(timeLayout, form.End)
-		if err != nil {
-			form.AddFieldError("end", "Ungültiges Datumsformat (erwartet: YYYY-MM-DDTHH:MM)")
-		}
-	}
-
-	// Validate start < end (only if both parsed successfully)
-	if !startTime.IsZero() && !endTime.IsZero() {
-		form.CheckField(startTime.Before(endTime), "end", "Ende muss nach dem Start liegen")
-	}
-
-	if !form.Valid() {
-		data := app.newTemplateData(r)
-		data.Form = form
-		data.Event = models.Event{ID: eventID}
-		app.render(w, r, http.StatusUnprocessableEntity, "admin_phase_new.html", data)
-		return
-	}
-
-	ep := models.EventPhase{
-		EventID:   eventID,
-		Number:    form.Number,
-		Title:     form.Title,
-		ApiPath:   form.ApiPath,
-		PhaseType: form.PhaseType,
-		Start:     startTime,
-		End:       endTime,
-	}
-
-	_, err = app.eventPhases.Insert(ep)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich erstellt!")
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
-}
-
 // --- Admin Phase Edit ---
 
 type phaseEditForm struct {
@@ -1242,26 +1132,16 @@ func (app *application) adminDeletePhasePost(w http.ResponseWriter, r *http.Requ
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
-// --- Admin Import ---
+// --- Admin Event Sync ---
 
-type ImportPreviewMatch struct {
-	Index       int
-	Date        string
-	Time        string
-	TeamA       string
-	TeamB       string
-	PhaseNum    int
-	IsDuplicate bool
-}
-
-func (app *application) adminImportPhaseGet(w http.ResponseWriter, r *http.Request) {
-	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
-	if err != nil || phaseID < 1 {
+func (app *application) adminSyncEventGet(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
 		http.NotFound(w, r)
 		return
 	}
 
-	phase, err := app.eventPhases.Get(phaseID)
+	event, err := app.events.Get(eventID)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			http.NotFound(w, r)
@@ -1271,121 +1151,169 @@ func (app *application) adminImportPhaseGet(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	event, err := app.events.Get(phase.EventID)
+	// Fetch all match data from the event's API
+	apiMatches, err := api.FetchMatchData(event.ApiBaseURL)
 	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	data := app.newTemplateData(r)
-	data.SelectedPhase = phase
-	data.Event = event
-
-	// Construct API URL and fetch match data
-	url := event.ApiBaseURL + phase.ApiPath
-	apiMatches, err := api.FetchMatchData(url)
-	if err != nil {
+		data := app.newTemplateData(r)
+		data.Event = event
 		data.ImportError = fmt.Sprintf("Fehler beim Abrufen der API-Daten: %v", err)
-		app.render(w, r, http.StatusOK, "admin_phase_import.html", data)
+		app.render(w, r, http.StatusOK, "admin_sync_preview.html", data)
 		return
 	}
 
-	// Build preview matches with duplicate detection
-	var previewMatches []ImportPreviewMatch
-	for i, am := range apiMatches {
-		parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
-		if parseErr != nil {
-			data.ImportError = fmt.Sprintf("Fehler beim Parsen des Datums für Spiel %d: %v", i+1, parseErr)
-			app.render(w, r, http.StatusOK, "admin_phase_import.html", data)
-			return
-		}
+	// Group matches by groupOrderID
+	grouped := appsync.GroupMatches(apiMatches)
 
-		day := parsedTime.Format("2006-01-02")
-		existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
+	// Sort group keys for consistent display order
+	groupKeys := make([]int, 0, len(grouped))
+	for k := range grouped {
+		groupKeys = append(groupKeys, k)
+	}
+	sort.Ints(groupKeys)
+
+	// Build preview phases with duplicate detection
+	var previewPhases []appsync.SyncPreviewPhase
+
+	for _, groupOrderID := range groupKeys {
+		groupMatches := grouped[groupOrderID]
+		groupName := groupMatches[0].Group.GroupName
+
+		// Build phase from group
+		phase, err := appsync.PhaseFromGroup(eventID, groupOrderID, groupName, groupMatches)
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
 
-		isDuplicate := existing.ID != 0
+		// Check if phase is new or existing
+		isNew := true
+		_, err = app.eventPhases.GetByEventAndNumber(eventID, groupOrderID)
+		if err == nil {
+			isNew = false
+		} else if !errors.Is(err, models.ErrNoRecord) {
+			app.serverError(w, r, err)
+			return
+		}
 
-		previewMatches = append(previewMatches, ImportPreviewMatch{
-			Index:       i,
-			Date:        day,
-			Time:        parsedTime.Format("15:04"),
-			TeamA:       am.TeamA.TeamName,
-			TeamB:       am.TeamB.TeamName,
-			PhaseNum:    phase.Number,
-			IsDuplicate: isDuplicate,
+		// Build preview matches with duplicate detection
+		var previewMatches []appsync.SyncPreviewMatch
+		for _, am := range groupMatches {
+			parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+			if parseErr != nil {
+				app.serverError(w, r, parseErr)
+				return
+			}
+
+			day := parsedTime.Format("2006-01-02")
+			existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+
+			isDuplicate := existing.ID != 0
+
+			previewMatches = append(previewMatches, appsync.SyncPreviewMatch{
+				Date:        day,
+				Time:        parsedTime.Format("15:04"),
+				TeamA:       am.TeamA.TeamName,
+				TeamB:       am.TeamB.TeamName,
+				IsDuplicate: isDuplicate,
+			})
+		}
+
+		previewPhases = append(previewPhases, appsync.SyncPreviewPhase{
+			Phase:   phase,
+			IsNew:   isNew,
+			Matches: previewMatches,
 		})
 	}
 
-	data.ImportPreviewMatches = previewMatches
-	app.render(w, r, http.StatusOK, "admin_phase_import.html", data)
+	data := app.newTemplateData(r)
+	data.Event = event
+	data.SyncPreviewPhases = previewPhases
+	app.render(w, r, http.StatusOK, "admin_sync_preview.html", data)
 }
 
-func (app *application) adminImportPhasePost(w http.ResponseWriter, r *http.Request) {
-	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
-	if err != nil || phaseID < 1 {
+func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
 		http.NotFound(w, r)
 		return
 	}
 
-	phase, err := app.eventPhases.Get(phaseID)
+	event, err := app.events.Get(eventID)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			http.NotFound(w, r)
 		} else {
 			app.serverError(w, r, err)
 		}
-		return
-	}
-
-	event, err := app.events.Get(phase.EventID)
-	if err != nil {
-		app.serverError(w, r, err)
 		return
 	}
 
 	// Re-fetch API data
-	url := event.ApiBaseURL + phase.ApiPath
-	apiMatches, err := api.FetchMatchData(url)
+	apiMatches, err := api.FetchMatchData(event.ApiBaseURL)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	// Parse form values
-	err = r.ParseForm()
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
+	// Group and process
+	grouped := appsync.GroupMatches(apiMatches)
+	var phasesCreated, phasesUpdated, matchesInserted int
 
-	selectedIndices := r.PostForm["selected_matches"]
-
-	count := 0
-	for _, idxStr := range selectedIndices {
-		idx, err := strconv.Atoi(idxStr)
-		if err != nil || idx < 0 || idx >= len(apiMatches) {
-			continue
-		}
-
-		am := apiMatches[idx]
-		parsedTime, err := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+	for groupOrderID, groupMatches := range grouped {
+		groupName := groupMatches[0].Group.GroupName
+		phase, err := appsync.PhaseFromGroup(eventID, groupOrderID, groupName, groupMatches)
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
 
-		_, err = app.matches.Insert(am.TeamA.TeamName, am.TeamB.TeamName, parsedTime, phase.PhaseType, phase.Number, event.ID)
+		_, isNew, err := app.eventPhases.Upsert(phase)
 		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
-		count++
+		if isNew {
+			phasesCreated++
+		} else {
+			phasesUpdated++
+		}
+
+		// Insert non-duplicate matches
+		for _, am := range groupMatches {
+			parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+			if parseErr != nil {
+				app.serverError(w, r, parseErr)
+				return
+			}
+
+			day := parsedTime.Format("2006-01-02")
+			existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			if existing.ID != 0 {
+				continue // duplicate, skip
+			}
+
+			_, err = app.matches.Insert(
+				am.TeamA.TeamName, am.TeamB.TeamName,
+				parsedTime, phase.PhaseType, groupOrderID, eventID,
+			)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			matchesInserted++
+		}
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", fmt.Sprintf("%d Spiele erfolgreich importiert!", count))
+	msg := fmt.Sprintf("Sync abgeschlossen: %d Phasen erstellt, %d aktualisiert, %d Spiele importiert.",
+		phasesCreated, phasesUpdated, matchesInserted)
+	app.sessionManager.Put(r.Context(), "flash", msg)
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

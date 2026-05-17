@@ -9,6 +9,12 @@ import (
 	"tipp.casualcoding.com/internal/models"
 )
 
+type ApiGroup struct {
+	GroupName    string `json:"groupName"`
+	GroupOrderID int    `json:"groupOrderID"`
+	GroupID      int    `json:"groupID"`
+}
+
 type ApiMatch struct {
 	MatchDateTime   string      `json:"matchDateTime"`
 	TeamA           ApiTeam     `json:"team1"`
@@ -16,6 +22,7 @@ type ApiMatch struct {
 	MatchResults    []ApiResult `json:"matchResults"`
 	MatchIsFinished bool        `json:"matchIsFinished"`
 	Goals           []ApiGoal   `json:"goals"`
+	Group           ApiGroup    `json:"group"`
 }
 
 type ApiGoal struct {

@@ -22,7 +22,7 @@
         <button class="pure-button" type="submit">Aktivieren</button>
       </form>
       {{end}}
-      <a href="/admin/events/{{.ID}}/phases/new" class="pure-button">Phase hinzufügen</a>
+      <a href="/admin/events/{{.ID}}/sync" class="pure-button">Daten synchronisieren</a>
       <a href="/admin/events/{{.ID}}/edit" class="pure-button">Bearbeiten</a>
       <form method="POST" action="/admin/events/{{.ID}}/delete" style="display:inline">
         <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
@@ -55,7 +55,6 @@
           <td>{{.End.Format "02.01.2006 15:04"}}</td>
           <td>
             <ul class="admin-action-list">
-              <li><a href="/admin/phases/{{.ID}}/import">Spieldaten laden</a></li>
               <li><a href="/admin/phases/{{.ID}}/edit">Bearbeiten</a></li>
               <li>
                 <form method="POST" action="/admin/phases/{{.ID}}/delete" style="display:inline">

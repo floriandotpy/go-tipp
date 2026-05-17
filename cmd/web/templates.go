@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"tipp.casualcoding.com/internal/models"
+	"tipp.casualcoding.com/internal/sync"
 )
 
 type Leaderboard struct {
@@ -79,9 +80,10 @@ type templateData struct {
 	WrappedStatsList []WrappedStats
 	// admin phase match counts: key is phase ID
 	PhaseMatchCounts map[int]int
-	// import preview
-	ImportPreviewMatches []ImportPreviewMatch
+	// import error
 	ImportError          string
+	// sync preview
+	SyncPreviewPhases []sync.SyncPreviewPhase
 }
 
 // prep translation mapping
