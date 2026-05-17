@@ -2,104 +2,21 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-
-	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
 )
-
-type ApiMatch struct {
-	MatchDateTime   string      `json:"matchDateTime"`
-	TeamA           ApiTeam     `json:"team1"`
-	TeamB           ApiTeam     `json:"team2"`
-	MatchResults    []ApiResult `json:"matchResults"`
-	MatchIsFinished bool        `json:"matchIsFinished"`
-	Goals           []ApiGoal   `json:"goals"`
-}
-
-type ApiGoal struct {
-	ScoreTeamA     int     `json:"scoreTeam1"`
-	ScoreTeamB     int     `json:"scoreTeam2"`
-	MatchMinute    int     `json:"matchMinute"`
-	GoalGetterID   int     `json:"goalGetterID"`
-	GoalGetterName string  `json:"goalGetterName"`
-	IsPenalty      bool    `json:"isPenalty"`
-	IsOwnGoal      bool    `json:"isOwnGoal"`
-	IsOvertime     bool    `json:"isOvertime"`
-	Comment        *string `json:"comment"`
-}
-
-type ApiTeam struct {
-	TeamName string `json:"teamName"`
-}
-
-type ApiResult struct {
-	ResultName  string `json:"resultName"`
-	PointsTeamA int    `json:"pointsTeam1"`
-	PointsTeamB int    `json:"pointsTeam2"`
-}
-
-func ConvertApiGoalToGoal(apiGoal ApiGoal) models.Goal {
-	return models.Goal{
-		ScoreTeamA:     apiGoal.ScoreTeamA,
-		ScoreTeamB:     apiGoal.ScoreTeamB,
-		MatchMinute:    apiGoal.MatchMinute,
-		GoalGetterID:   apiGoal.GoalGetterID,
-		GoalGetterName: strings.TrimSpace(apiGoal.GoalGetterName),
-		IsPenalty:      apiGoal.IsPenalty,
-		IsOwnGoal:      apiGoal.IsOwnGoal,
-		IsOvertime:     apiGoal.IsOvertime,
-		Comment:        apiGoal.Comment,
-	}
-}
-
-func fetchMatchData(url string) ([]ApiMatch, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch data: %s", resp.Status)
-	}
-
-	var matches []ApiMatch
-	err = json.NewDecoder(resp.Body).Decode(&matches)
-	if err != nil {
-		return nil, err
-	}
-
-	return matches, nil
-}
 
 func main() {
 	dsn := flag.String("dsn", "user:pass@/dbname?parseTime=true", "MySQL data source name")
 	flag.Parse()
-
-	// URL to fetch data from
-	today := time.Now().Local()
-	eventPhase := models.DetermineEventPhase(today)
-	if eventPhase.ApiUrl == "" {
-		fmt.Printf("No API URL for event phase %s\n", eventPhase.Title)
-		return
-	}
-	fmt.Printf("Fetching data for event phase %s\n", eventPhase.Title)
-	url := eventPhase.ApiUrl
-
-	// Fetch match data
-	matches, err := fetchMatchData(url)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// database connection pool
 	db, err := openDB(*dsn)
@@ -109,10 +26,62 @@ func main() {
 	}
 	defer db.Close()
 
-	// Create a MatchModel instance
+	// Instantiate models
+	eventModel := &models.EventModel{DB: db}
+	eventPhaseModel := &models.EventPhaseModel{DB: db}
 	matchModel := &models.MatchModel{DB: db}
 	tippModel := &models.TippModel{DB: db}
 	goalModel := &models.GoalModel{DB: db}
+
+	// Get active event from database
+	event, err := eventModel.GetActive()
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			fmt.Println("Error: no active event found in the database")
+		} else {
+			fmt.Printf("Error fetching active event: %v\n", err)
+		}
+		os.Exit(1)
+	}
+	fmt.Printf("Active event: %s (ID: %d)\n", event.Name, event.ID)
+
+	// Determine current phase from database based on current time
+	now := time.Now().Local()
+	phase, err := eventPhaseModel.DetermineCurrentPhase(event.ID, now)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			fmt.Printf("Error: no phase is currently active for event '%s' at %s\n", event.Name, now.Format("2006-01-02 15:04:05"))
+		} else {
+			fmt.Printf("Error determining current phase: %v\n", err)
+		}
+		os.Exit(1)
+	}
+	fmt.Printf("Current phase: %s (number: %d, type: %s)\n", phase.Title, phase.Number, phase.PhaseType)
+
+	// Fetch all match data from the event's API
+	url := event.ApiBaseURL
+	fmt.Printf("Fetching data from: %s\n", url)
+
+	matches, err := api.FetchMatchData(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Filter to only process matches within the current phase's date range
+	var filtered []api.ApiMatch
+	for _, m := range matches {
+		matchTime, parseErr := time.Parse("2006-01-02T15:04:05", m.MatchDateTime)
+		if parseErr != nil {
+			continue
+		}
+		if !matchTime.Before(phase.Start) && !matchTime.After(phase.End) {
+			filtered = append(filtered, m)
+		}
+	}
+	fmt.Printf("Filtered %d matches to %d within phase date range (%s to %s)\n",
+		len(matches), len(filtered),
+		phase.Start.Format("2006-01-02"), phase.End.Format("2006-01-02"))
+	matches = filtered
 
 	var recomputeUserScores = false
 
@@ -125,9 +94,7 @@ func main() {
 
 		// Output extracted information
 		dayString := matchTime.Format("2006-01-02")
-		// timeString := matchTime.Format("15:04")
 		fmt.Printf("Day of the match: %s\n", dayString)
-		// fmt.Printf("Time of the match: %s\n", timeString)
 		fmt.Printf("Name of team 1: %s\n", apiMatch.TeamA.TeamName)
 		fmt.Printf("Name of team 2: %s\n", apiMatch.TeamB.TeamName)
 
@@ -148,14 +115,12 @@ func main() {
 
 		// remove all goals for this match
 		// this will fix the issue that a previous goal has been revoked (e.g. due to VAR)
-		// this has happened during Euro 2024 several times and I had to fix it manually in the DB
-		// (this is a bit of a hack, but it works)
 		fmt.Printf("Removing all goals for this match from db...\n")
 		goalModel.DeleteAllForMatch(dbMatch.ID)
 
 		// insert (or update goals)
 		for _, apiGoal := range apiMatch.Goals {
-			goal := ConvertApiGoalToGoal(apiGoal)
+			goal := api.ConvertApiGoalToGoal(apiGoal)
 			goalId, err := goalModel.InsertOrUpdate(dbMatch.ID, goal)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
@@ -191,7 +156,6 @@ func main() {
 
 		// fix some issues with the API data
 		// sometimes "nach Elfmeterschießen" is reported but it doesn't differ from the end result, so we can ignore it
-		// note: for "nach Verlängerung" it's a valid case that it could be the same as the end result, so we don't ignore it
 		if _, ok := results[RESULT_APEN]; ok {
 			if results[RESULT_APEN]["teamA"] == results[RESULT_END]["teamA"] && results[RESULT_APEN]["teamB"] == results[RESULT_END]["teamB"] {
 				fmt.Printf("Ignoring result after penalty shootout, because it's the same as the end result\n")
@@ -249,31 +213,18 @@ func main() {
 			recomputeUserScores = true
 		}
 
-		// if !endResultFound {
-		// 	fmt.Printf("Skipping match (%s vs %s) without reported end result...\n\n", apiMatch.TeamA.TeamName, apiMatch.TeamB.TeamName)
-		// 	continue
-		// }
-
 		fmt.Printf("Match finished: %t\n", apiMatch.MatchIsFinished)
 		if _, ok := results[RESULT_END]; ok {
 			fmt.Printf("End score of team 1: %d\n", results[RESULT_END]["teamA"])
 			fmt.Printf("End score of team 2: %d\n", results[RESULT_END]["teamB"])
 		}
 
-		// if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != endScoreTeamA || *dbMatch.ResultB != endScoreTeamB || dbMatch.Finished != apiMatch.MatchIsFinished {
-		// 	fmt.Printf("-> Update result to %d:%d (finished: %t)\n", endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
-		// 	matchModel.SetResults(dbMatch.ID, endScoreTeamA, endScoreTeamB, apiMatch.MatchIsFinished)
-		// 	recomputeUserScores = true
-		// } else {
-		// 	fmt.Printf("Existing result won't be updated, score is %d:%d (finished: %t)\n", *dbMatch.ResultA, *dbMatch.ResultB, dbMatch.Finished)
-		// }
-
 		fmt.Printf("\n")
 	}
 
 	if recomputeUserScores {
 		fmt.Printf("Trigger points update for all user tipps...\n")
-		rowsAffected, err := tippModel.UpdatePoints()
+		rowsAffected, err := tippModel.UpdatePoints(event.ID)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			return

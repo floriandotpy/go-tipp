@@ -23,6 +23,8 @@ import (
 // application-wide dependencies
 type application struct {
 	logger         *slog.Logger
+	events         *models.EventModel
+	eventPhases    *models.EventPhaseModel
 	matches        *models.MatchModel
 	tipps          *models.TippModel
 	matchTipps     *models.MatchTippModel
@@ -70,6 +72,16 @@ func main() {
 	sessionManager.Lifetime = 24 * 30 * time.Hour
 
 	// setup for dependency injection across our app
+	eventModel := &models.EventModel{DB: db}
+	eventPhaseModel := &models.EventPhaseModel{DB: db}
+
+	// startup check: ensure an active event exists
+	_, err = eventModel.GetActive()
+	if err != nil {
+		logger.Error("no active event found", "error", err.Error())
+		os.Exit(1)
+	}
+
 	matchModel := models.MatchModel{DB: db}
 	tippModel := models.TippModel{DB: db}
 	matchTippModel := models.MatchTippModel{DB: db, MatchModel: &matchModel, TippModel: &tippModel}
@@ -81,6 +93,8 @@ func main() {
 	}
 	app := &application{
 		logger:         logger,
+		events:         eventModel,
+		eventPhases:    eventPhaseModel,
 		matches:        &matchModel,
 		tipps:          &tippModel,
 		matchTipps:     &matchTippModel,

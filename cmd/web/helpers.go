@@ -49,7 +49,8 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 
 func (app *application) newTemplateData(r *http.Request) templateData {
 	authUserId, _ := app.authUserId(r)
-	eventFinished, _ := app.eventIsFinished()
+	event := eventFromContext(r)
+	eventFinished, _ := app.eventIsFinished(event.ID)
 	return templateData{
 		CurrentYear:     time.Now().Year(),
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
@@ -58,6 +59,8 @@ func (app *application) newTemplateData(r *http.Request) templateData {
 		CSRFToken:       nosurf.Token(r),
 		AuthUserId:      authUserId,
 		EventIsFinished: eventFinished,
+		Event:           event,
+		IsActiveEvent:   event.IsActive,
 	}
 }
 
@@ -110,12 +113,30 @@ func (app *application) authUserId(r *http.Request) (int, error) {
 	return userId, nil
 }
 
-func (app *application) eventIsFinished() (bool, error) {
-	finished, err := app.matches.AllMatchesFinished()
+func (app *application) eventIsFinished(eventID int) (bool, error) {
+	finished, err := app.matches.AllMatchesFinished(eventID)
 	if err != nil {
 		return false, err
 	}
 	return finished, nil
+}
+
+// eventFromContext extracts the resolved Event from the request context.
+// It returns a zero-value Event if none is found (should not happen if
+// resolveEvent middleware is in the chain).
+func eventFromContext(r *http.Request) models.Event {
+	event, ok := r.Context().Value(eventContextKey).(models.Event)
+	if !ok {
+		return models.Event{}
+	}
+	return event
+}
+
+// isActiveEvent checks whether the resolved event in the request context
+// is the currently active event.
+func isActiveEvent(r *http.Request) bool {
+	event := eventFromContext(r)
+	return event.IsActive
 }
 
 func (app *application) getGroupID(invite string) (int, error) {

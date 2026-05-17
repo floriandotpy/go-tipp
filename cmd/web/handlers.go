@@ -6,38 +6,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
+	appsync "tipp.casualcoding.com/internal/sync"
 	"tipp.casualcoding.com/internal/validator"
 )
 
-const TEAM_DE = "Deutschland"
-const TEAM_DK = "Dänemark"
-const TEAM_ES = "Spanien"
-const TEAM_SCO = "Schottland"
-const TEAM_FR = "Frankreich"
-const TEAM_NL = "Niederlande"
-const TEAM_EN = "England"
-const TEAM_IT = "Italien"
-const TEAM_TR = "Türkei"
-const TEAM_HR = "Kroatien"
-const TEAM_AL = "Albanien"
-const TEAM_CZ = "Tschechien"
-const TEAM_BE = "Belgien"
-const TEAM_AT = "Österreich"
-const TEAM_HU = "Ungarn"
-const TEAM_RS = "Serbien"
-const TEAM_SI = "Slowenien"
-const TEAM_RO = "Rumänien"
-const TEAM_CH = "Schweiz"
-const TEAM_PT = "Portugal"
-const TEAM_SK = "Slowakei"
-const TEAM_PL = "Polen"
-const TEAM_UA = "Ukraine"
-const TEAM_GR = "Griechenland"
+var slugRX = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func (app *application) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -62,6 +43,8 @@ func (app *application) rulesHandler(w http.ResponseWriter, req *http.Request) {
 
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
 
+	event := eventFromContext(req)
+
 	// fetch all user groups from database
 	userId, err := app.authUserId(req)
 	if err != nil {
@@ -76,7 +59,7 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 
 	var leaderboards []Leaderboard
 	for _, group := range groups {
-		users, err := app.users.GroupLeaderboard(group.ID)
+		users, err := app.users.GroupLeaderboard(group.ID, event.ID)
 		if err != nil {
 			app.serverError(w, req, err)
 			return
@@ -91,7 +74,7 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 		leaderboards = append(leaderboards, leaderboard)
 	}
 
-	globalLeaderboardUsers, err := app.users.GlobalLeaderboard()
+	globalLeaderboardUsers, err := app.users.GlobalLeaderboard(event.ID)
 	if err != nil {
 		app.serverError(w, req, err)
 		return
@@ -109,6 +92,9 @@ func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Requ
 }
 
 func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Request) {
+
+	event := eventFromContext(req)
+
 	// read phase from URL
 	groupsStr := req.URL.Query().Get("groups")
 
@@ -124,7 +110,7 @@ func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Reque
 		groups = append(groups, gInt)
 	}
 
-	response, err := app.tipps.GetScoreboardData(groups)
+	response, err := app.tipps.GetScoreboardData(groups, event.ID)
 	if err != nil {
 		app.serverError(w, req, err)
 	}
@@ -140,13 +126,18 @@ func (app *application) scoresJsonHandler(w http.ResponseWriter, req *http.Reque
 
 func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request) {
 
+	event := eventFromContext(req)
+
 	// read phase from URL
 	selectedPhaseStr := req.URL.Query().Get("phase")
 
-	eventPhases := models.GetEventPhases()
+	eventPhases, err := app.eventPhases.AllForEvent(event.ID)
+	if err != nil {
+		app.serverError(w, req, err)
+		return
+	}
 
 	var phaseId int
-	var err error
 
 	// phase given? convert to numeric phase id
 	if selectedPhaseStr != "" {
@@ -160,30 +151,44 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	// no phase id set? determine current phase
 	if phaseId == 0 {
 		// default to today's phase
-		todaysPhase := models.DetermineEventPhase(time.Now())
-		phaseId = todaysPhase.Number
-
-		// if today is not a match day, assume the event is over and show the final phase
-		if todaysPhase.Number == 0 {
-			phaseId = eventPhases[len(eventPhases)-1].Number
+		todaysPhase, phaseErr := app.eventPhases.DetermineCurrentPhase(event.ID, time.Now())
+		if phaseErr != nil {
+			// No phase covers "now" — check if event hasn't started yet or is over
+			if len(eventPhases) > 0 {
+				now := time.Now()
+				if now.Before(eventPhases[0].Start) {
+					// Event hasn't started yet → show first phase
+					phaseId = eventPhases[0].Number
+				} else {
+					// Event is over → show last phase
+					phaseId = eventPhases[len(eventPhases)-1].Number
+				}
+			} else {
+				phaseId = 1
+			}
+		} else {
+			phaseId = todaysPhase.Number
 		}
 	}
 
-	selectedPhase, err := models.GetEventPhaseById(phaseId)
+	selectedPhase, err := app.eventPhases.GetByEventAndNumber(event.ID, phaseId)
 	if err != nil {
 		http.NotFound(w, req)
 		return
 	}
-	var nextLink, prevLink string
-	if phaseId > 1 {
-		prevLink = fmt.Sprintf("/spiele?phase=%d", phaseId-1)
-	}
-	if phaseId < len(eventPhases) {
-		nextLink = fmt.Sprintf("/spiele?phase=%d", phaseId+1)
-	}
 
-	if err != nil {
-		app.serverError(w, req, err)
+	// Build prev/next links based on actual phase ordering (handles non-contiguous numbers)
+	var nextLink, prevLink string
+	for i, ep := range eventPhases {
+		if ep.Number == phaseId {
+			if i > 0 {
+				prevLink = fmt.Sprintf("/spiele?phase=%d", eventPhases[i-1].Number)
+			}
+			if i < len(eventPhases)-1 {
+				nextLink = fmt.Sprintf("/spiele?phase=%d", eventPhases[i+1].Number)
+			}
+			break
+		}
 	}
 
 	userId, err := app.authUserId(req)
@@ -193,14 +198,14 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	// fetch joined data (matches & tipps)
-	matchTipps, err := app.matchTipps.AllByDaterange(userId, selectedPhase.Start, selectedPhase.End)
+	matchTipps, err := app.matchTipps.AllByDaterange(userId, event.ID, selectedPhase.Start, selectedPhase.End)
 	if err != nil {
 		app.serverError(w, req, err)
 	}
 
 	data := app.newTemplateData(req)
 	data.MatchTipps = matchTipps
-	data.EventPhases = models.GetEventPhases()
+	data.EventPhases = eventPhases
 	data.SelectedPhase = selectedPhase
 	data.NextLink = nextLink
 	data.PrevLink = prevLink
@@ -209,6 +214,8 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 }
 
 func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Request) {
+
+	event := eventFromContext(r)
 
 	matchId, err := strconv.Atoi(r.PathValue("matchID"))
 	if err != nil || matchId < 0 {
@@ -222,6 +229,12 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		} else {
 			app.serverError(w, r, err)
 		}
+		return
+	}
+
+	// Verify match belongs to the resolved event
+	if match.EventID != event.ID {
+		http.NotFound(w, r)
 		return
 	}
 
@@ -245,7 +258,8 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		app.serverError(w, r, err)
 	}
 
-	eventPhaseType, err := models.InferEventPhaseType(&match)
+	// Look up phase type from DB
+	eventPhaseType, err := models.InferEventPhaseType(app.matches.DB, &match)
 	if err != nil {
 		app.serverError(w, r, err)
 	}
@@ -312,6 +326,9 @@ func (app *application) tippViewHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Request) {
+
+	event := eventFromContext(r)
+
 	userName := r.PathValue("name")
 	if len(userName) < 1 {
 		http.NotFound(w, r)
@@ -371,8 +388,8 @@ func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Reques
 		tippsCompareSet[tippB.MatchId] = tippB
 	}
 
-	// get all matches
-	matches, err := app.matches.All()
+	// get all matches for the event
+	matches, err := app.matches.All(event.ID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -398,6 +415,8 @@ func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 
+	event := eventFromContext(r)
+
 	userId, err := app.authUserId(r)
 	if err != nil {
 		app.serverError(w, r, err)
@@ -410,10 +429,25 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Determine group-phase and ko-phase numbers dynamically from the event's phases
+	eventPhases, err := app.eventPhases.AllForEvent(event.ID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	var groupPhaseNumbers, koPhaseNumbers []int
+	for _, ep := range eventPhases {
+		if ep.PhaseType == "phase_group" {
+			groupPhaseNumbers = append(groupPhaseNumbers, ep.Number)
+		} else if ep.PhaseType == "phase_ko" {
+			koPhaseNumbers = append(koPhaseNumbers, ep.Number)
+		}
+	}
+
 	data := app.newTemplateData(r)
 	var stats = []WrappedStats{}
 	for _, group := range groups {
-		users, err := app.users.GroupLeaderboard(group.ID)
+		users, err := app.users.GroupLeaderboard(group.ID, event.ID)
 		if err != nil {
 			app.serverError(w, r, err)
 			return
@@ -425,16 +459,22 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 			Users: users,
 		}
 
-		bestInGrouphase, err := app.users.GetBestInSelectedPhases(group.ID, []int{1, 2, 3})
-		if err != nil {
-			app.serverError(w, r, err)
-			return
+		var bestInGrouphase []models.User
+		if len(groupPhaseNumbers) > 0 {
+			bestInGrouphase, err = app.users.GetBestInSelectedPhases(group.ID, event.ID, groupPhaseNumbers)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
 		}
 
-		bestInKoPhase, err := app.users.GetBestInSelectedPhases(group.ID, []int{4, 5, 6, 7})
-		if err != nil {
-			app.serverError(w, r, err)
-			return
+		var bestInKoPhase []models.User
+		if len(koPhaseNumbers) > 0 {
+			bestInKoPhase, err = app.users.GetBestInSelectedPhases(group.ID, event.ID, koPhaseNumbers)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
 		}
 		var closestGoalCount []models.User
 
@@ -452,6 +492,16 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
+
+	event := eventFromContext(r)
+
+	// Only allow tipp submissions for the active event
+	if !isActiveEvent(r) {
+		app.sessionManager.Put(r.Context(), "flash", "Tipps können nur für das aktive Event abgegeben werden.")
+		http.Redirect(w, r, "/spiele", http.StatusSeeOther)
+		return
+	}
+
 	// parse form data
 	err := r.ParseForm()
 	if err != nil {
@@ -480,6 +530,17 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 			if err != nil {
 				app.clientError(w, http.StatusBadRequest)
 				return
+			}
+
+			// Verify match belongs to the active event
+			match, err := app.matches.Get(matchId)
+			if err != nil {
+				// skip matches that can't be found
+				continue
+			}
+			if match.EventID != event.ID {
+				// skip matches that don't belong to the active event
+				continue
 			}
 
 			tippAKey := "tipp_a_" + matchIdStr
@@ -710,6 +771,36 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.Groups = groups
+
+	events, err := app.events.All()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Events = events
+
+	// Load phases grouped by event
+	phasesMap := make(map[int][]models.EventPhase)
+	phaseMatchCounts := make(map[int]int)
+	for _, event := range events {
+		phases, err := app.eventPhases.AllForEvent(event.ID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		phasesMap[event.ID] = phases
+		for _, phase := range phases {
+			count, err := app.matches.CountByEventAndPhase(event.ID, phase.Number)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			phaseMatchCounts[phase.ID] = count
+		}
+	}
+	data.EventPhasesMap = phasesMap
+	data.PhaseMatchCounts = phaseMatchCounts
+
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
@@ -719,7 +810,9 @@ func (app *application) adminCreateInvitePost(w http.ResponseWriter, r *http.Req
 
 func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request) {
 
-	rowsAffected, err := app.tipps.UpdatePoints()
+	event := eventFromContext(r)
+
+	rowsAffected, err := app.tipps.UpdatePoints(event.ID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -730,4 +823,548 @@ func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request
 
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 
+}
+
+// --- Admin Event CRUD ---
+
+type eventCreateForm struct {
+	Name               string `form:"name"`
+	Slug               string `form:"slug"`
+	ApiBaseURL         string `form:"api_base_url"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminCreateEvent(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.Form = eventCreateForm{}
+	app.render(w, r, http.StatusOK, "admin_event_new.html", data)
+}
+
+func (app *application) adminCreateEventPost(w http.ResponseWriter, r *http.Request) {
+	var form eventCreateForm
+
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate name: 1-100 chars
+	form.CheckField(validator.NotBlank(form.Name), "name", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.Name, 100), "name", "Maximal 100 Zeichen")
+
+	// Validate slug: 1-100 chars, lowercase alphanumeric and hyphens only
+	form.CheckField(validator.NotBlank(form.Slug), "slug", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.Slug, 100), "slug", "Maximal 100 Zeichen")
+	form.CheckField(validator.Matches(form.Slug, slugRX), "slug", "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt")
+
+	// Validate api_base_url: 1-255 chars
+	form.CheckField(validator.NotBlank(form.ApiBaseURL), "api_base_url", "Darf nicht leer sein")
+	form.CheckField(validator.MaxChars(form.ApiBaseURL, 255), "api_base_url", "Maximal 255 Zeichen")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_event_new.html", data)
+		return
+	}
+
+	_, err = app.events.Insert(form.Name, form.Slug, form.ApiBaseURL)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateSlug) {
+			form.AddFieldError("slug", "Dieser Slug ist bereits vergeben")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "admin_event_new.html", data)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Event erfolgreich erstellt!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+type eventEditForm struct {
+	Name                string `form:"name"`
+	Slug                string `form:"slug"`
+	ApiBaseURL          string `form:"api_base_url"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminEditEvent(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	event, err := app.events.Get(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.Form = eventEditForm{
+		Name:       event.Name,
+		Slug:       event.Slug,
+		ApiBaseURL: event.ApiBaseURL,
+	}
+	data.Event = event
+	app.render(w, r, http.StatusOK, "admin_event_edit.html", data)
+}
+
+func (app *application) adminEditEventPost(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var form eventEditForm
+	err = app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(validator.NotBlank(form.Name), "name", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.Slug), "slug", "Darf nicht leer sein")
+	form.CheckField(validator.Matches(form.Slug, slugRX), "slug", "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt")
+	form.CheckField(validator.NotBlank(form.ApiBaseURL), "api_base_url", "Darf nicht leer sein")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		data.Event = models.Event{ID: eventID}
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_event_edit.html", data)
+		return
+	}
+
+	err = app.events.Update(eventID, form.Name, form.Slug, form.ApiBaseURL)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateSlug) {
+			form.AddFieldError("slug", "Dieser Slug ist bereits vergeben")
+			data := app.newTemplateData(r)
+			data.Form = form
+			data.Event = models.Event{ID: eventID}
+			app.render(w, r, http.StatusUnprocessableEntity, "admin_event_edit.html", data)
+		} else if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Event erfolgreich aktualisiert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminSetActiveEventPost(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	eventIDStr := r.PostForm.Get("event_id")
+	eventID, err := strconv.Atoi(eventIDStr)
+	if err != nil || eventID < 1 {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err = app.events.SetActive(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.clientError(w, http.StatusNotFound)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Aktives Event erfolgreich geändert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminDeleteEventPost(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = app.events.Delete(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Event erfolgreich gelöscht!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// --- Admin Phase Edit ---
+
+type phaseEditForm struct {
+	Number              int    `form:"number"`
+	Title               string `form:"title"`
+	PhaseType           string `form:"phase_type"`
+	Start               string `form:"start"`
+	End                 string `form:"end"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) adminEditPhase(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	phase, err := app.eventPhases.Get(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	const timeLayout = "2006-01-02T15:04"
+	data := app.newTemplateData(r)
+	data.Form = phaseEditForm{
+		Number:    phase.Number,
+		Title:     phase.Title,
+		PhaseType: phase.PhaseType,
+		Start:     phase.Start.Format(timeLayout),
+		End:       phase.End.Format(timeLayout),
+	}
+	data.Event = models.Event{ID: phase.EventID}
+	app.render(w, r, http.StatusOK, "admin_phase_edit.html", data)
+}
+
+func (app *application) adminEditPhasePost(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	var form phaseEditForm
+	err = app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(form.Number >= 1, "number", "Muss mindestens 1 sein")
+	form.CheckField(validator.NotBlank(form.Title), "title", "Darf nicht leer sein")
+	form.CheckField(validator.PermittedValue(form.PhaseType, "phase_group", "phase_ko"), "phase_type", "Muss 'phase_group' oder 'phase_ko' sein")
+
+	const timeLayout = "2006-01-02T15:04"
+	var startTime, endTime time.Time
+
+	form.CheckField(validator.NotBlank(form.Start), "start", "Darf nicht leer sein")
+	form.CheckField(validator.NotBlank(form.End), "end", "Darf nicht leer sein")
+
+	if validator.NotBlank(form.Start) {
+		startTime, err = time.Parse(timeLayout, form.Start)
+		if err != nil {
+			form.AddFieldError("start", "Ungültiges Datumsformat")
+		}
+	}
+	if validator.NotBlank(form.End) {
+		endTime, err = time.Parse(timeLayout, form.End)
+		if err != nil {
+			form.AddFieldError("end", "Ungültiges Datumsformat")
+		}
+	}
+	if !startTime.IsZero() && !endTime.IsZero() {
+		form.CheckField(startTime.Before(endTime), "end", "Ende muss nach dem Start liegen")
+	}
+
+	if !form.Valid() {
+		// Look up the phase to get the event ID for the template
+		phase, _ := app.eventPhases.Get(phaseID)
+		data := app.newTemplateData(r)
+		data.Form = form
+		data.Event = models.Event{ID: phase.EventID}
+		app.render(w, r, http.StatusUnprocessableEntity, "admin_phase_edit.html", data)
+		return
+	}
+
+	// Look up existing phase to get event_id
+	existingPhase, err := app.eventPhases.Get(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	ep := models.EventPhase{
+		ID:        phaseID,
+		EventID:   existingPhase.EventID,
+		Number:    form.Number,
+		Title:     form.Title,
+		PhaseType: form.PhaseType,
+		Start:     startTime,
+		End:       endTime,
+	}
+
+	err = app.eventPhases.Update(ep)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich aktualisiert!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminDeletePhasePost(w http.ResponseWriter, r *http.Request) {
+	phaseID, err := strconv.Atoi(r.PathValue("phaseID"))
+	if err != nil || phaseID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = app.eventPhases.Delete(phaseID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Phase erfolgreich gelöscht!")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// --- Admin Event Sync ---
+
+func (app *application) adminSyncEventGet(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	event, err := app.events.Get(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	// Fetch all match data from the event's API
+	apiMatches, err := api.FetchMatchData(event.ApiBaseURL)
+	if err != nil {
+		data := app.newTemplateData(r)
+		data.Event = event
+		data.ImportError = fmt.Sprintf("Fehler beim Abrufen der API-Daten: %v", err)
+		app.render(w, r, http.StatusOK, "admin_sync_preview.html", data)
+		return
+	}
+
+	// Group matches by groupOrderID
+	grouped := appsync.GroupMatches(apiMatches)
+
+	// Sort group keys for consistent display order
+	groupKeys := make([]int, 0, len(grouped))
+	for k := range grouped {
+		groupKeys = append(groupKeys, k)
+	}
+	sort.Ints(groupKeys)
+
+	// Build preview phases with duplicate detection
+	var previewPhases []appsync.SyncPreviewPhase
+
+	for _, groupOrderID := range groupKeys {
+		groupMatches := grouped[groupOrderID]
+		groupName := groupMatches[0].Group.GroupName
+
+		// Build phase from group
+		phase, err := appsync.PhaseFromGroup(eventID, groupOrderID, groupName, groupMatches)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		// Check if phase is new or existing
+		isNew := true
+		_, err = app.eventPhases.GetByEventAndNumber(eventID, groupOrderID)
+		if err == nil {
+			isNew = false
+		} else if !errors.Is(err, models.ErrNoRecord) {
+			app.serverError(w, r, err)
+			return
+		}
+
+		// Build preview matches with duplicate detection
+		var previewMatches []appsync.SyncPreviewMatch
+		for _, am := range groupMatches {
+			parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+			if parseErr != nil {
+				app.serverError(w, r, parseErr)
+				return
+			}
+
+			day := parsedTime.Format("2006-01-02")
+			isDuplicate := false
+			isUpdate := false
+
+			// Look up by API match ID
+			existing, err := app.matches.GetByApiMatchID(am.MatchID)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			if existing.ID != 0 {
+				// Match exists — check if anything changed
+				if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
+					isUpdate = true
+				} else {
+					isDuplicate = true
+				}
+			}
+
+			previewMatches = append(previewMatches, appsync.SyncPreviewMatch{
+				Date:        day,
+				Time:        parsedTime.Format("15:04"),
+				TeamA:       am.TeamA.TeamName,
+				TeamB:       am.TeamB.TeamName,
+				IsDuplicate: isDuplicate,
+				IsUpdate:    isUpdate,
+				ApiMatchID:  am.MatchID,
+			})
+		}
+
+		previewPhases = append(previewPhases, appsync.SyncPreviewPhase{
+			Phase:   phase,
+			IsNew:   isNew,
+			Matches: previewMatches,
+		})
+	}
+
+	data := app.newTemplateData(r)
+	data.Event = event
+	data.SyncPreviewPhases = previewPhases
+	app.render(w, r, http.StatusOK, "admin_sync_preview.html", data)
+}
+
+func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Request) {
+	eventID, err := strconv.Atoi(r.PathValue("eventID"))
+	if err != nil || eventID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	event, err := app.events.Get(eventID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	// Re-fetch API data
+	apiMatches, err := api.FetchMatchData(event.ApiBaseURL)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Group and process
+	grouped := appsync.GroupMatches(apiMatches)
+	var phasesCreated, phasesUpdated, matchesInserted, matchesUpdated int
+
+	for groupOrderID, groupMatches := range grouped {
+		groupName := groupMatches[0].Group.GroupName
+		phase, err := appsync.PhaseFromGroup(eventID, groupOrderID, groupName, groupMatches)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		_, isNew, err := app.eventPhases.Upsert(phase)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		if isNew {
+			phasesCreated++
+		} else {
+			phasesUpdated++
+		}
+
+		// Upsert matches by API match ID
+		for _, am := range groupMatches {
+			parsedTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+			if parseErr != nil {
+				app.serverError(w, r, parseErr)
+				return
+			}
+
+			existing, err := app.matches.GetByApiMatchID(am.MatchID)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			if existing.ID != 0 {
+				// Match exists — update if anything changed
+				if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
+					err = app.matches.UpdateMatch(existing.ID, am.TeamA.TeamName, am.TeamB.TeamName, parsedTime, phase.PhaseType, groupOrderID)
+					if err != nil {
+						app.serverError(w, r, err)
+						return
+					}
+					matchesUpdated++
+				}
+				continue
+			}
+
+			_, err = app.matches.Insert(
+				am.TeamA.TeamName, am.TeamB.TeamName,
+				parsedTime, phase.PhaseType, groupOrderID, eventID, am.MatchID,
+			)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+			matchesInserted++
+		}
+	}
+
+	msg := fmt.Sprintf("Sync abgeschlossen: %d Phasen erstellt, %d aktualisiert, %d Spiele importiert, %d Spiele aktualisiert.",
+		phasesCreated, phasesUpdated, matchesInserted, matchesUpdated)
+	app.sessionManager.Put(r.Context(), "flash", msg)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

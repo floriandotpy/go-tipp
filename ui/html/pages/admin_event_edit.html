@@ -1,0 +1,66 @@
+{{define "title"}}Event bearbeiten{{end}}{{define "assets"}}{{end}}{{define "main"}}
+<div class="container">
+  <h2>Event bearbeiten</h2>
+  <form
+    action="/admin/events/{{.Event.ID}}/edit"
+    method="POST"
+    novalidate
+    class="pure-form pure-form-aligned"
+  >
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+    <fieldset>
+      <div class="pure-control-group">
+        <label for="name">Name:</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          placeholder="z.B. Euro 2024"
+          value="{{.Form.Name}}"
+          {{if .Form.FieldErrors.name}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.name}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-control-group">
+        <label for="slug">Slug:</label>
+        <input
+          type="text"
+          id="slug"
+          name="slug"
+          placeholder="z.B. euro-2024"
+          value="{{.Form.Slug}}"
+          {{if .Form.FieldErrors.slug}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.slug}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+        <p class="explanation">Kleinbuchstaben, Zahlen und Bindestriche.</p>
+      </div>
+      <div class="pure-control-group">
+        <label for="api_base_url">API Base URL:</label>
+        <input
+          type="text"
+          id="api_base_url"
+          name="api_base_url"
+          placeholder="z.B. https://api.openligadb.de"
+          value="{{.Form.ApiBaseURL}}"
+          {{if .Form.FieldErrors.api_base_url}}class="error"{{end}}
+        />
+        {{with .Form.FieldErrors.api_base_url}}
+        <label class="error pure-form-message-inline">{{.}}</label>
+        {{end}}
+      </div>
+      <div class="pure-controls">
+        <input
+          type="submit"
+          value="Event aktualisieren"
+          class="pure-button pure-button-primary"
+        />
+        <a href="/admin" class="pure-button">Abbrechen</a>
+      </div>
+    </fieldset>
+  </form>
+</div>
+{{end}}

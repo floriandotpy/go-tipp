@@ -149,7 +149,7 @@ func (m *UserModel) Exists(id int) (bool, error) {
 	return false, nil
 }
 
-func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
+func (m *UserModel) GroupLeaderboard(groupId, eventID int) ([]User, error) {
 	stmt := `SELECT 
 		u.id AS user_id, 
 		u.name AS user_name, 
@@ -158,11 +158,12 @@ func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
 	FROM users u
 	JOIN user_groups ug ON u.id = ug.user_id
 	LEFT JOIN tipps t ON u.id = t.user_id
-	WHERE ug.group_id = ?
+	LEFT JOIN matches ma ON t.match_id = ma.id
+	WHERE ug.group_id = ? AND (t.id IS NULL OR ma.event_id = ?)
 	GROUP BY u.id, u.name
 	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
-	rows, err := m.DB.Query(stmt, groupId)
+	rows, err := m.DB.Query(stmt, groupId, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,7 @@ func (m *UserModel) GroupLeaderboard(groupId int) ([]User, error) {
 	return sortedUsers, nil
 }
 
-func (m *UserModel) GlobalLeaderboard() ([]User, error) {
+func (m *UserModel) GlobalLeaderboard(eventID int) ([]User, error) {
 	stmt := `SELECT 
 		u.id AS user_id, 
 		u.name AS user_name, 
@@ -198,10 +199,12 @@ func (m *UserModel) GlobalLeaderboard() ([]User, error) {
 		COUNT(t.id) AS tipps_count
 	FROM users u
 	LEFT JOIN tipps t ON u.id = t.user_id
+	LEFT JOIN matches ma ON t.match_id = ma.id
+	WHERE t.id IS NULL OR ma.event_id = ?
 	GROUP BY u.id, u.name
 	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
-	rows, err := m.DB.Query(stmt)
+	rows, err := m.DB.Query(stmt, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +232,7 @@ func (m *UserModel) GlobalLeaderboard() ([]User, error) {
 	return users, nil
 }
 
-func (m *UserModel) GetBestInSelectedPhases(groupId int, phaseIds []int) ([]User, error) {
+func (m *UserModel) GetBestInSelectedPhases(groupId, eventID int, phaseIds []int) ([]User, error) {
 
 	stmt := `SELECT
 		u.id AS user_id,
@@ -240,13 +243,14 @@ func (m *UserModel) GetBestInSelectedPhases(groupId int, phaseIds []int) ([]User
 	JOIN user_groups ug ON u.id = ug.user_id
 	LEFT JOIN tipps t ON u.id = t.user_id
 	JOIN matches m ON t.match_id = m.id
-	WHERE ug.group_id = ? AND m.event_phase IN (` + strings.Repeat("?,", len(phaseIds)-1) + `?)
+	WHERE ug.group_id = ? AND m.event_id = ? AND m.event_phase IN (` + strings.Repeat("?,", len(phaseIds)-1) + `?)
 	GROUP BY u.id, u.name
 	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
 	// Create a slice of interface{} to hold all parameters
-	params := make([]interface{}, 0, len(phaseIds)+1)
+	params := make([]interface{}, 0, len(phaseIds)+2)
 	params = append(params, groupId)
+	params = append(params, eventID)
 	for _, phase := range phaseIds {
 		params = append(params, phase)
 	}

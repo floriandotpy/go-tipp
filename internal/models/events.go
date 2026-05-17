@@ -2,70 +2,249 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
+	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 )
 
-type EventsModel struct {
+type Event struct {
+	ID         int
+	Name       string
+	Slug       string
+	ApiBaseURL string
+	IsActive   bool
+	Created    time.Time
+}
+
+type EventModel struct {
 	DB *sql.DB
 }
 
-type EventPhase struct {
-	Number int
-	Title  string
-	ApiUrl string
-	Start  time.Time
-	End    time.Time
-}
+// GetActive returns the currently active event.
+func (m *EventModel) GetActive() (Event, error) {
+	stmt := `SELECT id, name, slug, api_base_url, is_active, created
+		FROM events WHERE is_active = TRUE`
 
-var NoPhase = EventPhase{0, "Unknown", "", time.Time{}, time.Time{}}
-
-var Phases = func() []EventPhase {
-	tz := time.Now().Local().Location()
-	phases := []EventPhase{
-		{1, "Gruppenphase 1", "https://api.openligadb.de/getmatchdata/em/2024/1", time.Date(2024, time.June, 14, 0, 0, 0, 0, tz), time.Time{}},
-		{2, "Gruppenphase 2", "https://api.openligadb.de/getmatchdata/em/2024/2", time.Date(2024, time.June, 19, 0, 0, 0, 0, tz), time.Time{}},
-		{3, "Gruppenphase 3", "https://api.openligadb.de/getmatchdata/em/2024/3", time.Date(2024, time.June, 23, 0, 0, 0, 0, tz), time.Time{}},
-		{4, "Achtelfinale", "https://api.openligadb.de/getmatchdata/em/2024/4", time.Date(2024, time.June, 29, 0, 0, 0, 0, tz), time.Time{}},
-		{5, "Viertelfinale", "https://api.openligadb.de/getmatchdata/em/2024/5", time.Date(2024, time.July, 5, 0, 0, 0, 0, tz), time.Time{}},
-		{6, "Halbfinale", "https://api.openligadb.de/getmatchdata/em/2024/6", time.Date(2024, time.July, 9, 0, 0, 0, 0, tz), time.Time{}},
-		{7, "Finale", "https://api.openligadb.de/getmatchdata/em/2024/7", time.Date(2024, time.July, 14, 0, 0, 0, 0, tz), time.Time{}},
-	}
-
-	// Set End times
-	for i := 0; i < len(phases)-1; i++ {
-		phases[i].End = phases[i+1].Start.Add(-time.Nanosecond)
-	}
-	// Set End time for the last phase (Finale)
-	phases[len(phases)-1].End = time.Date(2024, time.July, 14, 23, 59, 59, 999999999, tz)
-
-	return phases
-}()
-
-func GetEventPhases() []EventPhase {
-	// remove NoPhase
-	return Phases
-}
-
-func GetEventPhaseById(id int) (EventPhase, error) {
-	for _, p := range Phases {
-		if p.Number == id {
-			return p, nil
+	var event Event
+	err := m.DB.QueryRow(stmt).Scan(
+		&event.ID,
+		&event.Name,
+		&event.Slug,
+		&event.ApiBaseURL,
+		&event.IsActive,
+		&event.Created,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Event{}, ErrNoRecord
 		}
+		return Event{}, err
 	}
-	return NoPhase, fmt.Errorf("phase with id %d not found", id)
+
+	return event, nil
 }
 
-func DetermineEventPhase(day time.Time) EventPhase {
-	// out of event time frame?
-	if day.Before(Phases[0].Start) {
-		return NoPhase
+// GetBySlug returns the event matching the given slug.
+func (m *EventModel) GetBySlug(slug string) (Event, error) {
+	stmt := `SELECT id, name, slug, api_base_url, is_active, created
+		FROM events WHERE slug = ?`
+
+	var event Event
+	err := m.DB.QueryRow(stmt, slug).Scan(
+		&event.ID,
+		&event.Name,
+		&event.Slug,
+		&event.ApiBaseURL,
+		&event.IsActive,
+		&event.Created,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Event{}, ErrNoRecord
+		}
+		return Event{}, err
 	}
 
-	for i, p := range Phases {
-		if day.Before(p.Start) {
-			return Phases[i-1]
-		}
+	return event, nil
+}
+
+// All returns all events ordered by creation date descending.
+func (m *EventModel) All() ([]Event, error) {
+	stmt := `SELECT id, name, slug, api_base_url, is_active, created
+		FROM events ORDER BY created DESC`
+
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
 	}
-	return Phases[len(Phases)-1]
+	defer rows.Close()
+
+	var events []Event
+
+	for rows.Next() {
+		var event Event
+		err = rows.Scan(
+			&event.ID,
+			&event.Name,
+			&event.Slug,
+			&event.ApiBaseURL,
+			&event.IsActive,
+			&event.Created,
+		)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return events, nil
+}
+
+// Insert creates a new event with is_active = false and returns the new event ID.
+func (m *EventModel) Insert(name, slug, apiBaseURL string) (int, error) {
+	stmt := `INSERT INTO events (name, slug, api_base_url, is_active, created)
+		VALUES (?, ?, ?, FALSE, UTC_TIMESTAMP())`
+
+	result, err := m.DB.Exec(stmt, name, slug, apiBaseURL)
+	if err != nil {
+		var mySQLError *mysql.MySQLError
+		if errors.As(err, &mySQLError) {
+			if mySQLError.Number == 1062 && strings.Contains(mySQLError.Message, "events_uc_slug") {
+				return 0, ErrDuplicateSlug
+			}
+		}
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
+// Get returns a single event by ID, or ErrNoRecord if not found.
+func (m *EventModel) Get(id int) (Event, error) {
+	stmt := `SELECT id, name, slug, api_base_url, is_active, created
+		FROM events WHERE id = ?`
+	var event Event
+	err := m.DB.QueryRow(stmt, id).Scan(
+		&event.ID, &event.Name, &event.Slug,
+		&event.ApiBaseURL, &event.IsActive, &event.Created,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Event{}, ErrNoRecord
+		}
+		return Event{}, err
+	}
+	return event, nil
+}
+
+// Update modifies an existing event's name, slug, and api_base_url.
+// Returns ErrNoRecord if the event doesn't exist, ErrDuplicateSlug if slug conflicts.
+func (m *EventModel) Update(id int, name, slug, apiBaseURL string) error {
+	stmt := `UPDATE events SET name = ?, slug = ?, api_base_url = ? WHERE id = ?`
+	result, err := m.DB.Exec(stmt, name, slug, apiBaseURL, id)
+	if err != nil {
+		var mySQLError *mysql.MySQLError
+		if errors.As(err, &mySQLError) {
+			if mySQLError.Number == 1062 && strings.Contains(mySQLError.Message, "events_uc_slug") {
+				return ErrDuplicateSlug
+			}
+		}
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNoRecord
+	}
+	return nil
+}
+
+// Delete removes an event and all associated data (phases, matches, tipps, goals)
+// within a transaction. Required because the matches FK does not cascade.
+func (m *EventModel) Delete(id int) error {
+	tx, err := m.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete goals for all matches belonging to this event
+	_, err = tx.Exec(`DELETE g FROM goals g
+		INNER JOIN matches m ON g.match_id = m.id
+		WHERE m.event_id = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete tipps for all matches belonging to this event
+	_, err = tx.Exec(`DELETE t FROM tipps t
+		INNER JOIN matches m ON t.match_id = m.id
+		WHERE m.event_id = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete matches belonging to this event
+	_, err = tx.Exec(`DELETE FROM matches WHERE event_id = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete the event (phases cascade via FK)
+	result, err := tx.Exec(`DELETE FROM events WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNoRecord
+	}
+
+	return tx.Commit()
+}
+
+// SetActive atomically sets all events inactive then activates the target event.
+func (m *EventModel) SetActive(eventID int) error {
+	tx, err := m.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`UPDATE events SET is_active = FALSE`)
+	if err != nil {
+		return err
+	}
+
+	result, err := tx.Exec(`UPDATE events SET is_active = TRUE WHERE id = ?`, eventID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNoRecord
+	}
+
+	return tx.Commit()
 }

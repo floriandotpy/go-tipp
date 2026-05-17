@@ -18,7 +18,7 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /health", app.healthHandler)
 
 	// unprotected app routes (no auth required)
-	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf)
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.resolveEvent)
 
 	// general routes
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.indexHandler))
@@ -49,6 +49,25 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /admin", admin.ThenFunc(app.adminIndex))
 	mux.Handle("POST /admin/newinvite", admin.ThenFunc(app.adminCreateInvitePost))
 	mux.Handle("POST /admin/updatepoints", admin.ThenFunc(app.adminUpdatePoints))
+	mux.Handle("GET /admin/events/new", admin.ThenFunc(app.adminCreateEvent))
+	mux.Handle("POST /admin/events/new", admin.ThenFunc(app.adminCreateEventPost))
+	mux.Handle("POST /admin/events/setactive", admin.ThenFunc(app.adminSetActiveEventPost))
+	mux.Handle("GET /admin/events/{eventID}/sync", admin.ThenFunc(app.adminSyncEventGet))
+	mux.Handle("POST /admin/events/{eventID}/sync", admin.ThenFunc(app.adminSyncEventPost))
+
+	// Edit event
+	mux.Handle("GET /admin/events/{eventID}/edit", admin.ThenFunc(app.adminEditEvent))
+	mux.Handle("POST /admin/events/{eventID}/edit", admin.ThenFunc(app.adminEditEventPost))
+
+	// Delete event
+	mux.Handle("POST /admin/events/{eventID}/delete", admin.ThenFunc(app.adminDeleteEventPost))
+
+	// Edit phase
+	mux.Handle("GET /admin/phases/{phaseID}/edit", admin.ThenFunc(app.adminEditPhase))
+	mux.Handle("POST /admin/phases/{phaseID}/edit", admin.ThenFunc(app.adminEditPhasePost))
+
+	// Delete phase
+	mux.Handle("POST /admin/phases/{phaseID}/delete", admin.ThenFunc(app.adminDeletePhasePost))
 
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)

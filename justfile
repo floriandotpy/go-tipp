@@ -81,3 +81,11 @@ fetch-results:
 build:
     go build -o bin/server ./cmd/web
     go build -o bin/cli ./cmd/cli
+
+# Run all tests
+test:
+    go test ./... -count=1
+
+# Run tests with verbose output
+test-v:
+    go test ./... -v -count=1

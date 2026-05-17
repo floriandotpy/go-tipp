@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"tipp.casualcoding.com/internal/models"
+	"tipp.casualcoding.com/internal/sync"
 )
 
 type Leaderboard struct {
@@ -48,13 +49,17 @@ type WrappedStats struct {
 type templateData struct {
 	CurrentYear     int
 	EventIsFinished bool
+	IsActiveEvent   bool
+	Event           models.Event
+	Events          []models.Event
 	MatchTipps      []models.MatchTipp
 	Tipps           []models.Tipp
 	Groups          []models.Group
 	Leaderboards    []Leaderboard
 	Goals           []models.Goal
-	EventPhases     []models.EventPhase
-	SelectedPhase   models.EventPhase
+	EventPhases    []models.EventPhase
+	EventPhasesMap map[int][]models.EventPhase
+	SelectedPhase  models.EventPhase
 	LiveResult      LiveResult
 	Match           models.Match
 	Status          string // move into Match object?
@@ -73,6 +78,12 @@ type templateData struct {
 	PrevLink string
 	// wrapped stats
 	WrappedStatsList []WrappedStats
+	// admin phase match counts: key is phase ID
+	PhaseMatchCounts map[int]int
+	// import error
+	ImportError          string
+	// sync preview
+	SyncPreviewPhases []sync.SyncPreviewPhase
 }
 
 // prep translation mapping

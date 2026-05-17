@@ -828,3 +828,59 @@ Prev/next buttons for mobile view
         75% { transform: rotateZ(5deg) rotateY(1080deg) translate(-10vw,80vh); }
         100% { transform: rotateZ(15deg) rotateY(1440deg) translate(10vw,110vh); }
     }
+
+
+/* Admin event sections */
+.admin-event {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1em 1.5em;
+    margin-bottom: 1.5em;
+    background: #fafafa;
+}
+.admin-event h3 {
+    margin-top: 0;
+}
+.admin-event__actions {
+    margin-bottom: 1em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: center;
+}
+.admin-action-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.admin-action-list li {
+    margin-bottom: 0.25em;
+}
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #0e76bb;
+    cursor: pointer;
+    font: inherit;
+}
+.link-button:hover {
+    color: #07436b;
+    text-decoration: underline;
+}
+
+/* Badge styles for import status */
+.badge {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    font-size: 0.85em;
+    border-radius: 3px;
+}
+.badge-warning {
+    background-color: #f0ad4e;
+    color: #fff;
+}
+.badge-new {
+    background-color: #5cb85c;
+    color: #fff;
+}

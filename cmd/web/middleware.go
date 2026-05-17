@@ -1,11 +1,18 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/justinas/nosurf"
+	"tipp.casualcoding.com/internal/models"
 )
+
+type contextKey string
+
+const eventContextKey = contextKey("event")
 
 func commonHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,4 +109,36 @@ func noSurf(next http.Handler) http.Handler {
 		HttpOnly: true, Path: "/", Secure: true,
 	})
 	return csrfHandler
+}
+
+// resolveEvent reads the ?event=<slug> query parameter and resolves the
+// corresponding Event. If no parameter is provided, it falls back to the
+// active event. The resolved Event is stored in the request context.
+func (app *application) resolveEvent(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var event models.Event
+		var err error
+
+		slug := r.URL.Query().Get("event")
+		if slug != "" {
+			event, err = app.events.GetBySlug(slug)
+			if err != nil {
+				if errors.Is(err, models.ErrNoRecord) {
+					app.clientError(w, http.StatusNotFound)
+					return
+				}
+				app.serverError(w, r, err)
+				return
+			}
+		} else {
+			event, err = app.events.GetActive()
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), eventContextKey, event)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

@@ -1,0 +1,71 @@
+{{define "title"}}Sync: {{.Event.Name}}{{end}}{{define "assets"}}{{end}}{{define "main"}}
+<div class="container">
+  <h2>Daten synchronisieren</h2>
+  <p>Event: <strong>{{.Event.Name}}</strong></p>
+
+  {{if .ImportError}}
+  <div class="cc-alert-error">{{.ImportError}}</div>
+  <p style="margin-top: 1em;"><a href="/admin" class="pure-button">Zurück</a></p>
+  {{else}}
+
+  {{range .SyncPreviewPhases}}
+  <section style="margin-bottom: 2em;">
+    <h3>
+      Phase {{.Phase.Number}}: {{.Phase.Title}}
+      <span class="muted">({{.Phase.PhaseType}})</span>
+      {{if .IsNew}}
+      <span class="badge badge-new">neu</span>
+      {{else}}
+      <span class="badge badge-warning">update</span>
+      {{end}}
+    </h3>
+    <p class="muted">
+      {{.Phase.Start.Format "02.01.2006 15:04"}} – {{.Phase.End.Format "02.01.2006 15:04"}}
+    </p>
+
+    {{if .Matches}}
+    <table class="pure-table pure-table-bordered" style="width: 100%;">
+      <thead>
+        <tr>
+          <th>Datum</th>
+          <th>Uhrzeit</th>
+          <th>Team A</th>
+          <th>Team B</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Matches}}
+        <tr{{if .IsDuplicate}} style="opacity: 0.5;"{{end}}{{if .IsUpdate}} style="background-color: #fff3cd;"{{end}}>
+          <td>{{.Date}}</td>
+          <td>{{.Time}}</td>
+          <td>{{.TeamA}}</td>
+          <td>{{.TeamB}}</td>
+          <td>
+            {{if .IsDuplicate}}
+            <span class="badge badge-warning">unverändert</span>
+            {{else if .IsUpdate}}
+            <span class="badge badge-warning">update</span>
+            {{else}}
+            <span class="badge badge-new">neu</span>
+            {{end}}
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p>Keine Spiele in dieser Phase.</p>
+    {{end}}
+  </section>
+  {{end}}
+
+  <form method="POST" action="/admin/events/{{.Event.ID}}/sync" style="margin-top: 1.5em;">
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+    <button type="submit" class="pure-button pure-button-primary">Bestätigen</button>
+    <a href="/admin" class="pure-button" style="margin-left: 0.5em;">Abbrechen</a>
+  </form>
+
+  {{end}}
+</div>
+{{end}}

@@ -8,6 +8,75 @@
     <button class="pure-button">Neueste Punkte verteilen</button>
   </form>
 
+  <h2>Events</h2>
+  <p><a href="/admin/events/new" class="pure-button pure-button-primary">Neues Event erstellen</a></p>
+  {{if .Events}}
+  {{range .Events}}
+  <section class="admin-event">
+    <h3>{{.Name}} <span class="muted">({{.Slug}}{{if .IsActive}}, aktiv{{end}})</span></h3>
+    <div class="admin-event__actions">
+      {{if not .IsActive}}
+      <form action="/admin/events/setactive" method="post" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}" />
+        <input type="hidden" name="event_id" value="{{.ID}}" />
+        <button class="pure-button" type="submit">Aktivieren</button>
+      </form>
+      {{end}}
+      <a href="/admin/events/{{.ID}}/sync" class="pure-button">Daten synchronisieren</a>
+      <a href="/admin/events/{{.ID}}/edit" class="pure-button">Bearbeiten</a>
+      <form method="POST" action="/admin/events/{{.ID}}/delete" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+        <button class="pure-button" type="submit" onclick="return confirm('Wirklich löschen?')">Löschen</button>
+      </form>
+    </div>
+
+    {{$phases := index $.EventPhasesMap .ID}}
+    {{if $phases}}
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <td>Nr.</td>
+          <td>Titel</td>
+          <td>Typ</td>
+          <td>Spiele</td>
+          <td>Start</td>
+          <td>Ende</td>
+          <td>Aktionen</td>
+        </tr>
+      </thead>
+      <tbody>
+      {{range $phases}}
+        <tr>
+          <td>{{.Number}}</td>
+          <td>{{.Title}}</td>
+          <td>{{.PhaseType}}</td>
+          <td>{{index $.PhaseMatchCounts .ID}}</td>
+          <td>{{.Start.Format "02.01.2006 15:04"}}</td>
+          <td>{{.End.Format "02.01.2006 15:04"}}</td>
+          <td>
+            <ul class="admin-action-list">
+              <li><a href="/admin/phases/{{.ID}}/edit">Bearbeiten</a></li>
+              <li>
+                <form method="POST" action="/admin/phases/{{.ID}}/delete" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+                  <button type="submit" class="link-button" onclick="return confirm('Wirklich löschen?')">Löschen</button>
+                </form>
+              </li>
+            </ul>
+          </td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p>Keine Phasen konfiguriert.</p>
+    {{end}}
+  </section>
+  {{end}}
+  {{else}}
+  <p>Keine Events vorhanden.</p>
+  {{end}}
+
   <h2>Gruppen</h2>
   <table class="cc-table">
     <thead>
