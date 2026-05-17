@@ -55,8 +55,17 @@ func PhaseFromGroup(eventID int, groupOrderID int, groupName string, matches []a
 		ApiPath:   "",
 		PhaseType: InferPhaseType(groupName),
 		Start:     earliest,
-		End:       latest,
+		End:       latestEnd(earliest, latest),
 	}, nil
+}
+
+// latestEnd ensures end is always after start to satisfy the DB CHECK constraint.
+// If start == end (single-match group), adds 24 hours to end.
+func latestEnd(start, end time.Time) time.Time {
+	if !end.After(start) {
+		return start.Add(24 * time.Hour)
+	}
+	return end
 }
 
 // SyncPreviewPhase holds phase data plus its matches for the preview template.
@@ -72,5 +81,7 @@ type SyncPreviewMatch struct {
 	Time        string
 	TeamA       string
 	TeamB       string
-	IsDuplicate bool
+	IsDuplicate bool // exists and unchanged
+	IsUpdate    bool // exists but fields differ
+	ApiMatchID  int
 }

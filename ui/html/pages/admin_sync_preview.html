@@ -36,14 +36,16 @@
       </thead>
       <tbody>
         {{range .Matches}}
-        <tr{{if .IsDuplicate}} style="opacity: 0.5; text-decoration: line-through;"{{end}}>
+        <tr{{if .IsDuplicate}} style="opacity: 0.5;"{{end}}{{if .IsUpdate}} style="background-color: #fff3cd;"{{end}}>
           <td>{{.Date}}</td>
           <td>{{.Time}}</td>
           <td>{{.TeamA}}</td>
           <td>{{.TeamB}}</td>
           <td>
             {{if .IsDuplicate}}
-            <span class="badge badge-warning">bereits vorhanden</span>
+            <span class="badge badge-warning">unverändert</span>
+            {{else if .IsUpdate}}
+            <span class="badge badge-warning">update</span>
             {{else}}
             <span class="badge badge-new">neu</span>
             {{end}}

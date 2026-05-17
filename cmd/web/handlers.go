@@ -1205,13 +1205,35 @@ func (app *application) adminSyncEventGet(w http.ResponseWriter, r *http.Request
 			}
 
 			day := parsedTime.Format("2006-01-02")
-			existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
-			if err != nil {
-				app.serverError(w, r, err)
-				return
-			}
+			isDuplicate := false
+			isUpdate := false
 
-			isDuplicate := existing.ID != 0
+			// Primary lookup: by API match ID
+			if am.MatchID > 0 {
+				existing, err := app.matches.GetByApiMatchID(am.MatchID)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+				if existing.ID != 0 {
+					// Match exists — check if anything changed
+					if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
+						isUpdate = true
+					} else {
+						isDuplicate = true
+					}
+				}
+			} else {
+				// Fallback: legacy lookup by metadata
+				existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+				if existing.ID != 0 {
+					isDuplicate = true
+				}
+			}
 
 			previewMatches = append(previewMatches, appsync.SyncPreviewMatch{
 				Date:        day,
@@ -1219,6 +1241,8 @@ func (app *application) adminSyncEventGet(w http.ResponseWriter, r *http.Request
 				TeamA:       am.TeamA.TeamName,
 				TeamB:       am.TeamB.TeamName,
 				IsDuplicate: isDuplicate,
+				IsUpdate:    isUpdate,
+				ApiMatchID:  am.MatchID,
 			})
 		}
 
@@ -1261,7 +1285,7 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 
 	// Group and process
 	grouped := appsync.GroupMatches(apiMatches)
-	var phasesCreated, phasesUpdated, matchesInserted int
+	var phasesCreated, phasesUpdated, matchesInserted, matchesUpdated int
 
 	for groupOrderID, groupMatches := range grouped {
 		groupName := groupMatches[0].Group.GroupName
@@ -1290,19 +1314,41 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 				return
 			}
 
-			day := parsedTime.Format("2006-01-02")
-			existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
-			if err != nil {
-				app.serverError(w, r, err)
-				return
-			}
-			if existing.ID != 0 {
-				continue // duplicate, skip
+			// Primary lookup: by API match ID
+			if am.MatchID > 0 {
+				existing, err := app.matches.GetByApiMatchID(am.MatchID)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+				if existing.ID != 0 {
+					// Match exists — update if anything changed
+					if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
+						err = app.matches.UpdateMatch(existing.ID, am.TeamA.TeamName, am.TeamB.TeamName, parsedTime, phase.PhaseType, groupOrderID)
+						if err != nil {
+							app.serverError(w, r, err)
+							return
+						}
+						matchesUpdated++
+					}
+					continue // already exists, skip insert
+				}
+			} else {
+				// Fallback: legacy lookup by metadata
+				day := parsedTime.Format("2006-01-02")
+				existing, err := app.matches.GetByMetadata(day, am.TeamA.TeamName, am.TeamB.TeamName)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+				if existing.ID != 0 {
+					continue // duplicate, skip
+				}
 			}
 
-			_, err = app.matches.Insert(
+			_, err = app.matches.InsertWithApiMatchID(
 				am.TeamA.TeamName, am.TeamB.TeamName,
-				parsedTime, phase.PhaseType, groupOrderID, eventID,
+				parsedTime, phase.PhaseType, groupOrderID, eventID, am.MatchID,
 			)
 			if err != nil {
 				app.serverError(w, r, err)
@@ -1312,8 +1358,8 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	msg := fmt.Sprintf("Sync abgeschlossen: %d Phasen erstellt, %d aktualisiert, %d Spiele importiert.",
-		phasesCreated, phasesUpdated, matchesInserted)
+	msg := fmt.Sprintf("Sync abgeschlossen: %d Phasen erstellt, %d aktualisiert, %d Spiele importiert, %d Spiele aktualisiert.",
+		phasesCreated, phasesUpdated, matchesInserted, matchesUpdated)
 	app.sessionManager.Put(r.Context(), "flash", msg)
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

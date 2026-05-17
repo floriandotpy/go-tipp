@@ -16,6 +16,7 @@ type ApiGroup struct {
 }
 
 type ApiMatch struct {
+	MatchID         int         `json:"matchID"`
 	MatchDateTime   string      `json:"matchDateTime"`
 	TeamA           ApiTeam     `json:"team1"`
 	TeamB           ApiTeam     `json:"team2"`

@@ -25,6 +25,7 @@ type Match struct {
 
 	EventPhase int
 	EventID    int
+	ApiMatchID *int
 }
 
 type MatchModel struct {
@@ -154,6 +155,63 @@ func (m *MatchModel) GetByMetadata(day string, teamA string, teamB string) (Matc
 
 	// Return the match
 	return match, nil
+}
+
+// GetByApiMatchID retrieves a match by its external API match ID.
+// Returns a zero-value Match (ID == 0) if not found.
+func (m *MatchModel) GetByApiMatchID(apiMatchID int) (Match, error) {
+	query := `
+		SELECT id, start, team_a, team_b,
+		result_a, result_b,
+		result_aet_a, result_aet_b,
+		result_apen_a, result_apen_b,
+		match_type, finished, event_phase, event_id, api_match_id
+		FROM matches
+		WHERE api_match_id = ?
+	`
+	var match Match
+	err := m.DB.QueryRow(query, apiMatchID).Scan(
+		&match.ID, &match.Start, &match.TeamA, &match.TeamB,
+		&match.ResultA, &match.ResultB,
+		&match.ResultAETA, &match.ResultAETB,
+		&match.ResultAPenA, &match.ResultAPenB,
+		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID, &match.ApiMatchID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return Match{}, nil
+		}
+		return Match{}, err
+	}
+	return match, nil
+}
+
+// UpdateMatch updates team names, start time, and phase info for an existing match.
+func (m *MatchModel) UpdateMatch(id int, teamA, teamB string, start time.Time, matchType string, eventPhase int) error {
+	query := `
+		UPDATE matches
+		SET team_a = ?, team_b = ?, start = ?, match_type = ?, event_phase = ?
+		WHERE id = ?
+	`
+	_, err := m.DB.Exec(query, teamA, teamB, start, matchType, eventPhase, id)
+	return err
+}
+
+// InsertWithApiMatchID inserts a new match with the external API match ID.
+func (m *MatchModel) InsertWithApiMatchID(teamA, teamB string, start time.Time, matchType string, eventPhase int, eventID int, apiMatchID int) (int, error) {
+	stmt := `INSERT INTO matches (team_a, team_b, start, match_type, finished, event_phase, event_id, api_match_id)
+	         VALUES (?, ?, ?, ?, FALSE, ?, ?, ?)`
+
+	result, err := m.DB.Exec(stmt, teamA, teamB, start, matchType, eventPhase, eventID, apiMatchID)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
 }
 
 func (m *MatchModel) SetMatchIsFinished(id int, finished bool) error {
