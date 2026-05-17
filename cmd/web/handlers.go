@@ -153,9 +153,16 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		// default to today's phase
 		todaysPhase, phaseErr := app.eventPhases.DetermineCurrentPhase(event.ID, time.Now())
 		if phaseErr != nil {
-			// if today is not a match day, assume the event is over and show the final phase
+			// No phase covers "now" — check if event hasn't started yet or is over
 			if len(eventPhases) > 0 {
-				phaseId = eventPhases[len(eventPhases)-1].Number
+				now := time.Now()
+				if now.Before(eventPhases[0].Start) {
+					// Event hasn't started yet → show first phase
+					phaseId = eventPhases[0].Number
+				} else {
+					// Event is over → show last phase
+					phaseId = eventPhases[len(eventPhases)-1].Number
+				}
 			} else {
 				phaseId = 1
 			}
@@ -169,12 +176,19 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		http.NotFound(w, req)
 		return
 	}
+
+	// Build prev/next links based on actual phase ordering (handles non-contiguous numbers)
 	var nextLink, prevLink string
-	if phaseId > 1 {
-		prevLink = fmt.Sprintf("/spiele?phase=%d", phaseId-1)
-	}
-	if phaseId < len(eventPhases) {
-		nextLink = fmt.Sprintf("/spiele?phase=%d", phaseId+1)
+	for i, ep := range eventPhases {
+		if ep.Number == phaseId {
+			if i > 0 {
+				prevLink = fmt.Sprintf("/spiele?phase=%d", eventPhases[i-1].Number)
+			}
+			if i < len(eventPhases)-1 {
+				nextLink = fmt.Sprintf("/spiele?phase=%d", eventPhases[i+1].Number)
+			}
+			break
+		}
 	}
 
 	userId, err := app.authUserId(req)
@@ -415,6 +429,21 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Determine group-phase and ko-phase numbers dynamically from the event's phases
+	eventPhases, err := app.eventPhases.AllForEvent(event.ID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	var groupPhaseNumbers, koPhaseNumbers []int
+	for _, ep := range eventPhases {
+		if ep.PhaseType == "phase_group" {
+			groupPhaseNumbers = append(groupPhaseNumbers, ep.Number)
+		} else if ep.PhaseType == "phase_ko" {
+			koPhaseNumbers = append(koPhaseNumbers, ep.Number)
+		}
+	}
+
 	data := app.newTemplateData(r)
 	var stats = []WrappedStats{}
 	for _, group := range groups {
@@ -430,16 +459,22 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 			Users: users,
 		}
 
-		bestInGrouphase, err := app.users.GetBestInSelectedPhases(group.ID, event.ID, []int{1, 2, 3})
-		if err != nil {
-			app.serverError(w, r, err)
-			return
+		var bestInGrouphase []models.User
+		if len(groupPhaseNumbers) > 0 {
+			bestInGrouphase, err = app.users.GetBestInSelectedPhases(group.ID, event.ID, groupPhaseNumbers)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
 		}
 
-		bestInKoPhase, err := app.users.GetBestInSelectedPhases(group.ID, event.ID, []int{4, 5, 6, 7})
-		if err != nil {
-			app.serverError(w, r, err)
-			return
+		var bestInKoPhase []models.User
+		if len(koPhaseNumbers) > 0 {
+			bestInKoPhase, err = app.users.GetBestInSelectedPhases(group.ID, event.ID, koPhaseNumbers)
+			if err != nil {
+				app.serverError(w, r, err)
+				return
+			}
 		}
 		var closestGoalCount []models.User
 
@@ -1040,7 +1075,6 @@ func (app *application) adminEditPhasePost(w http.ResponseWriter, r *http.Reques
 
 	form.CheckField(form.Number >= 1, "number", "Muss mindestens 1 sein")
 	form.CheckField(validator.NotBlank(form.Title), "title", "Darf nicht leer sein")
-	form.CheckField(validator.NotBlank(form.ApiPath), "api_path", "Darf nicht leer sein")
 	form.CheckField(validator.PermittedValue(form.PhaseType, "phase_group", "phase_ko"), "phase_type", "Muss 'phase_group' oder 'phase_ko' sein")
 
 	const timeLayout = "2006-01-02T15:04"

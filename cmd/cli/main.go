@@ -58,7 +58,8 @@ func main() {
 	}
 	fmt.Printf("Current phase: %s (number: %d, type: %s)\n", phase.Title, phase.Number, phase.PhaseType)
 
-	// Construct API URL from event base URL + phase API path
+	// Construct API URL from event base URL + phase API path.
+	// If ApiPath is empty (sync-created phases), use the base URL which returns all matches.
 	url := event.ApiBaseURL + phase.ApiPath
 	fmt.Printf("Fetching data from: %s\n", url)
 
@@ -66,6 +67,25 @@ func main() {
 	matches, err := api.FetchMatchData(url)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// If ApiPath is empty, we fetched all matches for the event.
+	// Filter to only process matches within the current phase's date range.
+	if phase.ApiPath == "" {
+		var filtered []api.ApiMatch
+		for _, m := range matches {
+			matchTime, parseErr := time.Parse("2006-01-02T15:04:05", m.MatchDateTime)
+			if parseErr != nil {
+				continue
+			}
+			if !matchTime.Before(phase.Start) && !matchTime.After(phase.End) {
+				filtered = append(filtered, m)
+			}
+		}
+		fmt.Printf("Filtered %d matches to %d within phase date range (%s to %s)\n",
+			len(matches), len(filtered),
+			phase.Start.Format("2006-01-02"), phase.End.Format("2006-01-02"))
+		matches = filtered
 	}
 
 	var recomputeUserScores = false

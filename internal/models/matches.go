@@ -197,11 +197,19 @@ func (m *MatchModel) UpdateMatch(id int, teamA, teamB string, start time.Time, m
 }
 
 // InsertWithApiMatchID inserts a new match with the external API match ID.
+// If apiMatchID is 0, it stores NULL instead.
 func (m *MatchModel) InsertWithApiMatchID(teamA, teamB string, start time.Time, matchType string, eventPhase int, eventID int, apiMatchID int) (int, error) {
 	stmt := `INSERT INTO matches (team_a, team_b, start, match_type, finished, event_phase, event_id, api_match_id)
 	         VALUES (?, ?, ?, ?, FALSE, ?, ?, ?)`
 
-	result, err := m.DB.Exec(stmt, teamA, teamB, start, matchType, eventPhase, eventID, apiMatchID)
+	var apiMatchIDParam interface{}
+	if apiMatchID > 0 {
+		apiMatchIDParam = apiMatchID
+	} else {
+		apiMatchIDParam = nil
+	}
+
+	result, err := m.DB.Exec(stmt, teamA, teamB, start, matchType, eventPhase, eventID, apiMatchIDParam)
 	if err != nil {
 		return 0, err
 	}
