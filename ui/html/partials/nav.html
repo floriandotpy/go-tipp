@@ -3,22 +3,22 @@
   <nav class="container navbar">
     <div class="left">
       {{if .IsAuthenticated }}
-      <a href="/spiele" class="pure-button">⚽️ Spiele</a>
-      <a href="/leaderboard" class="pure-button">🏆 Leaderboard</a>
-      <a href="/regeln" class="pure-button">📜 Regeln</a>
+      <a href="/spiele">⚽️ Spiele</a>
+      <a href="/leaderboard">🏆 Leaderboard</a>
+      <a href="/regeln">📜 Regeln</a>
       {{end}}
     </div>
     <div class="right">
       {{if .IsAuthenticated }} {{if .IsAdmin}}
-      <a href="/admin" class="pure-button">🕶️ Admin</a>
+      <a href="/admin">🕶️ Admin</a>
       {{end}}
       <form action="/user/logout" method="post">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
-        <button class="pure-button">➡️ Logout</button>
+        <button>➡️ Logout</button>
       </form>
       {{else}}
-      <a href="/user/signup" class="pure-button">🔜 Registrieren</a>
-      <a href="/user/login" class="pure-button">🔒 Login</a>
+      <a href="/user/signup">🔜 Registrieren</a>
+      <a href="/user/login">🔒 Login</a>
       {{end}}
     </div>
   </nav>

@@ -304,28 +304,67 @@ a:hover { color: #06e; }​ */
 
 .navbar .left, .navbar .right {
     display: flex;
-    gap: 20px; /* Optional: Adjust gap between items as needed */
+    gap: 20px;
+}
+
+/* Navbar link styling — text-only with highlighter hover */
+.navbar a, .navbar button {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #333;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0.2em 0.3em;
+    text-decoration: none;
+    cursor: pointer;
+    position: relative;
+}
+.navbar a::after, .navbar button::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 2px;
+    width: 100%;
+    height: 45%;
+    background: rgba(215, 238, 141, 0.9);
+    z-index: -1;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+    border-radius: 2px;
+}
+.navbar a:hover::after, .navbar button:hover::after {
+    transform: scaleX(1);
+}
+.navbar a:hover, .navbar button:hover {
+    color: #333;
+    text-decoration: none;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Media query for small viewports */
 @media (max-width: 640px) {
     .navbar {
         flex-direction: column;
-        align-items: flex-start; /* Align items to the start of the container */
+        align-items: flex-start;
        
     }
 
     .navbar .left, .navbar .right {
         flex-direction: column;
         width: 100%;
-        gap: 0; /* Remove gap between items */
+        gap: 0;
     }
 
     .navbar .left a, .navbar .right a, .navbar .right form, .navbar .right button {
-        display: block; /* Ensure items take full width */
+        display: block;
         width: 100%;
         margin: 4px 0;
-        text-align: left; /* Optional: Align text to the left */
+        text-align: left;
     }
 }
 
