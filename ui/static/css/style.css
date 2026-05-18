@@ -1,11 +1,13 @@
 :root {
-    --russian-violet: #341E57ff;
-    --russian-violet-lighter: rgb(70, 25, 143);
-    --baby-powder: #FAFBF9ff;
-    --ash-gray: #C1D6BFff;
-    --mantis: #65B152ff;
-    --mantis-darker: rgb(69, 144, 50);
-    --tekhelet: #5A287Eff;
+    --green-dark: #5B7E3C;
+    --green-dark-hover: #4A6830;
+    --green-medium: #A2CB8B;
+    --green-light: #E8F5BD;
+    --red-accent: #C44545;
+    --red-accent-hover: #A33636;
+    --bg-page: #F9F9F7;
+    --link-blue: #2B6CB0;
+    --link-blue-hover: #1E4E8C;
 }
 
 html, body {
@@ -15,6 +17,8 @@ html, body {
 body {
     display: flex;
     flex-direction: column;
+    font-family: 'DM Sans', sans-serif;
+    background-color: var(--bg-page);
 }
 .content {
     flex: 1;
@@ -147,14 +151,12 @@ text-align: center;
 }
 
 a:not(.pure-button) {
-    color: #0e76bb;
+    color: var(--link-blue);
     text-decoration: none;
-    /* border-bottom: 1px solid var(--mantis); */
 } 
 a:not(.pure-button):hover {
-    color: #07436b;;
+    color: var(--link-blue-hover);
     text-decoration: underline;
-    /* border-bottom: 2px solid var(--mantis); */
 }
 
 /* a { color: #00e; }
@@ -258,14 +260,14 @@ a:hover { color: #06e; }​ */
     text-align: center;
 }
 .cc-alert-error {
-    background: #B22222;
+    background: var(--red-accent);
     border-radius: 3px;
     color: #fff;
     padding: 1em 1em;
     text-align: center;
 }
 .cc-alert-success {
-    background: var(--mantis);
+    background: var(--green-medium);
     border-radius: 3px;
     color: #fff;
     padding: 1em 1em;
@@ -329,11 +331,11 @@ a:hover { color: #06e; }​ */
 
 /* Forms */
 .pure-form input.error {
-    border: 2px dashed #B22222;
+    border: 2px dashed var(--red-accent);
 }
 
 .pure-form-message-inline.error, .pure-form-message.error {
-    color: #B22222; 
+    color: var(--red-accent); 
 }
 
 .pure-form-aligned .pure-control-group label {
@@ -403,7 +405,7 @@ a:hover { color: #06e; }​ */
   }
   
 .hero__headline {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Fredoka', sans-serif;
     font-style: normal;
     font-weight: 700;
     font-size: 42px;
@@ -412,14 +414,17 @@ a:hover { color: #06e; }​ */
 }
 
 .hero__highlight {
-    color: var(--tekhelet);
+    color: var(--green-dark);
 }
 .pure-button-primary, a.pure-button-primary {
-    background-color: var(--mantis);
+    background-color: var(--green-dark);
+}
+.pure-button-primary:hover, a.pure-button-primary:hover {
+    background-color: var(--green-dark-hover);
 }
 
 .hero__teaser {
-    font-family: 'Inter';
+    font-family: 'DM Sans', sans-serif;
     font-style: normal;
     font-weight: 400;
     font-size: 16px;
@@ -860,12 +865,12 @@ Prev/next buttons for mobile view
     background: none;
     border: none;
     padding: 0;
-    color: #0e76bb;
+    color: var(--link-blue);
     cursor: pointer;
     font: inherit;
 }
 .link-button:hover {
-    color: #07436b;
+    color: var(--link-blue-hover);
     text-decoration: underline;
 }
 
