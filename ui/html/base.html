@@ -16,15 +16,6 @@
     />
   </head>
   <body>
-    <header class="w-100">
-      <div class="container">
-        <h1 class="logo">
-          <a {{if .IsAuthenticated}} href="/spiele" {{else}} href="/" {{end}}
-            >⚽️ GoTipp</a
-          >
-        </h1>
-      </div>
-    </header>
     {{template "nav" .}}
     <main class="content">
       {{with .Flash}}
