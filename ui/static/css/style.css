@@ -459,26 +459,7 @@ a:hover { color: #06e; }​ */
 
 .hero__cta {
     text-align: center;
-    margin: 24px 0 0;
-}
-
-.hero__cta-text {
-    text-align: center;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 17px;
-    color: #555;
-    margin: 0;
-}
-
-.hero__callout {
-    max-width: 500px;
-    margin: 2rem auto;
-    padding: 2rem 2.5rem;
-    border: 3px solid transparent;
-    border-image-source: url('/static/img/border-rough.svg');
-    border-image-slice: 14;
-    border-image-width: 14px;
-    border-image-repeat: stretch;
+    margin: 24px 0;
 }
 
 /* Penalty scene */
