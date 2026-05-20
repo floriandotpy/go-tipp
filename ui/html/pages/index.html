@@ -1,6 +1,6 @@
-{{define "title"}}GoTipp{{end}} {{define "assets"}}
-<script src="/static/js/balldrop.js" defer></script>
-{{end}} {{define "main"}}
+{{define "title"}}GoTipp{{end}}
+{{define "assets"}}{{end}}
+{{define "main"}}
 <div class="container">
   <div class="hero">
     <div class="hero__row">
@@ -25,12 +25,16 @@
       </div>
     </div>
 
-    <div class="ball-drop-wrapper">
-      <canvas id="ballDropCanvas"></canvas>
-    </div>
-
-    <div>
-      <img src="/static/img/goal.png" alt="" width="512">
+    <div class="penalty-scene">
+      <div class="penalty-scene__goal">
+        <img src="/static/img/goal.png" alt="Fußballtor" />
+      </div>
+      <div class="penalty-scene__keeper">
+        <img src="/static/img/keeper.png" alt="Torwart" />
+      </div>
+      <div class="penalty-scene__ball">
+        <img src="/static/img/ball.png" alt="Fußball" />
+      </div>
     </div>
 
     <p class="hero__cta">
