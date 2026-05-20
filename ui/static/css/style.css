@@ -480,6 +480,21 @@ a:hover { color: #06e; }​ */
     color: var(--green-dark);
 }
 
+/* Homepage ball drop animation */
+.ball-drop-wrapper {
+    width: 75%;
+    height: 400px;
+    margin: 2rem auto;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.ball-drop-wrapper canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 /* Button overrides */
 .pure-button {
     border-radius: 10px;

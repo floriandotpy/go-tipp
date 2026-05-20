@@ -1,4 +1,6 @@
-{{define "title"}}GoTipp{{end}} {{define "assets"}}{{end}} {{define "main"}}
+{{define "title"}}GoTipp{{end}} {{define "assets"}}
+<script src="/static/js/balldrop.js" defer></script>
+{{end}} {{define "main"}}
 <div class="container">
   <div class="hero">
     <div class="hero__row">
@@ -21,6 +23,14 @@
           alt="Abstraktes Bild von Händen, die einen Fußball halten (KI generiert)"
         />
       </div>
+    </div>
+
+    <div class="ball-drop-wrapper">
+      <canvas id="ballDropCanvas"></canvas>
+    </div>
+
+    <div>
+      <img src="/static/img/goal.png" alt="" width="512">
     </div>
 
     <p class="hero__cta">
