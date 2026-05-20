@@ -429,44 +429,13 @@ a:hover { color: #06e; }​ */
 
 
 /* Hero section */
-.hero {
-    
+.hero__intro {
+    text-align: center;
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 0 1rem;
 }
-.hero__row {
-    margin: 0 12px;
-    display: flex;
-    flex-wrap: wrap;
-  }
-  
-  .hero__teaser, .hero__image {
-    flex: 1 1 100%;
-    box-sizing: border-box;
-  }
-  
-  .hero__image img {
-    width: 100%;
-    height: auto;
-  }
-  
-  @media (min-width: 960px) {
-    .hero__row {
-      align-items: center;
-    }
-    
-    .hero__teaser {
-      flex: 0 0 40%;
-    }
-  
-    .hero__image {
-      flex: 0 0 55%;
-      margin-left: auto;
-    }
-  
-    .hero__image img {
-      width: 100%;
-    }
-  }
-  
+
 .hero__headline {
     font-family: 'Fredoka', sans-serif;
     font-style: normal;
@@ -480,12 +449,51 @@ a:hover { color: #06e; }​ */
     color: var(--green-dark);
 }
 
+.hero__subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    line-height: 26px;
+    color: #555;
+    margin-top: 1rem;
+}
+
+.hero__cta {
+    text-align: center;
+    margin: 24px 0 0;
+}
+
+.hero__cta-text {
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    color: #555;
+    margin: 0;
+}
+
+.hero__callout {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem 2.5rem;
+    border: 3px solid transparent;
+    border-image-source: url('/static/img/border-rough.svg');
+    border-image-slice: 14;
+    border-image-width: 14px;
+    border-image-repeat: stretch;
+}
+
 /* Penalty scene */
+.penalty-scene__divider {
+    width: 50%;
+    height: 12px;
+    margin: 3rem auto;
+    background: url('/static/img/divider.svg') no-repeat center / 100% 100%;
+}
+
 .penalty-scene {
     position: relative;
     width: 75%;
     max-width: 500px;
-    margin: 2rem auto;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -556,18 +564,6 @@ a:hover { color: #06e; }​ */
 }
 .pure-button-primary:hover, a.pure-button-primary:hover {
     background-color: var(--green-dark-hover);
-}
-
-.hero__teaser {
-    font-family: 'DM Sans', sans-serif;
-    font-style: normal;
-    font-weight: 400;
-    font-size: 16px;
-    line-height: 24px;
-    color: #333;
-}
-.hero__cta {
-    margin: 48px 0;
 }
 
 /* General styles for all status links */

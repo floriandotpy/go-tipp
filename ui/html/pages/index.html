@@ -3,27 +3,20 @@
 {{define "main"}}
 <div class="container">
   <div class="hero">
-    <div class="hero__row">
-      <div class="hero__teaser">
-        <h2 class="hero__headline">
-          Unser kleines persönliches<br />
-          <span class="hero__highlight">Tippspiel</span> für die WM 2026
-        </h2>
+    <div class="hero__intro">
+      <h2 class="hero__headline">
+        Unser kleines persönliches<br />
+        <span class="hero__highlight">Tippspiel</span> für die WM 2026
+      </h2>
 
-        <p>
-          Unser exklusives Tippspiel zur WM ist leider nur für
-          geladene Gäste. Ich entschuldige mich bei allen Fußballfans, die
-          zufällig hier gelandet sind.
-        </p>
-      </div>
-
-      <div class="hero__image">
-        <img
-          src="/static/img/teaser-soccer-landscape-3.jpg"
-          alt="Abstraktes Bild von Händen, die einen Fußball halten (KI generiert)"
-        />
-      </div>
+      <p class="hero__subtitle">
+        Unser exklusives Tippspiel zur WM ist leider nur für
+        geladene Gäste. Ich entschuldige mich bei allen Fußballfans, die
+        zufällig hier gelandet sind.
+      </p>
     </div>
+
+    <div class="penalty-scene__divider"></div>
 
     <div class="penalty-scene">
       <div class="penalty-scene__goal">
@@ -37,13 +30,16 @@
       </div>
     </div>
 
-    <p class="hero__cta">
-      <a href="/user/signup" class="pure-button pure-button-primary"
-        >Registrieren (benötigt Invite)</a
-      >
+    <div class="hero__callout">
+      <p class="hero__cta-text">Bereit, wild zu raten und von deinem eigenen Glück enttäuscht zu werden?</p>
+      <p class="hero__cta">
+        <a href="/user/signup" class="pure-button pure-button-primary"
+          >Registrieren</a
+        >
 
-      <a href="/user/login" class="pure-button">Login</a>
-    </p>
+        <a href="/user/login" class="pure-button">Login</a>
+      </p>
+    </div>
   </div>
 </div>
 
