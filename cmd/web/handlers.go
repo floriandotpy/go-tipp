@@ -41,6 +41,11 @@ func (app *application) rulesHandler(w http.ResponseWriter, req *http.Request) {
 	app.render(w, req, http.StatusOK, "rules.html", data)
 }
 
+func (app *application) boredomHandler(w http.ResponseWriter, req *http.Request) {
+	data := app.newTemplateData(req)
+	app.render(w, req, http.StatusOK, "boredom.html", data)
+}
+
 func (app *application) leaderboardHandler(w http.ResponseWriter, req *http.Request) {
 
 	event := eventFromContext(req)
