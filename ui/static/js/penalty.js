@@ -4,50 +4,125 @@
 
   var ball = scene.querySelector('.penalty-scene__ball');
   var goal = scene.querySelector('.penalty-scene__goal');
-  var keeper = scene.querySelector('.penalty-scene__keeper');
   if (!ball || !goal) return;
 
   var isAnimating = false;
+  var gaugeActive = false;
+  var gaugeAngle = 0;
+  var gaugeDirection = 1;
+  var gaugeSpeed = 0.04;
+  var gaugeRAF = null;
+  var gauge = null;
 
-  ball.addEventListener('click', function() {
+  // Create gauge element
+  function createGauge() {
+    gauge = document.createElement('div');
+    gauge.className = 'penalty-gauge';
+    gauge.innerHTML = '<div class="penalty-gauge__track"><div class="penalty-gauge__indicator"></div></div>';
+    scene.appendChild(gauge);
+  }
+
+  function positionGauge() {
+    var ballRect = ball.getBoundingClientRect();
+    var sceneRect = scene.getBoundingClientRect();
+    var cx = ballRect.left + ballRect.width / 2 - sceneRect.left;
+    var cy = ballRect.top - sceneRect.top - 20;
+    gauge.style.left = cx + 'px';
+    gauge.style.top = cy + 'px';
+  }
+
+  function startGauge() {
+    if (gaugeActive) return;
+    gaugeActive = true;
+    gaugeAngle = 0;
+    gaugeDirection = 1;
+
+    createGauge();
+    positionGauge();
+    gauge.style.display = 'block';
+
+    function tick() {
+      gaugeAngle += gaugeSpeed * gaugeDirection;
+      if (gaugeAngle > 1) { gaugeAngle = 1; gaugeDirection = -1; }
+      if (gaugeAngle < -1) { gaugeAngle = -1; gaugeDirection = 1; }
+
+      var indicator = gauge.querySelector('.penalty-gauge__indicator');
+      // Map -1..1 to 0%..100% position
+      var pct = (gaugeAngle + 1) / 2 * 100;
+      indicator.style.left = pct + '%';
+
+      gaugeRAF = requestAnimationFrame(tick);
+    }
+    gaugeRAF = requestAnimationFrame(tick);
+  }
+
+  function stopGauge() {
+    if (!gaugeActive) return;
+    gaugeActive = false;
+    cancelAnimationFrame(gaugeRAF);
+
+    var angle = gaugeAngle; // -1 to 1
+    if (gauge && gauge.parentNode) {
+      gauge.parentNode.removeChild(gauge);
+    }
+    gauge = null;
+
+    kickBall(angle);
+  }
+
+  // Mouse/touch events on ball
+  ball.addEventListener('mousedown', function(e) {
+    e.preventDefault();
     if (isAnimating) return;
-    isAnimating = true;
+    startGauge();
+  });
+  ball.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    if (isAnimating) return;
+    startGauge();
+  });
 
-    // Stop pulsate during flight
+  document.addEventListener('mouseup', function() {
+    if (gaugeActive) stopGauge();
+  });
+  document.addEventListener('touchend', function() {
+    if (gaugeActive) stopGauge();
+  });
+
+  function kickBall(angle) {
+    isAnimating = true;
     ball.classList.add('penalty-scene__ball--kicked');
 
-    // Get positions
     var sceneRect = scene.getBoundingClientRect();
     var ballRect = ball.getBoundingClientRect();
     var goalRect = goal.getBoundingClientRect();
 
-    // Ball start (center of ball relative to scene)
     var startX = ballRect.left + ballRect.width / 2 - sceneRect.left;
     var startY = ballRect.top + ballRect.height / 2 - sceneRect.top;
 
-    // Target: random point within the goal area (with some margin)
     var goalLeft = goalRect.left - sceneRect.left;
     var goalTop = goalRect.top - sceneRect.top;
     var goalWidth = goalRect.width;
     var goalHeight = goalRect.height;
 
-    // Random horizontal angle: target anywhere across the width, with some chance to miss
-    var spread = 1.4; // >1 means can go outside goal
-    var targetX = goalLeft + goalWidth * 0.5 + (Math.random() - 0.5) * goalWidth * spread;
-    var targetY = goalTop + goalHeight * 0.5 + (Math.random() - 0.5) * goalHeight * 0.6;
+    // Target X based on gauge angle (-1 to 1), with spread beyond goal
+    var goalCenterX = goalLeft + goalWidth / 2;
+    var spread = goalWidth * 0.8;
+    var targetX = goalCenterX + angle * spread;
 
-    // Determine if it's a goal (target lands within goal bounds with some padding)
+    // Target Y: aim at upper-middle of goal with slight randomness
+    var targetY = goalTop + goalHeight * (0.3 + Math.random() * 0.4);
+
+    // Determine if it's a goal
     var goalPadding = goalWidth * 0.08;
     var isGoal = targetX > goalLeft + goalPadding &&
                  targetX < goalLeft + goalWidth - goalPadding &&
                  targetY > goalTop + goalPadding &&
                  targetY < goalTop + goalHeight - goalPadding;
 
-    // Animation params
     var duration = 600;
     var startTime = null;
 
-    // Create a clone for the flying ball
     var flyBall = ball.cloneNode(true);
     flyBall.classList.add('penalty-scene__ball--flying');
     flyBall.style.position = 'absolute';
@@ -60,7 +135,6 @@
     flyBall.style.zIndex = '10';
     scene.appendChild(flyBall);
 
-    // Hide original ball during flight
     ball.style.visibility = 'hidden';
 
     function animate(timestamp) {
@@ -68,18 +142,14 @@
       var elapsed = timestamp - startTime;
       var t = Math.min(elapsed / duration, 1);
 
-      // Ease out
       var ease = 1 - Math.pow(1 - t, 2);
 
-      // Position along path
       var x = startX + (targetX - startX) * ease;
       var y = startY + (targetY - startY) * ease;
 
-      // Arc: ball goes up in the middle of the flight
       var arc = -120 * Math.sin(t * Math.PI);
       y += arc;
 
-      // Scale down and fade as it "goes into distance"
       var scale = 1 - 0.5 * ease;
       var opacity = 1 - 0.4 * ease;
 
@@ -91,14 +161,12 @@
       if (t < 1) {
         requestAnimationFrame(animate);
       } else {
-        // Animation done
         scene.removeChild(flyBall);
 
         if (isGoal) {
           showGoal();
         }
 
-        // Reset ball
         setTimeout(function() {
           ball.style.visibility = 'visible';
           ball.classList.remove('penalty-scene__ball--kicked');
@@ -108,22 +176,19 @@
     }
 
     requestAnimationFrame(animate);
-  });
+  }
 
   function showGoal() {
-    // Shake the goal
     goal.classList.add('penalty-scene__goal--shake');
     setTimeout(function() {
       goal.classList.remove('penalty-scene__goal--shake');
     }, 500);
 
-    // Floating "Tor!" message
     var msg = document.createElement('div');
     msg.className = 'penalty-scene__tor';
     msg.textContent = 'Tor!';
     scene.appendChild(msg);
 
-    // Trigger animation after append
     requestAnimationFrame(function() {
       msg.classList.add('penalty-scene__tor--visible');
     });
