@@ -1,36 +1,38 @@
-{{define "title"}}GoTipp{{end}} {{define "assets"}}{{end}} {{define "main"}}
+{{define "title"}}GoTipp{{end}}
+{{define "assets"}}
+<script src="/static/js/penalty.js" defer></script>
+<script src="/static/js/countdown.js" defer></script>
+{{end}}
+{{define "main"}}
 <div class="container">
   <div class="hero">
-    <div class="hero__row">
-      <div class="hero__teaser">
-        <h2 class="hero__headline">
-          Unser kleines persönliches<br />
-          <span class="hero__highlight">Tippspiel</span> für die EM 2024
-        </h2>
+    <div class="hero__intro">
+      <h2 class="hero__headline">
+        Unser kleines persönliches<br />
+        <span class="hero__highlight">Tippspiel</span> für die WM 2026
+      </h2>
 
-        <p>
-          Unser exklusives Tippspiel zur Europameisterschaft ist leider nur für
-          geladene Gäste. Ich entschuldige mich bei allen Fußballfans, die
-          zufällig hier gelandet sind. Wenn du allerdings dazu gehörst:
-          Hereinspaziert!
-        </p>
-      </div>
+      <p class="hero__subtitle">
+        Unser Tippspiel zur WM ist leider nur für
+        geladene Gäste. Ich entschuldige mich bei allen Fußballfans, die
+        zufällig hier gelandet sind.
+      </p>
 
-      <div class="hero__image">
-        <img
-          src="/static/img/teaser-soccer-landscape-3.jpg"
-          alt="Abstraktes Bild von Händen, die einen Fußball halten (KI generiert)"
-        />
-      </div>
+      <p class="hero__cta">
+        <a href="/user/signup" class="pure-button pure-button-primary"
+          >Mitspielen (mit Einladung)</a
+        >
+        <a href="/user/login" class="pure-button">Login</a>
+      </p>
+
+      {{if .CountdownTarget}}
+      <p class="hero__countdown" id="countdown" data-target="{{.CountdownTarget}}"></p>
+      {{end}}
     </div>
 
-    <p class="hero__cta">
-      <a href="/user/signup" class="pure-button pure-button-primary"
-        >Registrieren (benötigt Invite)</a
-      >
+    <div class="penalty-scene__divider"></div>
 
-      <a href="/user/login" class="pure-button">Login</a>
-    </p>
+    {{template "penalty_game" .}}
   </div>
 </div>
 

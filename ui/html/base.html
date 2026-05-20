@@ -11,20 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=DM+Sans:wght@400;500&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
-    <header class="w-100">
-      <div class="container">
-        <h1 class="logo">
-          <a {{if .IsAuthenticated}} href="/spiele" {{else}} href="/" {{end}}
-            >⚽️ GoTipp</a
-          >
-        </h1>
-      </div>
-    </header>
     {{template "nav" .}}
     <main class="content">
       {{with .Flash}}
@@ -35,7 +26,7 @@
     </main>
     <div class="container footer l-box">
       <p>
-        &copy; {{.CurrentYear}} GoTipp ist ein Projekt von
+        &copy; {{.CurrentYear}} GoTipp ist eine Web-Anwendung für Tippspiele unter Freunden &amp; ein Projekt von
         <a href="https://casualcoding.com">casualcoding.com</a>
       </p>
     </div>

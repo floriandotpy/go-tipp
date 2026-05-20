@@ -65,6 +65,7 @@ For production, set up a cron job:
 ## Resources
 
 - Favicon source (licensed under CC-BY 4.0): https://favicon.io/emoji-favicons/soccer-ball
+- Icons in main navigation are Phosphoricons in duotone mode, pick matching icons from here: https://phosphoricons.com/?weight=duotone&q=ball&color=5b7e3c
 
 ## License
 

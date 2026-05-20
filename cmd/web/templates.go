@@ -84,6 +84,8 @@ type templateData struct {
 	ImportError          string
 	// sync preview
 	SyncPreviewPhases []sync.SyncPreviewPhase
+	// countdown target for index page
+	CountdownTarget string
 }
 
 // prep translation mapping
