@@ -1,6 +1,7 @@
 {{define "title"}}GoTipp{{end}}
 {{define "assets"}}
 <script src="/static/js/penalty.js" defer></script>
+<script src="/static/js/countdown.js" defer></script>
 {{end}}
 {{define "main"}}
 <div class="container">
@@ -23,6 +24,10 @@
         >
         <a href="/user/login" class="pure-button">Login</a>
       </p>
+
+      {{if .CountdownTarget}}
+      <p class="hero__countdown" id="countdown" data-target="{{.CountdownTarget}}"></p>
+      {{end}}
     </div>
 
     <div class="penalty-scene__divider"></div>

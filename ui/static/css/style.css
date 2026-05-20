@@ -471,6 +471,19 @@ a:hover { color: #06e; }​ */
     margin: 24px 0;
 }
 
+.hero__countdown {
+    text-align: center;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.hero__countdown-time {
+    color: var(--green-dark);
+}
+
 /* Penalty scene */
 .penalty-scene__divider {
     width: 50%;

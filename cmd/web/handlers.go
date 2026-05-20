@@ -33,6 +33,15 @@ func (app *application) indexHandler(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/leaderboard", http.StatusTemporaryRedirect)
 	}
 
+	// Set countdown target from first match of active event
+	event := eventFromContext(req)
+	if event.ID != 0 {
+		firstStart, err := app.matches.FirstMatchStart(event.ID)
+		if err == nil && firstStart.After(time.Now()) {
+			data.CountdownTarget = firstStart.UTC().Format(time.RFC3339)
+		}
+	}
+
 	app.render(w, req, http.StatusOK, "index.html", data)
 }
 

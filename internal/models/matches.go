@@ -416,6 +416,21 @@ func (m *MatchModel) AllMatchesFinished(eventID int) (bool, error) {
 
 }
 
+// FirstMatchStart returns the start time of the earliest match for the given event.
+func (m *MatchModel) FirstMatchStart(eventID int) (time.Time, error) {
+	stmt := `SELECT start FROM matches WHERE event_id = ? ORDER BY start ASC LIMIT 1`
+	var start time.Time
+	err := m.DB.QueryRow(stmt, eventID).Scan(&start)
+	if err != nil {
+		return time.Time{}, err
+	}
+	start, err = forceLocalTimezone(start)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return start, nil
+}
+
 func forceLocalTimezone(t time.Time) (time.Time, error) {
 	// Load the local timezone
 	loc, err := time.LoadLocation("Local")
