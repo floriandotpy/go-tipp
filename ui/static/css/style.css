@@ -548,6 +548,48 @@ a:hover { color: #06e; }​ */
     50% { transform: scale(1.12); }
 }
 
+.penalty-scene__ball--kicked {
+    animation: none;
+}
+
+.penalty-scene__goal--shake {
+    animation: goal-shake 0.5s ease;
+}
+
+@keyframes goal-shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-6px) rotate(-1deg); }
+    30% { transform: translateX(5px) rotate(1deg); }
+    45% { transform: translateX(-4px) rotate(-0.5deg); }
+    60% { transform: translateX(3px) rotate(0.5deg); }
+    75% { transform: translateX(-2px); }
+}
+
+.penalty-scene__tor {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    font-family: 'Fredoka', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--green-dark);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    text-shadow: 0 2px 8px rgba(91, 126, 60, 0.3);
+}
+
+.penalty-scene__tor--visible {
+    opacity: 1;
+}
+
+.penalty-scene__tor--fade {
+    transition: all 1.2s ease-out;
+    opacity: 0;
+    transform: translate(-50%, -60px);
+}
+
 /* Button overrides */
 .pure-button {
     border-radius: 10px;
