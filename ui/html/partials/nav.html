@@ -3,24 +3,24 @@
   <nav class="container navbar">
     <div class="left">
       {{if .IsAuthenticated }}
-      <a href="/spiele">⚽️ Spiele</a>
-      <a href="/leaderboard">🏆 Leaderboard</a>
-      <a href="/regeln">📜 Regeln</a>
+      <a href="/spiele"><img src="/static/img/ball.png" alt="" class="nav-icon" /> Spiele</a>
+      <a href="/leaderboard"><img src="/static/img/icon-trophy.svg" alt="" class="nav-icon" /> Leaderboard</a>
+      <a href="/regeln"><img src="/static/img/icon-book-open-text.svg" alt="" class="nav-icon" /> Regeln</a>
       {{else}}
-      <a  href="/">⚽️ GoTipp</a>
+      <a href="/"><img src="/static/img/ball.png" alt="" class="nav-icon" /> GoTipp</a>
       {{end}}
     </div>
     <div class="right">
       {{if .IsAuthenticated }} {{if .IsAdmin}}
-      <a href="/admin">🕶️ Admin</a>
+      <a href="/admin"><img src="/static/img/icon-gear-duotone.svg" alt="" class="nav-icon" /> Admin</a>
       {{end}}
       <form action="/user/logout" method="post">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
-        <button>➡️ Logout</button>
+        <button><img src="/static/img/icon-sign-out-duotone.svg" alt="" class="nav-icon" /> Logout</button>
       </form>
       {{else}}
-      <a href="/user/signup">🔜 Registrieren</a>
-      <a href="/user/login">🔒 Login</a>
+      <a href="/user/signup"><img src="/static/img/icon-user-plus-duotone.svg" alt="" class="nav-icon" /> Registrieren</a>
+      <a href="/user/login"><img src="/static/img/icon-sign-in-duotone.svg" alt="" class="nav-icon" /> Login</a>
       {{end}}
     </div>
   </nav>

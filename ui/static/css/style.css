@@ -345,6 +345,15 @@ a:hover { color: #06e; }​ */
     text-decoration: none;
     cursor: pointer;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
+.nav-icon {
+    width: 1.1em;
+    height: 1.1em;
+    flex-shrink: 0;
 }
 .navbar a::after, .navbar button::after {
     content: '';
