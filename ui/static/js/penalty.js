@@ -4,7 +4,74 @@
 
   var ball = scene.querySelector('.penalty-scene__ball');
   var goal = scene.querySelector('.penalty-scene__goal');
-  if (!ball || !goal) return;
+  var keeper = scene.querySelector('.penalty-scene__keeper');
+  if (!ball || !goal || !keeper) return;
+
+  var DEBUG = false;
+  var GOAL_PADDING_FACTOR = 0.18;
+
+  function getKeeperVisualBounds() {
+    // getBoundingClientRect includes transforms, so this gives the actual visual position
+    var sceneRect = scene.getBoundingClientRect();
+    var keeperRect = keeper.getBoundingClientRect();
+    return {
+      left: keeperRect.left - sceneRect.left,
+      top: keeperRect.top - sceneRect.top,
+      width: keeperRect.width,
+      height: keeperRect.height
+    };
+  }
+
+  function drawDebugBoxes() {
+    // Remove old debug boxes
+    var old = scene.querySelectorAll('.debug-box');
+    old.forEach(function(el) { el.parentNode.removeChild(el); });
+
+    if (!DEBUG) return;
+
+    var sceneRect = scene.getBoundingClientRect();
+    var goalRect = goal.getBoundingClientRect();
+
+    var goalLeft = goalRect.left - sceneRect.left;
+    var goalTop = goalRect.top - sceneRect.top;
+    var goalWidth = goalRect.width;
+    var goalHeight = goalRect.height;
+    var goalPadding = goalWidth * GOAL_PADDING_FACTOR;
+
+    // Goal hit area (green) — only X matters for detection
+    var goalBox = document.createElement('div');
+    goalBox.className = 'debug-box';
+    goalBox.style.cssText = 'position:absolute;pointer-events:none;z-index:50;' +
+      'border:2px dashed rgba(91,126,60,0.7);background:rgba(91,126,60,0.08);' +
+      'left:' + (goalLeft + goalPadding) + 'px;' +
+      'top:' + goalTop + 'px;' +
+      'width:' + (goalWidth - goalPadding * 2) + 'px;' +
+      'height:' + goalHeight + 'px;';
+    scene.appendChild(goalBox);
+
+    // Keeper middle third (red) — uses live visual position
+    var kb = getKeeperVisualBounds();
+    var keeperMiddleLeft = kb.left + kb.width * 0.05;
+    var keeperMiddleWidth = kb.width * 0.90;
+
+    var keeperBox = document.createElement('div');
+    keeperBox.className = 'debug-box';
+    keeperBox.style.cssText = 'position:absolute;pointer-events:none;z-index:50;' +
+      'border:2px dashed rgba(196,69,69,0.7);background:rgba(196,69,69,0.1);' +
+      'left:' + keeperMiddleLeft + 'px;' +
+      'top:' + kb.top + 'px;' +
+      'width:' + keeperMiddleWidth + 'px;' +
+      'height:' + kb.height + 'px;';
+    scene.appendChild(keeperBox);
+
+    if (DEBUG) {
+      requestAnimationFrame(drawDebugBoxes);
+    }
+  }
+
+  if (DEBUG) {
+    requestAnimationFrame(drawDebugBoxes);
+  }
 
   var isAnimating = false;
   var gaugeActive = false;
@@ -14,7 +81,6 @@
   var gaugeRAF = null;
   var gauge = null;
 
-  // Create gauge element
   function createGauge() {
     gauge = document.createElement('div');
     gauge.className = 'penalty-gauge';
@@ -47,7 +113,6 @@
       if (gaugeAngle < -1) { gaugeAngle = -1; gaugeDirection = 1; }
 
       var indicator = gauge.querySelector('.penalty-gauge__indicator');
-      // Map -1..1 to 0%..100% position
       var pct = (gaugeAngle + 1) / 2 * 100;
       indicator.style.left = pct + '%';
 
@@ -61,7 +126,7 @@
     gaugeActive = false;
     cancelAnimationFrame(gaugeRAF);
 
-    var angle = gaugeAngle; // -1 to 1
+    var angle = gaugeAngle;
     if (gauge && gauge.parentNode) {
       gauge.parentNode.removeChild(gauge);
     }
@@ -70,7 +135,6 @@
     kickBall(angle);
   }
 
-  // Mouse/touch events on ball
   ball.addEventListener('mousedown', function(e) {
     e.preventDefault();
     if (isAnimating) return;
@@ -89,9 +153,12 @@
     if (gaugeActive) stopGauge();
   });
 
+  var hint = scene.querySelector('.penalty-scene__hint');
+
   function kickBall(angle) {
     isAnimating = true;
     ball.classList.add('penalty-scene__ball--kicked');
+    if (hint) hint.classList.add('penalty-scene__hint--hidden');
 
     var sceneRect = scene.getBoundingClientRect();
     var ballRect = ball.getBoundingClientRect();
@@ -105,20 +172,13 @@
     var goalWidth = goalRect.width;
     var goalHeight = goalRect.height;
 
-    // Target X based on gauge angle (-1 to 1), with spread beyond goal
+    // Target X based on gauge angle
     var goalCenterX = goalLeft + goalWidth / 2;
     var spread = goalWidth * 0.8;
     var targetX = goalCenterX + angle * spread;
 
-    // Target Y: aim at upper-middle of goal with slight randomness
+    // Target Y
     var targetY = goalTop + goalHeight * (0.3 + Math.random() * 0.4);
-
-    // Determine if it's a goal
-    var goalPadding = goalWidth * 0.08;
-    var isGoal = targetX > goalLeft + goalPadding &&
-                 targetX < goalLeft + goalWidth - goalPadding &&
-                 targetY > goalTop + goalPadding &&
-                 targetY < goalTop + goalHeight - goalPadding;
 
     var duration = 600;
     var startTime = null;
@@ -163,15 +223,47 @@
       } else {
         scene.removeChild(flyBall);
 
+        // Determine outcome NOW, when ball arrives — keeper position is current
+        var kb = getKeeperVisualBounds();
+        var keeperMiddleLeft = kb.left + kb.width * 0.05;
+        var keeperMiddleRight = kb.left + kb.width * 0.95;
+
+        var goalPadding = goalWidth * GOAL_PADDING_FACTOR;
+        var hitsGoalArea = targetX > goalLeft + goalPadding &&
+                           targetX < goalLeft + goalWidth - goalPadding;
+
+        var keeperSaves = hitsGoalArea &&
+                          targetX > keeperMiddleLeft &&
+                          targetX < keeperMiddleRight;
+
+        var isGoal = hitsGoalArea && !keeperSaves;
+
+        // Debug: show where the ball landed (vertical line at targetX)
+        if (DEBUG) {
+          var sceneHeight = scene.getBoundingClientRect().height;
+          var marker = document.createElement('div');
+          marker.className = 'debug-target';
+          marker.style.cssText = 'position:absolute;pointer-events:none;z-index:55;' +
+            'left:' + targetX + 'px;top:0;width:2px;height:' + sceneHeight + 'px;' +
+            'background:rgba(255,0,255,0.6);';
+          scene.appendChild(marker);
+          setTimeout(function() {
+            if (marker.parentNode) marker.parentNode.removeChild(marker);
+          }, 2000);
+        }
+
         if (isGoal) {
           showGoal();
+        } else if (keeperSaves) {
+          showSave();
         }
 
         setTimeout(function() {
           ball.style.visibility = 'visible';
           ball.classList.remove('penalty-scene__ball--kicked');
+          if (hint) hint.classList.remove('penalty-scene__hint--hidden');
           isAnimating = false;
-        }, isGoal ? 1200 : 600);
+        }, isGoal || keeperSaves ? 1200 : 600);
       }
     }
 
@@ -184,9 +276,41 @@
       goal.classList.remove('penalty-scene__goal--shake');
     }, 500);
 
+    showMessage('Tor!', 'penalty-scene__tor');
+  }
+
+  function showSave() {
+    // Pause sway to freeze keeper at current position
+    keeper.style.animationPlayState = 'paused';
+
+    // Shake using small offsets from current position
+    var shakeFrames = [
+      { offset: 0 },
+      { transform: 'translateX(-8px)', offset: 0.15 },
+      { transform: 'translateX(7px)', offset: 0.3 },
+      { transform: 'translateX(-5px)', offset: 0.45 },
+      { transform: 'translateX(4px)', offset: 0.6 },
+      { transform: 'translateX(-2px)', offset: 0.75 },
+      { offset: 1 }
+    ];
+
+    var shakeAnim = keeper.animate(shakeFrames, {
+      duration: 500,
+      easing: 'ease',
+      composite: 'add'
+    });
+
+    shakeAnim.onfinish = function() {
+      keeper.style.animationPlayState = '';
+    };
+
+    showMessage('Gehalten!', 'penalty-scene__tor penalty-scene__tor--save');
+  }
+
+  function showMessage(text, className) {
     var msg = document.createElement('div');
-    msg.className = 'penalty-scene__tor';
-    msg.textContent = 'Tor!';
+    msg.className = className;
+    msg.textContent = text;
     scene.appendChild(msg);
 
     requestAnimationFrame(function() {

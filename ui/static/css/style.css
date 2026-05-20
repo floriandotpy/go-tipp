@@ -538,6 +538,29 @@ a:hover { color: #06e; }​ */
     display: block;
 }
 
+.penalty-scene__hint {
+    position: absolute;
+    bottom: 20px;
+    left: calc(50% + 50px);
+    white-space: nowrap;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    animation: hint-nudge 1.5s ease-in-out infinite;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.penalty-scene__hint--hidden {
+    opacity: 0;
+}
+
+@keyframes hint-nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(6px); }
+}
+
 @keyframes keeper-sway {
     0%, 100% { transform: translateX(-80%); }
     50% { transform: translateX(80%); }
@@ -588,12 +611,25 @@ a:hover { color: #06e; }​ */
     animation: goal-shake 0.5s ease;
 }
 
+.penalty-scene__keeper--shake {
+    animation: keeper-shake 0.5s ease;
+}
+
 @keyframes goal-shake {
     0%, 100% { transform: translateX(0); }
     15% { transform: translateX(-6px) rotate(-1deg); }
     30% { transform: translateX(5px) rotate(1deg); }
     45% { transform: translateX(-4px) rotate(-0.5deg); }
     60% { transform: translateX(3px) rotate(0.5deg); }
+    75% { transform: translateX(-2px); }
+}
+
+@keyframes keeper-shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-8px); }
+    30% { transform: translateX(7px); }
+    45% { transform: translateX(-5px); }
+    60% { transform: translateX(4px); }
     75% { transform: translateX(-2px); }
 }
 
@@ -610,6 +646,11 @@ a:hover { color: #06e; }​ */
     pointer-events: none;
     z-index: 20;
     text-shadow: 0 2px 8px rgba(91, 126, 60, 0.3);
+}
+
+.penalty-scene__tor--save {
+    color: var(--red-accent);
+    text-shadow: 0 2px 8px rgba(196, 69, 69, 0.3);
 }
 
 .penalty-scene__tor--visible {
