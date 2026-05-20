@@ -9,6 +9,41 @@
 
   var DEBUG = false;
   var GOAL_PADDING_FACTOR = 0.18;
+  var ROUND_SIZE = 5;
+
+  // Score tracking
+  var roundResults = []; // 'goal', 'save', 'miss'
+  var dotsContainer = scene.querySelector('.penalty-scene__dots');
+
+  function initDots() {
+    dotsContainer.innerHTML = '';
+    for (var i = 0; i < ROUND_SIZE; i++) {
+      var dot = document.createElement('span');
+      dot.className = 'penalty-scene__dot';
+      dotsContainer.appendChild(dot);
+    }
+  }
+
+  function updateScore(result) {
+    roundResults.push(result);
+
+    // Update dot
+    var dots = dotsContainer.querySelectorAll('.penalty-scene__dot');
+    var idx = roundResults.length - 1;
+    if (dots[idx]) {
+      dots[idx].classList.add('penalty-scene__dot--' + result);
+    }
+
+    // Reset round after ROUND_SIZE kicks
+    if (roundResults.length >= ROUND_SIZE) {
+      setTimeout(function() {
+        roundResults = [];
+        initDots();
+      }, 1800);
+    }
+  }
+
+  initDots();
 
   function getKeeperVisualBounds() {
     // getBoundingClientRect includes transforms, so this gives the actual visual position
@@ -253,9 +288,13 @@
         }
 
         if (isGoal) {
+          updateScore('goal');
           showGoal();
         } else if (keeperSaves) {
+          updateScore('save');
           showSave();
+        } else {
+          updateScore('miss');
         }
 
         setTimeout(function() {

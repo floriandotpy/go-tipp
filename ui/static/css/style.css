@@ -504,12 +504,18 @@ a:hover { color: #06e; }​ */
     display: block;
 }
 
+.penalty-scene__ball-row {
+    position: relative;
+    margin-top: 140px;
+    display: flex;
+    justify-content: center;
+}
+
 .penalty-scene__ball {
     position: relative;
     z-index: 3;
     width: 64px;
     height: 64px;
-    margin-top: 140px;
     animation: ball-pulsate 1.2s ease-in-out infinite;
     cursor: pointer;
 }
@@ -521,8 +527,9 @@ a:hover { color: #06e; }​ */
 
 .penalty-scene__hint {
     position: absolute;
-    bottom: 20px;
-    left: calc(50% + 50px);
+    left: calc(50% + 44px);
+    top: 50%;
+    transform: translateY(-50%);
     white-space: nowrap;
     font-family: 'Fredoka', sans-serif;
     font-size: 14px;
@@ -540,6 +547,43 @@ a:hover { color: #06e; }​ */
 @keyframes hint-nudge {
     0%, 100% { transform: translateX(0); }
     50% { transform: translateX(6px); }
+}
+
+/* Penalty score tracking */
+.penalty-scene__score {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.penalty-scene__dots {
+    display: flex;
+    gap: 8px;
+}
+
+.penalty-scene__dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    transition: background 0.3s, transform 0.3s;
+}
+
+.penalty-scene__dot--goal {
+    background: var(--green-dark);
+    transform: scale(1.1);
+}
+
+.penalty-scene__dot--save {
+    background: var(--red-accent);
+    transform: scale(1.1);
+}
+
+.penalty-scene__dot--miss {
+    background: #bbb;
+    transform: scale(1.1);
 }
 
 @keyframes keeper-sway {
