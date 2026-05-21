@@ -49,6 +49,7 @@ func (app *application) routes() http.Handler {
 	admin := dynamic.Append(app.requireAdminAuthentication)
 	mux.Handle("GET /admin", admin.ThenFunc(app.adminIndex))
 	mux.Handle("POST /admin/newinvite", admin.ThenFunc(app.adminCreateInvitePost))
+	mux.Handle("POST /admin/resetpassword", admin.ThenFunc(app.adminResetPasswordPost))
 	mux.Handle("POST /admin/updatepoints", admin.ThenFunc(app.adminUpdatePoints))
 	mux.Handle("GET /admin/events/new", admin.ThenFunc(app.adminCreateEvent))
 	mux.Handle("POST /admin/events/new", admin.ThenFunc(app.adminCreateEventPost))

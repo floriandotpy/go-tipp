@@ -815,11 +815,49 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 	data.EventPhasesMap = phasesMap
 	data.PhaseMatchCounts = phaseMatchCounts
 
+	// Load all users for user management
+	users, err := app.users.All()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Users = users
+
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
 func (app *application) adminCreateInvitePost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Create new invites in the database...")
+}
+
+func (app *application) adminResetPasswordPost(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.Atoi(r.PostForm.Get("user_id"))
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	newPassword := r.PostForm.Get("new_password")
+	if newPassword == "" {
+		app.sessionManager.Put(r.Context(), "flash", "Passwort darf nicht leer sein.")
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+
+	err = app.users.UpdatePassword(userID, newPassword)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Passwort wurde zurückgesetzt.")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
 func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request) {

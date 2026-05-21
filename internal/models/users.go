@@ -149,6 +149,38 @@ func (m *UserModel) Exists(id int) (bool, error) {
 	return false, nil
 }
 
+// All returns all users ordered by name.
+func (m *UserModel) All() ([]User, error) {
+	stmt := `SELECT id, name, email, created, admin FROM users ORDER BY name ASC`
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		err = rows.Scan(&u.ID, &u.Name, &u.Email, &u.Created, &u.IsAdmin)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
+// UpdatePassword sets a new hashed password for the given user.
+func (m *UserModel) UpdatePassword(id int, newPassword string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+	stmt := `UPDATE users SET hashed_password = ? WHERE id = ?`
+	_, err = m.DB.Exec(stmt, string(hashedPassword), id)
+	return err
+}
+
 func (m *UserModel) GroupLeaderboard(groupId, eventID int) ([]User, error) {
 	stmt := `SELECT 
 		u.id AS user_id, 
