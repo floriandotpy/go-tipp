@@ -77,6 +77,43 @@
   <p>Keine Events vorhanden.</p>
   {{end}}
 
+  <h2>Benutzer</h2>
+  {{if .Users}}
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>E-Mail</th>
+        <th>Admin</th>
+        <th>Registriert</th>
+        <th>Passwort zurücksetzen</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Users}}
+      <tr>
+        <td>{{.ID}}</td>
+        <td>{{.Name}}</td>
+        <td>{{.Email}}</td>
+        <td>{{germanYesNo .IsAdmin}}</td>
+        <td>{{.Created.Format "02.01.2006"}}</td>
+        <td>
+          <form action="/admin/resetpassword" method="post" style="display:flex;gap:4px;align-items:center;">
+            <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}" />
+            <input type="hidden" name="user_id" value="{{.ID}}" />
+            <input type="text" name="new_password" placeholder="Neues Passwort" size="14" required />
+            <button class="pure-button" type="submit" onclick="return confirm('Passwort für {{.Name}} wirklich zurücksetzen?')">Reset</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p>Keine Benutzer vorhanden.</p>
+  {{end}}
+
   <h2>Gruppen</h2>
   <table class="cc-table">
     <thead>

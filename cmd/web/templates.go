@@ -86,6 +86,8 @@ type templateData struct {
 	SyncPreviewPhases []sync.SyncPreviewPhase
 	// countdown target for index page
 	CountdownTarget string
+	// admin user list
+	Users []models.User
 }
 
 // prep translation mapping
