@@ -7,11 +7,11 @@ func TestPhasePointsMap_GroupPhaseValues(t *testing.T) {
 	if !ok {
 		t.Fatal("PhaseGroup not found in PhasePointsMap")
 	}
-	if points.CorrectResult != 5 {
-		t.Errorf("CorrectResult: got %d, want 5", points.CorrectResult)
+	if points.CorrectResult != 3 {
+		t.Errorf("CorrectResult: got %d, want 3", points.CorrectResult)
 	}
-	if points.CorrectTendencyAndDiff != 3 {
-		t.Errorf("CorrectTendencyAndDiff: got %d, want 3", points.CorrectTendencyAndDiff)
+	if points.CorrectTendencyAndDiff != 2 {
+		t.Errorf("CorrectTendencyAndDiff: got %d, want 2", points.CorrectTendencyAndDiff)
 	}
 	if points.CorrectTendency != 1 {
 		t.Errorf("CorrectTendency: got %d, want 1", points.CorrectTendency)
@@ -29,8 +29,8 @@ func TestPhasePointsMap_KOPhaseValues(t *testing.T) {
 	if points.CorrectTendencyAndDiff != 4 {
 		t.Errorf("CorrectTendencyAndDiff: got %d, want 4", points.CorrectTendencyAndDiff)
 	}
-	if points.CorrectTendency != 3 {
-		t.Errorf("CorrectTendency: got %d, want 3", points.CorrectTendency)
+	if points.CorrectTendency != 2 {
+		t.Errorf("CorrectTendency: got %d, want 2", points.CorrectTendency)
 	}
 }
 
