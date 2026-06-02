@@ -13,13 +13,13 @@ type PhasePoints struct {
 
 var PhasePointsMap = map[string]PhasePoints{
 	PhaseGroup: {
-		CorrectResult:          5,
-		CorrectTendencyAndDiff: 3,
+		CorrectResult:          3,
+		CorrectTendencyAndDiff: 2,
 		CorrectTendency:        1,
 	},
 	PhaseKO: {
 		CorrectResult:          6,
 		CorrectTendencyAndDiff: 4,
-		CorrectTendency:        3,
+		CorrectTendency:        2,
 	},
 }

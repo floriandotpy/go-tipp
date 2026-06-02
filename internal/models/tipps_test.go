@@ -14,8 +14,8 @@ func TestComputeLiveTipps_ExactResult_GroupPhase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result[0].Points != 5 {
-		t.Errorf("got %d points, want 5", result[0].Points)
+	if result[0].Points != 3 {
+		t.Errorf("got %d points, want 3", result[0].Points)
 	}
 	if !result[0].ResultCorrect {
 		t.Error("expected ResultCorrect to be true")
@@ -33,6 +33,7 @@ func TestComputeLiveTipps_ExactResult_KOPhase(t *testing.T) {
 	if result[0].Points != 6 {
 		t.Errorf("got %d points, want 6", result[0].Points)
 	}
+
 }
 
 func TestComputeLiveTipps_CorrectTendencyAndDiff(t *testing.T) {
@@ -44,8 +45,8 @@ func TestComputeLiveTipps_CorrectTendencyAndDiff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result[0].Points != 3 {
-		t.Errorf("got %d points, want 3", result[0].Points)
+	if result[0].Points != 2 {
+		t.Errorf("got %d points, want 2", result[0].Points)
 	}
 	if !result[0].TendencyCorrect {
 		t.Error("expected TendencyCorrect to be true")
@@ -104,8 +105,8 @@ func TestComputeLiveTipps_Draw(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result[0].Points != 5 {
-		t.Errorf("got %d points, want 5 (exact result)", result[0].Points)
+	if result[0].Points != 3 {
+		t.Errorf("got %d points, want 3 (exact result)", result[0].Points)
 	}
 }
 
@@ -119,8 +120,8 @@ func TestComputeLiveTipps_DrawTendencyOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	// diff is 0 in both cases, so tendency AND diff are correct
-	if result[0].Points != 3 {
-		t.Errorf("got %d points, want 3 (tendency + diff)", result[0].Points)
+	if result[0].Points != 2 {
+		t.Errorf("got %d points, want 2 (tendency + diff)", result[0].Points)
 	}
 }
 
@@ -128,7 +129,7 @@ func TestComputeLiveTipps_SortsByPointsDescending(t *testing.T) {
 	m := &TippModel{}
 	tipps := []Tipp{
 		{TippA: 0, TippB: 3, UserId: 1}, // wrong tendency → 0 pts
-		{TippA: 2, TippB: 1, UserId: 2}, // exact result → 5 pts
+		{TippA: 2, TippB: 1, UserId: 2}, // exact result → 3 pts
 		{TippA: 1, TippB: 0, UserId: 3}, // correct tendency only → 1 pt
 	}
 
