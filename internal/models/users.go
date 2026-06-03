@@ -58,15 +58,7 @@ func (m *UserModel) Insert(name, email, password string) (int, error) {
 
 func (m *UserModel) Get(id int) (User, error) {
 
-	stmt := `
-        SELECT u.id, u.name, u.email, u.created, u.admin,
-               COALESCE(SUM(t.points), 0) AS total_points,
-               COUNT(t.id) AS total_tipps
-        FROM users u
-        LEFT JOIN tipps t ON u.id = t.user_id
-        WHERE u.id = ?
-        GROUP BY u.id
-    `
+	stmt := `SELECT id, name, email, created, admin FROM users WHERE id = ?`
 	var user User
 	err := m.DB.QueryRow(stmt, id).Scan(
 		&user.ID,
@@ -74,8 +66,6 @@ func (m *UserModel) Get(id int) (User, error) {
 		&user.Email,
 		&user.Created,
 		&user.IsAdmin,
-		&user.Points,
-		&user.Tipps,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -88,15 +78,7 @@ func (m *UserModel) Get(id int) (User, error) {
 }
 
 func (m *UserModel) GetByUsername(username string) (User, error) {
-	stmt := `
-        SELECT u.id, u.name, u.email, u.created, u.admin,
-               COALESCE(SUM(t.points), 0) AS total_points,
-               COUNT(t.id) AS total_tipps
-        FROM users u
-        LEFT JOIN tipps t ON u.id = t.user_id
-        WHERE u.name = ?
-        GROUP BY u.id
-    `
+	stmt := `SELECT id, name, email, created, admin FROM users WHERE name = ?`
 	var user User
 	err := m.DB.QueryRow(stmt, username).Scan(
 		&user.ID,
@@ -104,8 +86,6 @@ func (m *UserModel) GetByUsername(username string) (User, error) {
 		&user.Email,
 		&user.Created,
 		&user.IsAdmin,
-		&user.Points,
-		&user.Tipps,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -436,3 +436,26 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 
 	return data, nil
 }
+
+// UserEventStats holds aggregated tipp stats for a user within a single event.
+type UserEventStats struct {
+	TippCount   int
+	TotalPoints int
+}
+
+// StatsForUserEvent returns the number of tipps and total points for a user
+// scoped to a specific event.
+func (m *TippModel) StatsForUserEvent(userID, eventID int) (UserEventStats, error) {
+	stmt := `
+		SELECT COUNT(t.id), COALESCE(SUM(t.points), 0)
+		FROM tipps t
+		JOIN matches m ON t.match_id = m.id
+		WHERE t.user_id = ? AND m.event_id = ?
+	`
+	var stats UserEventStats
+	err := m.DB.QueryRow(stmt, userID, eventID).Scan(&stats.TippCount, &stats.TotalPoints)
+	if err != nil {
+		return UserEventStats{}, err
+	}
+	return stats, nil
+}

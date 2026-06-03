@@ -8,10 +8,10 @@
      beim Tippspiel angemeldet.
     </p>
     <p>
-        Aktuell hat {{.User.Name}} 
-        <strong>{{.User.Tipps}} Tipps</strong> 
-        abgegeben und damit bisher
-        <strong>{{.User.Points}} Punkte</strong>
+        {{.User.Name}} hat im aktuellen Event ({{.Event.Name}}) bisher
+        <strong>{{pluralize .User.Tipps "Tipp" "Tipps"}}</strong> 
+        abgegeben und damit schon
+        <strong>{{pluralize .User.Points "Punkt" "Punkte"}}</strong>
         erreicht.
     </p>
 

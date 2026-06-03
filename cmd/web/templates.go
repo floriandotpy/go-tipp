@@ -196,6 +196,13 @@ func isKOPhase(phase models.EventPhase) bool {
 	return phase.Number >= 4
 }
 
+func pluralize(count int, singular string, plural string) string {
+	if count == 1 {
+		return fmt.Sprintf("%d %s", count, singular)
+	}
+	return fmt.Sprintf("%d %s", count, plural)
+}
+
 var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
@@ -208,6 +215,7 @@ var functions = template.FuncMap{
 	"even":          even,
 	"odd":           odd,
 	"isKOPhase":     isKOPhase,
+	"pluralize":     pluralize,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
