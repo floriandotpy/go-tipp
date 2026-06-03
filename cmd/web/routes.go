@@ -45,6 +45,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /scores.json", protected.ThenFunc(app.scoresJsonHandler))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
 	mux.Handle("GET /user/settings", protected.ThenFunc(app.userSettings))
+	mux.Handle("GET /user/settings/api-docs", protected.ThenFunc(app.apiDocsHandler))
 	mux.Handle("POST /user/settings/token/generate", protected.ThenFunc(app.userGenerateToken))
 	mux.Handle("POST /user/settings/token/revoke", protected.ThenFunc(app.userRevokeToken))
 

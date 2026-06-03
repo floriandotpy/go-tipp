@@ -1490,3 +1490,8 @@ func (app *application) userRevokeToken(w http.ResponseWriter, r *http.Request) 
 
 	http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
 }
+
+func (app *application) apiDocsHandler(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	app.render(w, r, http.StatusOK, "api_docs.html", data)
+}

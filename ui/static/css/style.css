@@ -1213,3 +1213,23 @@ Prev/next buttons for mobile view
     background-color: #5cb85c;
     color: #fff;
 }
+
+/* Settings page */
+.settings-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.token-display {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 0.5em;
+}
+.token-input {
+    flex: 1;
+    font-family: monospace;
+    padding: 0.4em 0.6em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
