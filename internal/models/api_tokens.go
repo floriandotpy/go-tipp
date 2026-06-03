@@ -2,11 +2,10 @@ package models
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 const apiTokenPrefix = "gtipp_"
@@ -21,6 +20,14 @@ type ApiTokenModel struct {
 	DB *sql.DB
 }
 
+// hashToken computes the SHA-256 hex digest of a plaintext token.
+// Since API tokens have 256 bits of entropy (not user-chosen passwords),
+// a fast cryptographic hash is sufficient — bcrypt is unnecessary here.
+func hashToken(plaintext string) string {
+	h := sha256.Sum256([]byte(plaintext))
+	return hex.EncodeToString(h[:])
+}
+
 // Generate creates a new API token for the user, revoking any existing one.
 // Returns the plaintext token (shown once to the user).
 func (m *ApiTokenModel) Generate(userID int) (string, error) {
@@ -31,11 +38,7 @@ func (m *ApiTokenModel) Generate(userID int) (string, error) {
 	}
 
 	plaintext := apiTokenPrefix + hex.EncodeToString(randomBytes)
-
-	hashedToken, err := bcrypt.GenerateFromPassword([]byte(plaintext), 12)
-	if err != nil {
-		return "", err
-	}
+	tokenHash := hashToken(plaintext)
 
 	tx, err := m.DB.Begin()
 	if err != nil {
@@ -50,7 +53,7 @@ func (m *ApiTokenModel) Generate(userID int) (string, error) {
 
 	_, err = tx.Exec(
 		`INSERT INTO api_tokens (user_id, token_hash, created) VALUES (?, ?, UTC_TIMESTAMP())`,
-		userID, string(hashedToken),
+		userID, tokenHash,
 	)
 	if err != nil {
 		return "", err
@@ -91,33 +94,22 @@ func (m *ApiTokenModel) Exists(userID int) (bool, error) {
 	return exists, err
 }
 
-// Validate checks the plaintext token against all stored hashes.
-// Returns the user ID if valid, or ErrInvalidCredentials if not.
+// Validate looks up the token by its SHA-256 hash (O(1) indexed lookup).
+// Returns the user ID if valid, or ErrInvalidCredentials if not found.
 func (m *ApiTokenModel) Validate(plaintext string) (int, error) {
-	rows, err := m.DB.Query(`SELECT user_id, token_hash FROM api_tokens`)
+	tokenHash := hashToken(plaintext)
+
+	var userID int
+	err := m.DB.QueryRow(
+		`SELECT user_id FROM api_tokens WHERE token_hash = ?`,
+		tokenHash,
+	).Scan(&userID)
 	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var userID int
-		var tokenHash string
-
-		err = rows.Scan(&userID, &tokenHash)
-		if err != nil {
-			return 0, err
+		if err == sql.ErrNoRows {
+			return 0, ErrInvalidCredentials
 		}
-
-		err = bcrypt.CompareHashAndPassword([]byte(tokenHash), []byte(plaintext))
-		if err == nil {
-			return userID, nil
-		}
-	}
-
-	if err = rows.Err(); err != nil {
 		return 0, err
 	}
 
-	return 0, ErrInvalidCredentials
+	return userID, nil
 }
