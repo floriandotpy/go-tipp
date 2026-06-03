@@ -359,6 +359,15 @@ func (app *application) userDetailsHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Load event-scoped stats for the user
+	stats, err := app.tipps.StatsForUserEvent(user.ID, event.ID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	user.Tipps = stats.TippCount
+	user.Points = stats.TotalPoints
+
 	tipps, err := app.tipps.AllForUser(user.ID)
 	if err != nil {
 		app.serverError(w, r, err)
