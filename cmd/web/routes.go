@@ -44,6 +44,9 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /langeweile", protected.ThenFunc(app.boredomHandler))
 	mux.Handle("GET /scores.json", protected.ThenFunc(app.scoresJsonHandler))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
+	mux.Handle("GET /user/settings", protected.ThenFunc(app.userSettings))
+	mux.Handle("POST /user/settings/token/generate", protected.ThenFunc(app.userGenerateToken))
+	mux.Handle("POST /user/settings/token/revoke", protected.ThenFunc(app.userRevokeToken))
 
 	// admin routes
 	admin := dynamic.Append(app.requireAdminAuthentication)
@@ -70,6 +73,12 @@ func (app *application) routes() http.Handler {
 
 	// Delete phase
 	mux.Handle("POST /admin/phases/{phaseID}/delete", admin.ThenFunc(app.adminDeletePhasePost))
+
+	// API routes (Bearer token auth, no session/CSRF)
+	api := alice.New(app.apiAuth)
+	mux.Handle("GET /api/v1/matches", api.ThenFunc(app.apiGetMatches))
+	mux.Handle("GET /api/v1/tipps", api.ThenFunc(app.apiGetTipps))
+	mux.Handle("POST /api/v1/tipps", api.ThenFunc(app.apiPostTipp))
 
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)

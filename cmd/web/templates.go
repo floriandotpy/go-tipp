@@ -88,6 +88,9 @@ type templateData struct {
 	CountdownTarget string
 	// admin user list
 	Users []models.User
+	// API token management
+	TokenExists bool
+	NewToken    string
 }
 
 // prep translation mapping

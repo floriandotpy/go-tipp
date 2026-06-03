@@ -1,0 +1,137 @@
+{{define "title"}}Einstellungen{{end}} {{define "assets"}}{{end}} {{define "main"}}
+<div class="container">
+  <h1>Einstellungen</h1>
+
+  <h2>API-Zugang</h2>
+
+  <p>Status: {{if .TokenExists}}<strong>Aktiviert</strong>{{else}}<strong>Deaktiviert</strong>{{end}}</p>
+
+  {{if .NewToken}}
+  <div class="cc-alert-flash" style="margin-bottom: 1em;">
+    <p><strong>Dieser Token wird nur einmal angezeigt. Bitte kopieren und sicher aufbewahren.</strong></p>
+    <div style="display: flex; gap: 8px; align-items: center; margin-top: 0.5em;">
+      <input type="text" id="api-token" value="{{.NewToken}}" readonly style="flex: 1; font-family: monospace;" />
+      <button type="button" class="pure-button" onclick="navigator.clipboard.writeText(document.getElementById('api-token').value)">Kopieren</button>
+    </div>
+  </div>
+  {{end}}
+
+  <div style="display: flex; gap: 8px; margin-top: 1em;">
+    <form action="/user/settings/token/generate" method="POST">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+      <button type="submit" class="pure-button pure-button-primary">Token generieren</button>
+    </form>
+
+    {{if .TokenExists}}
+    <form action="/user/settings/token/revoke" method="POST">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+      <button type="submit" class="pure-button" onclick="return confirm('Token wirklich widerrufen?')">Token widerrufen</button>
+    </form>
+    {{end}}
+  </div>
+
+  <hr style="margin: 2em 0;" />
+
+  <h2>API-Dokumentation</h2>
+
+  <p>Alle Anfragen an die API benötigen den Header:</p>
+  <pre><code>Authorization: Bearer &lt;dein-token&gt;</code></pre>
+
+  <p>Basis-URL: <code>/api/v1</code></p>
+
+  <h3>GET /api/v1/matches</h3>
+  <p>Gibt alle Spiele des aktiven Events zurück.</p>
+  <details>
+    <summary>Beispiel-Antwort</summary>
+    <pre><code>[
+  {
+    "id": 1,
+    "team_a": "Deutschland",
+    "team_b": "Frankreich",
+    "start": "2026-06-14T18:00:00Z",
+    "match_type": "group",
+    "event_phase": 1,
+    "finished": false,
+    "accepts_tipps": true
+  }
+]</code></pre>
+  </details>
+
+  <h3>GET /api/v1/tipps</h3>
+  <p>Gibt deine abgegebenen Tipps für das aktive Event zurück.</p>
+  <details>
+    <summary>Beispiel-Antwort</summary>
+    <pre><code>[
+  {
+    "match_id": 1,
+    "tipp_a": 2,
+    "tipp_b": 1,
+    "created": "2026-06-10T09:30:00Z",
+    "changed": "2026-06-10T09:30:00Z"
+  }
+]</code></pre>
+  </details>
+
+  <h3>POST /api/v1/tipps</h3>
+  <p>Tipp für ein Spiel abgeben oder aktualisieren.</p>
+  <details>
+    <summary>Request-Body</summary>
+    <pre><code>{
+  "match_id": 1,
+  "tipp_a": 2,
+  "tipp_b": 1
+}</code></pre>
+  </details>
+  <details>
+    <summary>Beispiel-Antwort (200 OK)</summary>
+    <pre><code>{
+  "match_id": 1,
+  "tipp_a": 2,
+  "tipp_b": 1,
+  "created": "2026-06-10T09:30:00Z",
+  "changed": "2026-06-10T09:30:00Z"
+}</code></pre>
+  </details>
+
+  <h3>Fehlercodes</h3>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 0.5em;">
+    <thead>
+      <tr style="text-align: left; border-bottom: 2px solid #ddd;">
+        <th style="padding: 4px 8px;">Code</th>
+        <th style="padding: 4px 8px;">Bedeutung</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 4px 8px;"><code>400</code></td>
+        <td style="padding: 4px 8px;">Ungültiger JSON-Body</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 4px 8px;"><code>401</code></td>
+        <td style="padding: 4px 8px;">Fehlender oder ungültiger Token</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 4px 8px;"><code>404</code></td>
+        <td style="padding: 4px 8px;">Spiel nicht gefunden / kein aktives Event</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 4px 8px;"><code>409</code></td>
+        <td style="padding: 4px 8px;">Spiel gesperrt (bereits gestartet)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 4px 8px;"><code>422</code></td>
+        <td style="padding: 4px 8px;">Validierungsfehler (z.B. tipp_a nicht 0–99)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Beispiel mit curl</h3>
+  <pre><code>curl -H "Authorization: Bearer gtipp_abc123..." \
+     https://dein-server/api/v1/matches</code></pre>
+  <pre><code>curl -X POST \
+     -H "Authorization: Bearer gtipp_abc123..." \
+     -H "Content-Type: application/json" \
+     -d '{"match_id": 1, "tipp_a": 2, "tipp_b": 1}' \
+     https://dein-server/api/v1/tipps</code></pre>
+</div>
+{{end}}

@@ -31,6 +31,7 @@ type application struct {
 	users          *models.UserModel
 	groups         *models.GroupModel
 	goals          *models.GoalModel
+	apiTokens      *models.ApiTokenModel
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -101,6 +102,7 @@ func main() {
 		users:          &models.UserModel{DB: db},
 		groups:         &models.GroupModel{DB: db},
 		goals:          &models.GoalModel{DB: db},
+		apiTokens:      &models.ApiTokenModel{DB: db},
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,

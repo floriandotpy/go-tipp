@@ -12,7 +12,9 @@
       {{end}}
     </div>
     <div class="right">
-      {{if .IsAuthenticated }} {{if .IsAdmin}}
+      {{if .IsAuthenticated }}
+      <a href="/user/settings">Einstellungen</a>
+      {{if .IsAdmin}}
       <a href="/admin"><img src="/static/img/icon-gear-duotone.svg" alt="" class="nav-icon" /> Admin</a>
       {{end}}
       <form action="/user/logout" method="post">

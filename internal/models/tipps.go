@@ -134,6 +134,21 @@ func (m *TippModel) Get(id int) (Tipp, error) {
 	return t, nil
 }
 
+// GetByMatchAndUser returns the tipp for a specific match and user combination.
+func (m *TippModel) GetByMatchAndUser(matchID int, userID int) (Tipp, error) {
+	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE match_id = ? AND user_id = ?`
+	var t Tipp
+	err := m.DB.QueryRow(stmt, matchID, userID).Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Tipp{}, ErrNoRecord
+		}
+		return Tipp{}, err
+	}
+
+	return t, nil
+}
+
 func (m *TippModel) AllForUser(userId int) ([]Tipp, error) {
 	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed, 
 	result_correct, tendency_correct, goal_difference_correct, points FROM tipps WHERE user_id = ?`

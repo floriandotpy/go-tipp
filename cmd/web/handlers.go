@@ -1429,3 +1429,64 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 	app.sessionManager.Put(r.Context(), "flash", msg)
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
+
+// --- User Settings / Token Management ---
+
+func (app *application) userSettings(w http.ResponseWriter, r *http.Request) {
+	userID, err := app.authUserId(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	tokenExists, err := app.apiTokens.Exists(userID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.TokenExists = tokenExists
+	app.render(w, r, http.StatusOK, "settings.html", data)
+}
+
+func (app *application) userGenerateToken(w http.ResponseWriter, r *http.Request) {
+	userID, err := app.authUserId(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	plaintext, err := app.apiTokens.Generate(userID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.TokenExists = true
+	data.NewToken = plaintext
+	app.render(w, r, http.StatusOK, "settings.html", data)
+}
+
+func (app *application) userRevokeToken(w http.ResponseWriter, r *http.Request) {
+	userID, err := app.authUserId(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = app.apiTokens.Revoke(userID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.sessionManager.Put(r.Context(), "flash", "Kein aktiver API-Token vorhanden.")
+		} else {
+			app.serverError(w, r, err)
+			return
+		}
+	} else {
+		app.sessionManager.Put(r.Context(), "flash", "API-Token wurde widerrufen")
+	}
+
+	http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
+}
