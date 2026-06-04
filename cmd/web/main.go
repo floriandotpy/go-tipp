@@ -104,7 +104,7 @@ func main() {
 		groups:         &models.GroupModel{DB: db},
 		goals:          &models.GoalModel{DB: db},
 		apiTokens:      &models.ApiTokenModel{DB: db},
-		apiLimiter:     newIPRateLimiter(10, 20), // 10 requests/sec sustained, burst of 20
+		apiLimiter:     newIPRateLimiter(30, 60), // 30 requests/sec sustained, burst of 60
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
