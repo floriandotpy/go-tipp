@@ -4,16 +4,94 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
+	"golang.org/x/time/rate"
 	"tipp.casualcoding.com/internal/models"
 )
+
+// --- Per-IP Rate Limiter ---
+
+// ipRateLimiter tracks rate limiters per client IP.
+type ipRateLimiter struct {
+	mu       sync.Mutex
+	limiters map[string]*rateLimiterEntry
+	rate     rate.Limit
+	burst    int
+}
+
+type rateLimiterEntry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
+func newIPRateLimiter(r rate.Limit, burst int) *ipRateLimiter {
+	rl := &ipRateLimiter{
+		limiters: make(map[string]*rateLimiterEntry),
+		rate:     r,
+		burst:    burst,
+	}
+	// Background cleanup of stale entries every 3 minutes.
+	go rl.cleanup(3 * time.Minute)
+	return rl
+}
+
+func (rl *ipRateLimiter) getLimiter(ip string) *rate.Limiter {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	entry, exists := rl.limiters[ip]
+	if !exists {
+		limiter := rate.NewLimiter(rl.rate, rl.burst)
+		rl.limiters[ip] = &rateLimiterEntry{limiter: limiter, lastSeen: time.Now()}
+		return limiter
+	}
+
+	entry.lastSeen = time.Now()
+	return entry.limiter
+}
+
+func (rl *ipRateLimiter) cleanup(interval time.Duration) {
+	for {
+		time.Sleep(interval)
+		rl.mu.Lock()
+		for ip, entry := range rl.limiters {
+			if time.Since(entry.lastSeen) > 5*time.Minute {
+				delete(rl.limiters, ip)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
 
 // apiContextKey is a custom type for context keys to avoid collisions.
 type apiContextKey string
 
 const apiUserIDKey apiContextKey = "userID"
+
+// apiRateLimit is middleware that enforces per-IP rate limiting.
+// Returns 429 Too Many Requests when the limit is exceeded.
+func (app *application) apiRateLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			ip = r.RemoteAddr
+		}
+
+		limiter := app.apiLimiter.getLimiter(ip)
+		if !limiter.Allow() {
+			w.Header().Set("Retry-After", "1")
+			app.apiError(w, http.StatusTooManyRequests, "rate limit exceeded")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 // apiAuth validates the Bearer token from the Authorization header and stores
 // the authenticated user ID in the request context. Returns 401 JSON on failure.

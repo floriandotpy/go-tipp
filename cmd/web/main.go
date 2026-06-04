@@ -32,6 +32,7 @@ type application struct {
 	groups         *models.GroupModel
 	goals          *models.GoalModel
 	apiTokens      *models.ApiTokenModel
+	apiLimiter     *ipRateLimiter
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -103,6 +104,7 @@ func main() {
 		groups:         &models.GroupModel{DB: db},
 		goals:          &models.GoalModel{DB: db},
 		apiTokens:      &models.ApiTokenModel{DB: db},
+		apiLimiter:     newIPRateLimiter(10, 20), // 10 requests/sec sustained, burst of 20
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,

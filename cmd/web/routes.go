@@ -76,7 +76,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("POST /admin/phases/{phaseID}/delete", admin.ThenFunc(app.adminDeletePhasePost))
 
 	// API routes (Bearer token auth, no session/CSRF)
-	api := alice.New(app.apiAuth)
+	api := alice.New(app.apiRateLimit, app.apiAuth)
 	mux.Handle("GET /api/v1/matches", api.ThenFunc(app.apiGetMatches))
 	mux.Handle("GET /api/v1/tipps", api.ThenFunc(app.apiGetTipps))
 	mux.Handle("POST /api/v1/tipps", api.ThenFunc(app.apiPostTipp))
