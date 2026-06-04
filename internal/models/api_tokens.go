@@ -97,6 +97,10 @@ func (m *ApiTokenModel) Exists(userID int) (bool, error) {
 // Validate looks up the token by its SHA-256 hash (O(1) indexed lookup).
 // Returns the user ID if valid, or ErrInvalidCredentials if not found.
 func (m *ApiTokenModel) Validate(plaintext string) (int, error) {
+	if len(plaintext) < len(apiTokenPrefix) || plaintext[:len(apiTokenPrefix)] != apiTokenPrefix {
+		return 0, ErrInvalidCredentials
+	}
+
 	tokenHash := hashToken(plaintext)
 
 	var userID int

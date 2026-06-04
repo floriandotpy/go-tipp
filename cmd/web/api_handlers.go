@@ -142,6 +142,9 @@ func (app *application) apiGetTipps(w http.ResponseWriter, r *http.Request) {
 
 // apiPostTipp handles POST /api/v1/tipps
 func (app *application) apiPostTipp(w http.ResponseWriter, r *http.Request) {
+	// Limit request body to 1MB to prevent resource exhaustion.
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
 	// Decode JSON body.
 	var input struct {
 		MatchID *int `json:"match_id"`
@@ -220,6 +223,13 @@ func (app *application) apiPostTipp(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from context.
 	userID := apiUserID(r)
 
+	// Check if tipp already exists to determine response status code.
+	tippExists, err := app.tipps.Exists(matchID, userID)
+	if err != nil {
+		app.apiError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
 	// Save the tipp.
 	err = app.tipps.InsertOrUpdate(matchID, userID, tippA, tippB)
 	if err != nil {
@@ -242,6 +252,12 @@ func (app *application) apiPostTipp(w http.ResponseWriter, r *http.Request) {
 		Changed: savedTipp.Changed.UTC().Format(time.RFC3339),
 	}
 
+	status := http.StatusCreated
+	if tippExists {
+		status = http.StatusOK
+	}
+
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(response)
 }

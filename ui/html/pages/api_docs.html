@@ -66,7 +66,7 @@
     </ul>
   </details>
   <details>
-    <summary>Beispiel-Antwort (200 OK)</summary>
+    <summary>Beispiel-Antwort (201 Created / 200 OK)</summary>
     <pre><code>{
   "match_id": 1,
   "tipp_a": 2,
@@ -74,6 +74,7 @@
   "created": "2026-06-10T09:30:00Z",
   "changed": "2026-06-10T09:30:00Z"
 }</code></pre>
+    <p><code>201</code> wenn ein neuer Tipp erstellt wird, <code>200</code> wenn ein bestehender aktualisiert wird.</p>
   </details>
 
   <h2>Fehlercodes</h2>
@@ -100,6 +101,10 @@
       <tr>
         <td><code>409</code></td>
         <td>Spiel gesperrt (bereits gestartet oder Teams unbekannt)</td>
+      </tr>
+      <tr>
+        <td><code>429</code></td>
+        <td>Rate-Limit überschritten — bitte kurz warten und erneut versuchen (max. 10 Anfragen/Sek. pro IP)</td>
       </tr>
       <tr>
         <td><code>422</code></td>
