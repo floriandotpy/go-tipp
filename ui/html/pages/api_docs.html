@@ -51,30 +51,33 @@
   </details>
 
   <h3>POST /api/v1/tipps</h3>
-  <p>Tipp für ein Spiel abgeben oder aktualisieren. Wenn bereits ein Tipp für das Spiel existiert, wird er überschrieben.</p>
+  <p>Tipps abgeben oder aktualisieren. Akzeptiert einen oder mehrere Tipps auf einmal. Alle Tipps werden validiert bevor einer gespeichert wird — entweder werden alle gespeichert oder keiner (all-or-nothing).</p>
   <details>
     <summary>Request-Body</summary>
     <pre><code>{
-  "match_id": 1,
-  "tipp_a": 2,
-  "tipp_b": 1
+  "tipps": [
+    {"match_id": 1, "tipp_a": 2, "tipp_b": 1},
+    {"match_id": 2, "tipp_a": 0, "tipp_b": 3}
+  ]
 }</code></pre>
     <ul>
+      <li>Max. 200 Tipps pro Anfrage</li>
       <li><code>match_id</code> — ID des Spiels (Pflicht, &gt; 0)</li>
       <li><code>tipp_a</code> — Tipp für Team A (Pflicht, 0–99)</li>
       <li><code>tipp_b</code> — Tipp für Team B (Pflicht, 0–99)</li>
     </ul>
+    <p>Für einen einzelnen Tipp einfach ein Array mit einem Element senden.</p>
   </details>
   <details>
-    <summary>Beispiel-Antwort (201 Created / 200 OK)</summary>
+    <summary>Beispiel-Antwort (200 OK)</summary>
     <pre><code>{
-  "match_id": 1,
-  "tipp_a": 2,
-  "tipp_b": 1,
-  "created": "2026-06-10T09:30:00Z",
-  "changed": "2026-06-10T09:30:00Z"
+  "count": 2,
+  "results": [
+    {"match_id": 1, "tipp_a": 2, "tipp_b": 1, "created": "2026-06-10T09:30:00Z", "changed": "2026-06-10T09:30:00Z", "status": "created"},
+    {"match_id": 2, "tipp_a": 0, "tipp_b": 3, "created": "2026-06-10T09:31:00Z", "changed": "2026-06-10T09:31:00Z", "status": "updated"}
+  ]
 }</code></pre>
-    <p><code>201</code> wenn ein neuer Tipp erstellt wird, <code>200</code> wenn ein bestehender aktualisiert wird.</p>
+    <p><code>status</code> ist <code>"created"</code> für neue Tipps und <code>"updated"</code> für aktualisierte.</p>
   </details>
 
   <h2>Fehlercodes</h2>
@@ -129,10 +132,18 @@
   <pre><code>curl -H "Authorization: Bearer gtipp_abc123..." \
      https://dein-server/api/v1/tipps</code></pre>
 
-  <pre><code>curl -X POST \
+  <pre><code># Einzelner Tipp
+curl -X POST \
      -H "Authorization: Bearer gtipp_abc123..." \
      -H "Content-Type: application/json" \
-     -d '{"match_id": 1, "tipp_a": 2, "tipp_b": 1}' \
+     -d '{"tipps": [{"match_id": 1, "tipp_a": 2, "tipp_b": 1}]}' \
+     https://dein-server/api/v1/tipps</code></pre>
+
+  <pre><code># Mehrere Tipps auf einmal
+curl -X POST \
+     -H "Authorization: Bearer gtipp_abc123..." \
+     -H "Content-Type: application/json" \
+     -d '{"tipps": [{"match_id":1,"tipp_a":2,"tipp_b":1},{"match_id":2,"tipp_a":0,"tipp_b":3}]}' \
      https://dein-server/api/v1/tipps</code></pre>
 </div>
 {{end}}
