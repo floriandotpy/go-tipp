@@ -83,6 +83,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /api/v1/matches", api.ThenFunc(app.apiGetMatches))
 	mux.Handle("GET /api/v1/tipps", api.ThenFunc(app.apiGetTipps))
 	mux.Handle("POST /api/v1/tipps", api.ThenFunc(app.apiPostTipps))
+	mux.Handle("GET /api/v1/leaderboard", api.ThenFunc(app.apiGetLeaderboard))
 
 	// standard middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)

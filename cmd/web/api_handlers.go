@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,19 @@ import (
 )
 
 // --- JSON response structs ---
+
+type apiLeaderboardEntry struct {
+	Place    int    `json:"place"`
+	Username string `json:"username"`
+	Points   int    `json:"points"`
+	Tipps    int    `json:"tipps"`
+}
+
+type apiLeaderboard struct {
+	GroupID   *int                  `json:"group_id"`
+	GroupName string                `json:"group_name"`
+	Entries   []apiLeaderboardEntry `json:"entries"`
+}
 
 type apiMatch struct {
 	ID           int    `json:"id"`
@@ -327,5 +341,103 @@ func (app *application) apiPostTipps(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"results": results,
 		"count":   len(results),
+	})
+}
+
+// apiGetLeaderboard handles GET /api/v1/leaderboard
+// Returns the leaderboards for all groups the user belongs to, plus the global leaderboard.
+// Optional query param ?group=<id> to filter to a specific group, or ?group=global for only the global board.
+func (app *application) apiGetLeaderboard(w http.ResponseWriter, r *http.Request) {
+	event, err := app.events.GetActive()
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.apiError(w, http.StatusNotFound, "no active event configured")
+			return
+		}
+		app.apiError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	userID := apiUserID(r)
+
+	// Check if a specific group filter is requested.
+	groupFilter := r.URL.Query().Get("group")
+
+	var leaderboards []apiLeaderboard
+
+	if groupFilter == "" || groupFilter != "global" {
+		// Fetch group leaderboards.
+		groups, err := app.groups.AllForUser(userID)
+		if err != nil {
+			app.apiError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+
+		for _, group := range groups {
+			// If a specific group ID is requested, skip others.
+			if groupFilter != "" && groupFilter != "global" {
+				filterID, err := strconv.Atoi(groupFilter)
+				if err != nil {
+					app.apiError(w, http.StatusBadRequest, "invalid group parameter")
+					return
+				}
+				if group.ID != filterID {
+					continue
+				}
+			}
+
+			users, err := app.users.GroupLeaderboard(group.ID, event.ID)
+			if err != nil {
+				app.apiError(w, http.StatusInternalServerError, "internal error")
+				return
+			}
+
+			entries := make([]apiLeaderboardEntry, 0, len(users))
+			for _, u := range users {
+				entries = append(entries, apiLeaderboardEntry{
+					Place:    u.Place,
+					Username: u.Name,
+					Points:   u.Points,
+					Tipps:    u.Tipps,
+				})
+			}
+
+			gID := group.ID
+			leaderboards = append(leaderboards, apiLeaderboard{
+				GroupID:   &gID,
+				GroupName: group.Name,
+				Entries:   entries,
+			})
+		}
+	}
+
+	// Include global leaderboard unless filtering for a specific group ID.
+	if groupFilter == "" || groupFilter == "global" {
+		globalUsers, err := app.users.GlobalLeaderboard(event.ID)
+		if err != nil {
+			app.apiError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+
+		entries := make([]apiLeaderboardEntry, 0, len(globalUsers))
+		for _, u := range globalUsers {
+			entries = append(entries, apiLeaderboardEntry{
+				Place:    u.Place,
+				Username: u.Name,
+				Points:   u.Points,
+				Tipps:    u.Tipps,
+			})
+		}
+
+		leaderboards = append(leaderboards, apiLeaderboard{
+			GroupID:   nil,
+			GroupName: "Global",
+			Entries:   entries,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"leaderboards": leaderboards,
 	})
 }
