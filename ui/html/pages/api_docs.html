@@ -1,0 +1,145 @@
+{{define "title"}}API-Dokumentation{{end}} {{define "assets"}}{{end}} {{define "main"}}
+<div class="container">
+  <h1>API-Dokumentation</h1>
+
+  <h2>Authentifizierung</h2>
+  <p>Alle Anfragen an die API benötigen den Header:</p>
+  <pre><code>Authorization: Bearer &lt;dein-token&gt;</code></pre>
+  <p>Tokens kannst du unter <a href="/user/settings">Einstellungen</a> generieren.</p>
+
+  <h2>Basis-URL</h2>
+  <p><code>/api/v1</code></p>
+
+  <h2>Endpoints</h2>
+
+  <h3>GET /api/v1/matches</h3>
+  <p>Gibt alle Spiele des aktiven Events zurück, sortiert nach Startzeit.</p>
+  <details>
+    <summary>Beispiel-Antwort</summary>
+    <pre><code>[
+  {
+    "id": 1,
+    "team_a": "Deutschland",
+    "team_b": "Frankreich",
+    "start": "2026-06-14T18:00:00Z",
+    "match_type": "group",
+    "event_phase": 1,
+    "finished": false,
+    "accepts_tipps": true
+  }
+]</code></pre>
+  </details>
+  <p>Wenn ein Spiel beendet ist (<code>finished: true</code>), werden zusätzlich die Felder <code>result_a</code>, <code>result_b</code> und ggf. <code>result_aet_a</code>, <code>result_aet_b</code>, <code>result_apen_a</code>, <code>result_apen_b</code> zurückgegeben.</p>
+
+  <h3>GET /api/v1/tipps</h3>
+  <p>Gibt deine abgegebenen Tipps für das aktive Event zurück.</p>
+  <details>
+    <summary>Beispiel-Antwort</summary>
+    <pre><code>[
+  {
+    "match_id": 1,
+    "tipp_a": 2,
+    "tipp_b": 1,
+    "created": "2026-06-10T09:30:00Z",
+    "changed": "2026-06-10T09:30:00Z"
+  }
+]</code></pre>
+  </details>
+
+  <h3>POST /api/v1/tipps</h3>
+  <p>Tipps abgeben oder aktualisieren. Akzeptiert einen oder mehrere Tipps auf einmal. Alle Tipps werden validiert bevor einer gespeichert wird — entweder werden alle gespeichert oder keiner (all-or-nothing).</p>
+  <details>
+    <summary>Request-Body</summary>
+    <pre><code>{
+  "tipps": [
+    {"match_id": 1, "tipp_a": 2, "tipp_b": 1},
+    {"match_id": 2, "tipp_a": 0, "tipp_b": 3}
+  ]
+}</code></pre>
+    <ul>
+      <li>Max. 200 Tipps pro Anfrage</li>
+      <li><code>match_id</code> — ID des Spiels (Pflicht, &gt; 0)</li>
+      <li><code>tipp_a</code> — Tipp für Team A (Pflicht, 0–99)</li>
+      <li><code>tipp_b</code> — Tipp für Team B (Pflicht, 0–99)</li>
+    </ul>
+    <p>Für einen einzelnen Tipp einfach ein Array mit einem Element senden.</p>
+  </details>
+  <details>
+    <summary>Beispiel-Antwort (200 OK)</summary>
+    <pre><code>{
+  "count": 2,
+  "results": [
+    {"match_id": 1, "tipp_a": 2, "tipp_b": 1, "created": "2026-06-10T09:30:00Z", "changed": "2026-06-10T09:30:00Z", "status": "created"},
+    {"match_id": 2, "tipp_a": 0, "tipp_b": 3, "created": "2026-06-10T09:31:00Z", "changed": "2026-06-10T09:31:00Z", "status": "updated"}
+  ]
+}</code></pre>
+    <p><code>status</code> ist <code>"created"</code> für neue Tipps und <code>"updated"</code> für aktualisierte.</p>
+  </details>
+
+  <h2>Fehlercodes</h2>
+  <table class="pure-table pure-table-bordered">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Bedeutung</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>400</code></td>
+        <td>Ungültiger JSON-Body</td>
+      </tr>
+      <tr>
+        <td><code>401</code></td>
+        <td>Fehlender oder ungültiger Token</td>
+      </tr>
+      <tr>
+        <td><code>404</code></td>
+        <td>Spiel nicht gefunden / kein aktives Event</td>
+      </tr>
+      <tr>
+        <td><code>409</code></td>
+        <td>Spiel gesperrt (bereits gestartet oder Teams unbekannt)</td>
+      </tr>
+      <tr>
+        <td><code>429</code></td>
+        <td>Rate-Limit überschritten — bitte kurz warten und erneut versuchen (max. 30 Anfragen/Sek. pro IP)</td>
+      </tr>
+      <tr>
+        <td><code>422</code></td>
+        <td>Validierungsfehler (z.B. tipp_a nicht 0–99)</td>
+      </tr>
+      <tr>
+        <td><code>500</code></td>
+        <td>Interner Serverfehler</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="margin-top-m">Alle Fehler haben das Format:</p>
+  <pre><code>{"error": "Fehlerbeschreibung"}</code></pre>
+  <p>Bei Validierungsfehlern (422) zusätzlich:</p>
+  <pre><code>{"error": "validation failed", "fields": {"tipp_a": "tipp_a must be between 0 and 99"}}</code></pre>
+
+  <h2>Beispiele mit curl</h2>
+  <pre><code>curl -H "Authorization: Bearer gtipp_abc123..." \
+     https://dein-server/api/v1/matches</code></pre>
+
+  <pre><code>curl -H "Authorization: Bearer gtipp_abc123..." \
+     https://dein-server/api/v1/tipps</code></pre>
+
+  <pre><code># Einzelner Tipp
+curl -X POST \
+     -H "Authorization: Bearer gtipp_abc123..." \
+     -H "Content-Type: application/json" \
+     -d '{"tipps": [{"match_id": 1, "tipp_a": 2, "tipp_b": 1}]}' \
+     https://dein-server/api/v1/tipps</code></pre>
+
+  <pre><code># Mehrere Tipps auf einmal
+curl -X POST \
+     -H "Authorization: Bearer gtipp_abc123..." \
+     -H "Content-Type: application/json" \
+     -d '{"tipps": [{"match_id":1,"tipp_a":2,"tipp_b":1},{"match_id":2,"tipp_a":0,"tipp_b":3}]}' \
+     https://dein-server/api/v1/tipps</code></pre>
+</div>
+{{end}}

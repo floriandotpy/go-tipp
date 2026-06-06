@@ -119,6 +119,48 @@ func (m *TippModel) InsertOrUpdate(matchId int, userId int, tippA int, tippB int
 	return nil
 }
 
+// BatchTipp holds the data for one tipp in a batch operation.
+type BatchTipp struct {
+	MatchID int
+	TippA   int
+	TippB   int
+}
+
+// BatchInsertOrUpdate saves multiple tipps within a single database transaction.
+// All tipps are saved or none (all-or-nothing).
+func (m *TippModel) BatchInsertOrUpdate(userID int, tipps []BatchTipp) error {
+	tx, err := m.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, t := range tipps {
+		var count int
+		err = tx.QueryRow(`SELECT COUNT(*) FROM tipps WHERE match_id = ? AND user_id = ?`, t.MatchID, userID).Scan(&count)
+		if err != nil {
+			return err
+		}
+
+		if count > 0 {
+			_, err = tx.Exec(
+				`UPDATE tipps SET tipp_a = ?, tipp_b = ?, changed = UTC_TIMESTAMP() WHERE match_id = ? AND user_id = ?`,
+				t.TippA, t.TippB, t.MatchID, userID,
+			)
+		} else {
+			_, err = tx.Exec(
+				`INSERT INTO tipps (match_id, user_id, tipp_a, tipp_b, created, changed) VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
+				t.MatchID, userID, t.TippA, t.TippB,
+			)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (m *TippModel) Get(id int) (Tipp, error) {
 	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE id = ?`
 	var t Tipp
@@ -129,6 +171,21 @@ func (m *TippModel) Get(id int) (Tipp, error) {
 		} else {
 			return Tipp{}, nil
 		}
+	}
+
+	return t, nil
+}
+
+// GetByMatchAndUser returns the tipp for a specific match and user combination.
+func (m *TippModel) GetByMatchAndUser(matchID int, userID int) (Tipp, error) {
+	stmt := `SELECT id, match_id, user_id, tipp_a, tipp_b, created, changed FROM tipps WHERE match_id = ? AND user_id = ?`
+	var t Tipp
+	err := m.DB.QueryRow(stmt, matchID, userID).Scan(&t.ID, &t.MatchId, &t.UserId, &t.TippA, &t.TippB, &t.Created, &t.Changed)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Tipp{}, ErrNoRecord
+		}
+		return Tipp{}, err
 	}
 
 	return t, nil

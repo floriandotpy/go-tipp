@@ -12,8 +12,10 @@
       {{end}}
     </div>
     <div class="right">
-      {{if .IsAuthenticated }} {{if .IsAdmin}}
-      <a href="/admin"><img src="/static/img/icon-gear-duotone.svg" alt="" class="nav-icon" /> Admin</a>
+      {{if .IsAuthenticated }}
+      <a href="/user/settings"><img src="/static/img/icon-gear-duotone.svg" alt="" class="nav-icon" /> Einstellungen</a>
+      {{if .IsAdmin}}
+      <a href="/admin"><img src="/static/img/icon-wrench-duotone.svg" alt="" class="nav-icon" /> Admin</a>
       {{end}}
       <form action="/user/logout" method="post">
         <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />

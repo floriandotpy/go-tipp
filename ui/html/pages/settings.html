@@ -1,0 +1,37 @@
+{{define "title"}}Einstellungen{{end}} {{define "assets"}}
+<script src="/static/js/settings.js"></script>
+{{end}} {{define "main"}}
+<div class="container">
+  <h1>Einstellungen</h1>
+
+  <h2>API-Zugang</h2>
+
+  <p>Status: {{if .TokenExists}}<strong>Aktiviert</strong>{{else}}<strong>Deaktiviert</strong>{{end}}</p>
+
+  {{if .NewToken}}
+  <div class="cc-alert-flash margin-v-m">
+    <p><strong>Dieser Token wird nur einmal angezeigt. Bitte kopieren und sicher aufbewahren.</strong></p>
+    <div class="token-display">
+      <input type="text" id="api-token" value="{{.NewToken}}" readonly class="token-input" />
+      <button type="button" id="copy-token-btn" class="pure-button">Kopieren</button>
+    </div>
+  </div>
+  {{end}}
+
+  <div class="settings-actions margin-top-m">
+    <form id="generate-token-form" action="/user/settings/token/generate" method="POST" {{if .TokenExists}}data-token-exists="true"{{end}}>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+      <button type="submit" class="pure-button pure-button-primary">Neuen Token generieren</button>
+    </form>
+
+    {{if .TokenExists}}
+    <form id="revoke-token-form" action="/user/settings/token/revoke" method="POST">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+      <button type="submit" class="pure-button">Existierenden Token widerrufen</button>
+    </form>
+    {{end}}
+  </div>
+
+  <p class="margin-top-l"><a href="/api-docs">📄 API-Dokumentation</a></p>
+</div>
+{{end}}

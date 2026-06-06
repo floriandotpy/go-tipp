@@ -311,6 +311,48 @@ func (m *MatchModel) Upcoming() ([]Match, error) {
 	return nil, nil
 }
 
+// AllWithResults returns all matches for the given event including extended result
+// columns (AET, penalties), ordered by start time ascending then ID ascending.
+func (m *MatchModel) AllWithResults(eventID int) ([]Match, error) {
+	stmt := `SELECT id, start, team_a, team_b,
+	result_a, result_b,
+	result_aet_a, result_aet_b,
+	result_apen_a, result_apen_b,
+	match_type, finished, event_phase, event_id
+	FROM matches WHERE event_id = ? ORDER BY start ASC, id ASC`
+
+	rows, err := m.DB.Query(stmt, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []Match
+
+	for rows.Next() {
+		var match Match
+		err = rows.Scan(&match.ID, &match.Start, &match.TeamA, &match.TeamB,
+			&match.ResultA, &match.ResultB,
+			&match.ResultAETA, &match.ResultAETB,
+			&match.ResultAPenA, &match.ResultAPenB,
+			&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
+		if err != nil {
+			return nil, err
+		}
+		match.Start, err = forceLocalTimezone(match.Start)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, match)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return matches, nil
+}
+
 // will return all matches for the given event
 func (m *MatchModel) All(eventID int) ([]Match, error) {
 	stmt := `SELECT id, start, team_a, team_b, result_a, result_b, match_type, finished, event_phase, event_id FROM matches WHERE event_id = ? ORDER BY start ASC`
