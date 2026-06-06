@@ -10,7 +10,8 @@ RUN go mod download
 # Build the binaries
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/web
-RUN CGO_ENABLED=0 GOOS=linux go build -o cli ./cmd/cli
+RUN CGO_ENABLED=0 GOOS=linux go build -o fetch-results ./cmd/fetch-results
+RUN CGO_ENABLED=0 GOOS=linux go build -o sync-phases ./cmd/sync-phases
 
 # Runtime stage
 FROM alpine:3.21
@@ -25,7 +26,8 @@ WORKDIR /app
 
 # Copy binaries from builder
 COPY --from=builder /app/server .
-COPY --from=builder /app/cli .
+COPY --from=builder /app/fetch-results .
+COPY --from=builder /app/sync-phases .
 
 # Copy templates and static assets
 COPY ui/ ./ui/

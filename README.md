@@ -29,6 +29,7 @@ This will:
 | `just db-down` | Stop the MySQL container |
 | `just db-destroy` | Remove container and all data |
 | `just fetch-results` | Fetch live match results from API |
+| `just sync-phases` | Sync event phases and matches from API |
 | `just migrate` | Run migrations without starting the server |
 | `just build` | Compile binaries to `bin/` |
 
@@ -50,17 +51,58 @@ The app ships with a Dockerfile. Point Coolify at the repo and it will build and
 
 TLS is handled by Coolify's Traefik proxy — the app runs plain HTTP inside the container. Migrations run automatically on each deploy via the entrypoint.
 
-## Fetching Results Automatically
+## Scheduled Commands
 
-The CLI tool fetches match results from [openligadb.de](https://www.openligadb.de/) and updates scores in the database.
+Two CLI commands handle automatic data syncing from [openligadb.de](https://www.openligadb.de/). Both accept a `-dsn` flag or read from the `DATABASE_URL_GO` environment variable.
 
-For production, set up a cron job:
+### fetch-results — Live Score Updates
+
+Fetches match results and goals for matches currently in progress. Designed to run frequently (e.g., every minute) during match days.
+
+**Behavior:**
+1. Checks for an active event — exits if none
+2. Checks if any match has started but isn't finished — exits immediately (no API call) if not
+3. Fetches data from the event API, syncs goals and results for live matches
+4. Recomputes user points when a match is newly marked as finished
+
+```sh
+# Local
+just fetch-results
+
+# Production (cron)
+go run ./cmd/fetch-results
+# or with compiled binary:
+./bin/fetch-results
+```
+
+### sync-phases — Phase & Match Import
+
+Syncs event phases and matches from the API. Creates new phases as they appear (e.g., knockout rounds added after group stage), and updates match details (team names, kick-off times). Run 1–2 times per day.
+
+**Behavior:**
+1. Checks for an active event — exits if none
+2. Fetches all match data from the event API
+3. Groups matches by phase, upserts phases and matches by `api_match_id`
+
+```sh
+# Local
+just sync-phases
+
+# Production (cron)
+go run ./cmd/sync-phases
+# or with compiled binary:
+./bin/sync-phases
+```
+
+### Example Cron Setup (Coolify)
 
 ```
-*/2 17-23 * * * export DATABASE_URL_GO="user:pass@tcp(host:3306)/gotipp?parseTime=true"; cd /path/to/go-tipp; go run ./cmd/cli -dsn=$DATABASE_URL_GO
-```
+# Fetch results every minute during typical match hours
+* 14-23 * * * ./bin/fetch-results
 
-(Runs every two minutes between 17:00–23:59)
+# Sync phases twice a day
+0 6,18 * * * ./bin/sync-phases
+```
 
 ## Resources
 

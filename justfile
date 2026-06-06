@@ -73,14 +73,19 @@ migration name:
 db-shell:
     docker exec -it {{db_container}} mysql -u{{db_user}} -p{{db_pass}} {{db_name}}
 
-# Fetch match results from API
+# Fetch live match results from API (run frequently during matches)
 fetch-results:
-    go run ./cmd/cli -dsn="{{db_user}}:{{db_pass}}@tcp(127.0.0.1:{{db_port}})/{{db_name}}?parseTime=true"
+    go run ./cmd/fetch-results -dsn="{{db_user}}:{{db_pass}}@tcp(127.0.0.1:{{db_port}})/{{db_name}}?parseTime=true"
+
+# Sync event phases and matches from API (run 1-2x per day)
+sync-phases:
+    go run ./cmd/sync-phases -dsn="{{db_user}}:{{db_pass}}@tcp(127.0.0.1:{{db_port}})/{{db_name}}?parseTime=true"
 
 # Build the project
 build:
     go build -o bin/server ./cmd/web
-    go build -o bin/cli ./cmd/cli
+    go build -o bin/fetch-results ./cmd/fetch-results
+    go build -o bin/sync-phases ./cmd/sync-phases
 
 # Run all tests
 test:
