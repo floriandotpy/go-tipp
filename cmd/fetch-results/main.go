@@ -110,7 +110,10 @@ func run(db *sql.DB) int {
 			dbMatch.TeamA, dbMatch.TeamB, dbMatch.ID, apiMatch.MatchID)
 
 		// Sync goals: delete all then re-insert (handles VAR reversals)
-		goalModel.DeleteAllForMatch(dbMatch.ID)
+		if err := goalModel.DeleteAllForMatch(dbMatch.ID); err != nil {
+			fmt.Printf("  Error deleting goals for match %d: %v\n", dbMatch.ID, err)
+			continue
+		}
 		for _, apiGoal := range apiMatch.Goals {
 			goal := api.ConvertApiGoalToGoal(apiGoal)
 			_, err := goalModel.InsertOrUpdate(dbMatch.ID, goal)
