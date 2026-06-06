@@ -46,6 +46,39 @@
 ]</code></pre>
   </details>
 
+  <h3>GET /api/v1/leaderboard</h3>
+  <p>Gibt die Leaderboards zurück: alle Gruppen des authentifizierten Users sowie das globale Leaderboard.</p>
+  <p>Optionaler Query-Parameter: <code>?group=&lt;id&gt;</code> für eine bestimmte Gruppe, oder <code>?group=global</code> für nur das globale Leaderboard.</p>
+  <details>
+    <summary>Beispiel-Antwort</summary>
+    <pre><code>{
+  "leaderboards": [
+    {
+      "group_id": 1,
+      "group_name": "Tolle Tipptruppe",
+      "entries": [
+        {"place": 1, "username": "flo", "points": 42, "tipps": 12},
+        {"place": 2, "username": "kai", "points": 38, "tipps": 12},
+        {"place": 2, "username": "anna", "points": 38, "tipps": 11}
+      ]
+    },
+    {
+      "group_id": null,
+      "group_name": "Global",
+      "entries": [
+        {"place": 1, "username": "flo", "points": 42, "tipps": 12},
+        {"place": 2, "username": "kai", "points": 38, "tipps": 12}
+      ]
+    }
+  ]
+}</code></pre>
+  </details>
+  <ul>
+    <li><code>group_id: null</code> kennzeichnet das globale Leaderboard</li>
+    <li><code>place</code> — Platzierung (gleiche Punktzahl = gleicher Platz)</li>
+    <li><code>tipps</code> — Anzahl abgegebener Tipps</li>
+  </ul>
+
   <h3>POST /api/v1/tipps</h3>
   <p>Tipps abgeben oder aktualisieren. Akzeptiert einen oder mehrere Tipps auf einmal. Alle Tipps werden validiert bevor einer gespeichert wird — entweder werden alle gespeichert oder keiner (all-or-nothing).</p>
   <details>
@@ -127,6 +160,13 @@
 
   <pre><code>curl -H "Authorization: Bearer gtipp_abc123..." \
      https://dein-server/api/v1/tipps</code></pre>
+
+  <pre><code>curl -H "Authorization: Bearer gtipp_abc123..." \
+     https://dein-server/api/v1/leaderboard</code></pre>
+
+  <pre><code># Nur globales Leaderboard
+curl -H "Authorization: Bearer gtipp_abc123..." \
+     https://dein-server/api/v1/leaderboard?group=global</code></pre>
 
   <pre><code># Einzelner Tipp
 curl -X POST \
