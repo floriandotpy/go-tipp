@@ -8,6 +8,25 @@
     <button class="pure-button">Neueste Punkte verteilen</button>
   </form>
 
+  <h2>Scheduled Jobs</h2>
+  <div class="admin-jobs-overview">
+    <div class="job-dots-row">
+      <strong>fetch-results</strong>
+      <span class="dot-list">
+        {{range .JobRunsFetchResults}}{{if eq .Status "error"}}<span class="dot dot--red" title="{{.StartedAt.Format "02.01. 15:04"}}: {{.Summary}}"></span>{{else if eq .Status "success_changed"}}<span class="dot dot--green-dark" title="{{.StartedAt.Format "02.01. 15:04"}}: {{.Summary}}"></span>{{else}}<span class="dot dot--green-light" title="{{.StartedAt.Format "02.01. 15:04"}}: {{.Summary}}"></span>{{end}}{{end}}
+        {{if not .JobRunsFetchResults}}<span class="muted">–</span>{{end}}
+      </span>
+    </div>
+    <div class="job-dots-row">
+      <strong>sync-phases</strong>
+      <span class="dot-list">
+        {{range .JobRunsSyncPhases}}{{if eq .Status "error"}}<span class="dot dot--red" title="{{.StartedAt.Format "02.01. 15:04"}}: {{.Summary}}"></span>{{else if eq .Status "success_changed"}}<span class="dot dot--green-dark" title="{{.StartedAt.Format "02.01. 15:04"}}: {{.Summary}}"></span>{{else}}<span class="dot dot--green-light" title="{{.StartedAt.Format "02.01. 15:04"}}: {{.Summary}}"></span>{{end}}{{end}}
+        {{if not .JobRunsSyncPhases}}<span class="muted">–</span>{{end}}
+      </span>
+    </div>
+    <a href="/admin/jobs" class="pure-button" style="margin-top: 0.5em;">Details anzeigen</a>
+  </div>
+
   <h2>Events</h2>
   <p><a href="/admin/events/new" class="pure-button pure-button-primary">Neues Event erstellen</a></p>
   {{if .Events}}

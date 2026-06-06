@@ -14,6 +14,20 @@ import (
 	"tipp.casualcoding.com/internal/models"
 )
 
+// details structs for JSON logging
+type matchDetail struct {
+	ID         int    `json:"id"`
+	Teams      string `json:"teams"`
+	GoalsSynced int   `json:"goals_synced"`
+	ResultSet  string `json:"result_set,omitempty"`
+	Finished   bool   `json:"finished"`
+}
+
+type fetchDetails struct {
+	Matches          []matchDetail `json:"matches"`
+	PointsRecomputed bool          `json:"points_recomputed"`
+}
+
 func main() {
 	dsn := flag.String("dsn", "", "MySQL data source name")
 	flag.Parse()
@@ -35,19 +49,36 @@ func main() {
 }
 
 func run(db *sql.DB) int {
+	startedAt := time.Now()
+
 	eventModel := &models.EventModel{DB: db}
 	matchModel := &models.MatchModel{DB: db}
 	goalModel := &models.GoalModel{DB: db}
 	tippModel := &models.TippModel{DB: db}
+	jobRunModel := &models.JobRunModel{DB: db}
+
+	// Cleanup old job runs (>30 days)
+	jobRunModel.DeleteOlderThan(30)
+
+	// Helper to record a job run and exit
+	record := func(status, summary string, details interface{}) {
+		finishedAt := time.Now()
+		err := jobRunModel.Insert(models.JobFetchResults, status, summary, details, startedAt, finishedAt)
+		if err != nil {
+			fmt.Printf("Warning: failed to record job run: %v\n", err)
+		}
+	}
 
 	// Get active event
 	event, err := eventModel.GetActive()
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			fmt.Println("No active event, nothing to do.")
+			record(models.JobStatusNoop, "No active event", nil)
 			return 0
 		}
 		fmt.Printf("Error fetching active event: %v\n", err)
+		record(models.JobStatusError, fmt.Sprintf("Error fetching active event: %v", err), nil)
 		return 1
 	}
 	fmt.Printf("Active event: %s (ID: %d)\n", event.Name, event.ID)
@@ -56,10 +87,12 @@ func run(db *sql.DB) int {
 	hasLive, err := matchModel.HasLiveMatch(event.ID)
 	if err != nil {
 		fmt.Printf("Error checking for live matches: %v\n", err)
+		record(models.JobStatusError, fmt.Sprintf("Error checking for live matches: %v", err), nil)
 		return 1
 	}
 	if !hasLive {
 		fmt.Println("No live matches, nothing to do.")
+		record(models.JobStatusNoop, "No live matches", nil)
 		return 0
 	}
 
@@ -68,11 +101,11 @@ func run(db *sql.DB) int {
 	apiMatches, err := api.FetchMatchData(event.ApiBaseURL)
 	if err != nil {
 		fmt.Printf("Error fetching API data: %v\n", err)
+		record(models.JobStatusError, fmt.Sprintf("Error fetching API data: %v", err), nil)
 		return 1
 	}
 
-	// Filter to only matches that have started and are not yet finished in the API response.
-	// This avoids processing future matches or already-finished ones unnecessarily.
+	// Filter to only matches that have started
 	now := time.Now()
 	var relevant []api.ApiMatch
 	for _, am := range apiMatches {
@@ -80,7 +113,6 @@ func run(db *sql.DB) int {
 		if parseErr != nil {
 			continue
 		}
-		// Only process matches that have started (or started today within a reasonable window)
 		if matchTime.Before(now) || am.MatchIsFinished {
 			relevant = append(relevant, am)
 		}
@@ -88,6 +120,7 @@ func run(db *sql.DB) int {
 	fmt.Printf("Found %d relevant matches (started or finished) out of %d total\n", len(relevant), len(apiMatches))
 
 	var recomputeUserScores bool
+	var matchDetails []matchDetail
 
 	for _, apiMatch := range relevant {
 		// Look up the match in our DB by API match ID
@@ -97,7 +130,6 @@ func run(db *sql.DB) int {
 			continue
 		}
 		if dbMatch.ID == 0 {
-			// Not in our database (could be from a phase we haven't synced yet) — skip
 			continue
 		}
 
@@ -109,11 +141,8 @@ func run(db *sql.DB) int {
 		fmt.Printf("Processing: %s vs %s (db_id=%d, api_id=%d)\n",
 			dbMatch.TeamA, dbMatch.TeamB, dbMatch.ID, apiMatch.MatchID)
 
-		// Sync goals: delete all then re-insert (handles VAR reversals)
-		if err := goalModel.DeleteAllForMatch(dbMatch.ID); err != nil {
-			fmt.Printf("  Error deleting goals for match %d: %v\n", dbMatch.ID, err)
-			continue
-		}
+		// Sync goals: delete all then re-insert
+		goalModel.DeleteAllForMatch(dbMatch.ID)
 		for _, apiGoal := range apiMatch.Goals {
 			goal := api.ConvertApiGoalToGoal(apiGoal)
 			_, err := goalModel.InsertOrUpdate(dbMatch.ID, goal)
@@ -121,14 +150,12 @@ func run(db *sql.DB) int {
 				fmt.Printf("  Error inserting goal: %v\n", err)
 			}
 		}
-		if len(apiMatch.Goals) > 0 {
-			lastGoal := apiMatch.Goals[len(apiMatch.Goals)-1]
-			fmt.Printf("  Goals synced: %d total, current score %d:%d\n",
-				len(apiMatch.Goals), lastGoal.ScoreTeamA, lastGoal.ScoreTeamB)
-		}
 
 		// Parse results from API response
 		results := parseResults(apiMatch)
+
+		// Determine result string for detail logging
+		var resultStr string
 
 		// Set end result
 		if end, ok := results["Endergebnis"]; ok {
@@ -136,6 +163,7 @@ func run(db *sql.DB) int {
 				fmt.Printf("  Setting result: %d:%d\n", end[0], end[1])
 				matchModel.SetResults(dbMatch.ID, end[0], end[1])
 			}
+			resultStr = fmt.Sprintf("%d:%d", end[0], end[1])
 		}
 
 		// Set result after extra time
@@ -144,6 +172,7 @@ func run(db *sql.DB) int {
 				fmt.Printf("  Setting AET result: %d:%d\n", aet[0], aet[1])
 				matchModel.SetResultsAfterExtension(dbMatch.ID, aet[0], aet[1])
 			}
+			resultStr = fmt.Sprintf("%d:%d AET", aet[0], aet[1])
 		}
 
 		// Set result after penalty shootout
@@ -152,14 +181,25 @@ func run(db *sql.DB) int {
 				fmt.Printf("  Setting penalty result: %d:%d\n", apen[0], apen[1])
 				matchModel.SetResultsAfterPenalty(dbMatch.ID, apen[0], apen[1])
 			}
+			resultStr = fmt.Sprintf("%d:%d PEN", apen[0], apen[1])
 		}
 
 		// Update finished flag
+		newlyFinished := false
 		if dbMatch.Finished != apiMatch.MatchIsFinished {
 			fmt.Printf("  Marking match as finished=%t\n", apiMatch.MatchIsFinished)
 			matchModel.SetMatchIsFinished(dbMatch.ID, apiMatch.MatchIsFinished)
 			recomputeUserScores = true
+			newlyFinished = apiMatch.MatchIsFinished
 		}
+
+		matchDetails = append(matchDetails, matchDetail{
+			ID:          dbMatch.ID,
+			Teams:       fmt.Sprintf("%s vs %s", dbMatch.TeamA, dbMatch.TeamB),
+			GoalsSynced: len(apiMatch.Goals),
+			ResultSet:   resultStr,
+			Finished:    newlyFinished,
+		})
 	}
 
 	// Recompute user scores if any match was newly marked finished
@@ -168,6 +208,7 @@ func run(db *sql.DB) int {
 		rowsAffected, err := tippModel.UpdatePoints(event.ID)
 		if err != nil {
 			fmt.Printf("Error updating points: %v\n", err)
+			record(models.JobStatusError, fmt.Sprintf("Error updating points: %v", err), nil)
 			return 1
 		}
 		fmt.Printf("Updated %d tipp entries\n", rowsAffected)
@@ -175,11 +216,32 @@ func run(db *sql.DB) int {
 		fmt.Println("No matches newly finished, scores unchanged.")
 	}
 
+	// Record job run
+	if len(matchDetails) == 0 {
+		record(models.JobStatusNoop, "No matches required updates", nil)
+	} else {
+		totalGoals := 0
+		finishedCount := 0
+		for _, md := range matchDetails {
+			totalGoals += md.GoalsSynced
+			if md.Finished {
+				finishedCount++
+			}
+		}
+		summary := fmt.Sprintf("%d matches processed, %d goals synced", len(matchDetails), totalGoals)
+		if finishedCount > 0 {
+			summary += fmt.Sprintf(", %d newly finished", finishedCount)
+		}
+		record(models.JobStatusChanged, summary, fetchDetails{
+			Matches:          matchDetails,
+			PointsRecomputed: recomputeUserScores,
+		})
+	}
+
 	return 0
 }
 
-// parseResults extracts the relevant result types from the API match response,
-// applying the same cleanup logic as the old CLI.
+// parseResults extracts the relevant result types from the API match response.
 func parseResults(apiMatch api.ApiMatch) map[string][2]int {
 	results := make(map[string][2]int)
 	relevantNames := []string{"Endergebnis", "nach Verlängerung", "nach Elfmeterschießen"}

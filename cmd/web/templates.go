@@ -91,6 +91,9 @@ type templateData struct {
 	// API token management
 	TokenExists bool
 	NewToken    string
+	// Job run history for admin
+	JobRunsFetchResults []models.JobRun
+	JobRunsSyncPhases   []models.JobRun
 }
 
 // prep translation mapping
@@ -206,6 +209,21 @@ func pluralize(count int, singular string, plural string) string {
 	return fmt.Sprintf("%d %s", count, plural)
 }
 
+func duration(start, end time.Time) string {
+	d := end.Sub(start)
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	return fmt.Sprintf("%.1fs", d.Seconds())
+}
+
+func detailsJSON(data []byte) string {
+	if data == nil {
+		return ""
+	}
+	return string(data)
+}
+
 var functions = template.FuncMap{
 	"germanWeekday": germanWeekday,
 	"germanDate":    germanDate,
@@ -219,6 +237,8 @@ var functions = template.FuncMap{
 	"odd":           odd,
 	"isKOPhase":     isKOPhase,
 	"pluralize":     pluralize,
+	"duration":      duration,
+	"detailsJSON":   detailsJSON,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
