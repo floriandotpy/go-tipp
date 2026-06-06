@@ -23,6 +23,7 @@ func (app *application) routes() http.Handler {
 	// general routes
 	mux.Handle("GET /{$}", dynamic.ThenFunc(app.indexHandler))
 	mux.Handle("GET /regeln", dynamic.ThenFunc(app.rulesHandler))
+	mux.Handle("GET /api-docs", dynamic.ThenFunc(app.apiDocsHandler))
 
 	// user auth routes
 	mux.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup))
@@ -45,7 +46,6 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /scores.json", protected.ThenFunc(app.scoresJsonHandler))
 	mux.Handle("POST /user/logout", protected.ThenFunc(app.userLogoutPost))
 	mux.Handle("GET /user/settings", protected.ThenFunc(app.userSettings))
-	mux.Handle("GET /user/settings/api-docs", protected.ThenFunc(app.apiDocsHandler))
 	mux.Handle("POST /user/settings/token/generate", protected.ThenFunc(app.userGenerateToken))
 	mux.Handle("POST /user/settings/token/revoke", protected.ThenFunc(app.userRevokeToken))
 
