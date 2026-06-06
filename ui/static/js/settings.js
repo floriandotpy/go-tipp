@@ -12,6 +12,15 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
+  var generateForm = document.getElementById("generate-token-form");
+  if (generateForm && generateForm.dataset.tokenExists === "true") {
+    generateForm.addEventListener("submit", function(e) {
+      if (!confirm("Der bestehende Token wird ungültig. Neuen Token generieren?")) {
+        e.preventDefault();
+      }
+    });
+  }
+
   var revokeForm = document.getElementById("revoke-token-form");
   if (revokeForm) {
     revokeForm.addEventListener("submit", function(e) {

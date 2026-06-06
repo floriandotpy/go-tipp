@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"tipp.casualcoding.com/internal/models"
@@ -157,6 +158,13 @@ type apiBatchTippResult struct {
 // Accepts an array of tipps and processes them all-or-nothing.
 // For a single tipp, send an array with one element.
 func (app *application) apiPostTipps(w http.ResponseWriter, r *http.Request) {
+	// Enforce JSON content type.
+	ct := r.Header.Get("Content-Type")
+	if ct != "" && !strings.HasPrefix(ct, "application/json") {
+		app.apiError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		return
+	}
+
 	// Limit request body to 1MB.
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
@@ -274,13 +282,20 @@ func (app *application) apiPostTipps(w http.ResponseWriter, r *http.Request) {
 		checks = append(checks, matchCheck{match: match, tippExists: exists})
 	}
 
-	// All checks passed — save all tipps.
+	// All checks passed — save all tipps in a single transaction.
+	batch := make([]models.BatchTipp, 0, len(validated))
 	for _, vt := range validated {
-		err := app.tipps.InsertOrUpdate(vt.matchID, userID, vt.tippA, vt.tippB)
-		if err != nil {
-			app.apiError(w, http.StatusInternalServerError, "internal error")
-			return
-		}
+		batch = append(batch, models.BatchTipp{
+			MatchID: vt.matchID,
+			TippA:   vt.tippA,
+			TippB:   vt.tippB,
+		})
+	}
+
+	err = app.tipps.BatchInsertOrUpdate(userID, batch)
+	if err != nil {
+		app.apiError(w, http.StatusInternalServerError, "internal error")
+		return
 	}
 
 	// Build response.

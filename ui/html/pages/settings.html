@@ -19,7 +19,7 @@
   {{end}}
 
   <div class="settings-actions margin-top-m">
-    <form action="/user/settings/token/generate" method="POST">
+    <form id="generate-token-form" action="/user/settings/token/generate" method="POST" {{if .TokenExists}}data-token-exists="true"{{end}}>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
       <button type="submit" class="pure-button pure-button-primary">Neuen Token generieren</button>
     </form>

@@ -22,6 +22,7 @@ type ipRateLimiter struct {
 	limiters map[string]*rateLimiterEntry
 	rate     rate.Limit
 	burst    int
+	stop     chan struct{}
 }
 
 type rateLimiterEntry struct {
@@ -34,10 +35,16 @@ func newIPRateLimiter(r rate.Limit, burst int) *ipRateLimiter {
 		limiters: make(map[string]*rateLimiterEntry),
 		rate:     r,
 		burst:    burst,
+		stop:     make(chan struct{}),
 	}
 	// Background cleanup of stale entries every 3 minutes.
 	go rl.cleanup(3 * time.Minute)
 	return rl
+}
+
+// Stop terminates the background cleanup goroutine.
+func (rl *ipRateLimiter) Stop() {
+	close(rl.stop)
 }
 
 func (rl *ipRateLimiter) getLimiter(ip string) *rate.Limiter {
@@ -56,15 +63,21 @@ func (rl *ipRateLimiter) getLimiter(ip string) *rate.Limiter {
 }
 
 func (rl *ipRateLimiter) cleanup(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
-		time.Sleep(interval)
-		rl.mu.Lock()
-		for ip, entry := range rl.limiters {
-			if time.Since(entry.lastSeen) > 5*time.Minute {
-				delete(rl.limiters, ip)
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			for ip, entry := range rl.limiters {
+				if time.Since(entry.lastSeen) > 5*time.Minute {
+					delete(rl.limiters, ip)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.stop:
+			return
 		}
-		rl.mu.Unlock()
 	}
 }
 
