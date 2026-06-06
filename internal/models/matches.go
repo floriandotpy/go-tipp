@@ -32,6 +32,20 @@ type MatchModel struct {
 	DB *sql.DB
 }
 
+// HasLiveMatch returns true if there is at least one match for the given event
+// that has started but is not yet finished.
+func (m *MatchModel) HasLiveMatch(eventID int) (bool, error) {
+	var count int
+	err := m.DB.QueryRow(
+		`SELECT COUNT(*) FROM matches WHERE event_id = ? AND start <= NOW() AND finished = FALSE`,
+		eventID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (m *MatchModel) MatchHasBegun(matchId int) (bool, error) {
 	match, err := m.Get(matchId)
 	if err != nil {
