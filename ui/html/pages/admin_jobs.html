@@ -1,0 +1,75 @@
+{{define "title"}}Job-Übersicht{{end}} {{define "assets"}}<script src="/static/js/job-details.js" defer></script>{{end}} {{define "main"}}
+<div class="container">
+  <h1>Scheduled Jobs</h1>
+  <p><a href="/admin">&larr; Zurück zum Admin</a></p>
+
+  <h2>fetch-results <span class="muted">(Ergebnisse abrufen)</span></h2>
+  {{if .JobRunsFetchResults}}
+  <table class="cc-table cc-table--compact">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Zeitpunkt</th>
+        <th>Dauer</th>
+        <th>Zusammenfassung</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .JobRunsFetchResults}}
+      <tr>
+        <td class="job-status">
+          {{if eq .Status "error"}}<span class="dot dot--red" title="Fehler"></span>
+          {{else if eq .Status "success_changed"}}<span class="dot dot--green-dark" title="Änderungen geschrieben"></span>
+          {{else}}<span class="dot dot--green-light" title="Keine Änderungen"></span>{{end}}
+        </td>
+        <td>{{.StartedAt.Format "02.01.2006 15:04"}}</td>
+        <td>{{duration .StartedAt .FinishedAt}}</td>
+        <td>{{.Summary}}</td>
+        <td>
+          {{if .Details}}<button class="link-button js-toggle-details" data-details="{{detailsJSON .Details}}">Details</button>{{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Noch keine Ausführungen.</p>
+  {{end}}
+
+  <h2>sync-phases <span class="muted">(Phasen synchronisieren)</span></h2>
+  {{if .JobRunsSyncPhases}}
+  <table class="cc-table cc-table--compact">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Zeitpunkt</th>
+        <th>Dauer</th>
+        <th>Zusammenfassung</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .JobRunsSyncPhases}}
+      <tr>
+        <td class="job-status">
+          {{if eq .Status "error"}}<span class="dot dot--red" title="Fehler"></span>
+          {{else if eq .Status "success_changed"}}<span class="dot dot--green-dark" title="Änderungen geschrieben"></span>
+          {{else}}<span class="dot dot--green-light" title="Keine Änderungen"></span>{{end}}
+        </td>
+        <td>{{.StartedAt.Format "02.01.2006 15:04"}}</td>
+        <td>{{duration .StartedAt .FinishedAt}}</td>
+        <td>{{.Summary}}</td>
+        <td>
+          {{if .Details}}<button class="link-button js-toggle-details" data-details="{{detailsJSON .Details}}">Details</button>{{end}}
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">Noch keine Ausführungen.</p>
+  {{end}}
+</div>
+
+{{end}}

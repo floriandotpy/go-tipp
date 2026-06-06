@@ -832,6 +832,21 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Users = users
 
+	// Load recent job runs
+	fetchRuns, err := app.jobRuns.Recent(models.JobFetchResults, 15)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.JobRunsFetchResults = fetchRuns
+
+	syncRuns, err := app.jobRuns.Recent(models.JobSyncPhases, 15)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.JobRunsSyncPhases = syncRuns
+
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
@@ -1428,6 +1443,27 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 		phasesCreated, phasesUpdated, matchesInserted, matchesUpdated)
 	app.sessionManager.Put(r.Context(), "flash", msg)
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// --- Admin Job Runs ---
+
+func (app *application) adminJobRuns(w http.ResponseWriter, r *http.Request) {
+	fetchRuns, err := app.jobRuns.Recent(models.JobFetchResults, 50)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	syncRuns, err := app.jobRuns.Recent(models.JobSyncPhases, 50)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data := app.newTemplateData(r)
+	data.JobRunsFetchResults = fetchRuns
+	data.JobRunsSyncPhases = syncRuns
+	app.render(w, r, http.StatusOK, "admin_jobs.html", data)
 }
 
 // --- User Settings / Token Management ---
