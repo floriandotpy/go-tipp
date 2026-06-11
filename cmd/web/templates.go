@@ -224,21 +224,76 @@ func detailsJSON(data []byte) string {
 	return string(data)
 }
 
+// timeUntilKickoff returns a human-readable German string showing how much time
+// is left until the match starts. Returns empty string if the match is in the past.
+func timeUntilKickoff(start time.Time) string {
+	now := time.Now()
+	if !start.After(now) {
+		return ""
+	}
+
+	d := start.Sub(now)
+
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+
+	var parts []string
+	if days > 0 {
+		if days == 1 {
+			parts = append(parts, "1 Tag")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d Tage", days))
+		}
+	}
+	if hours > 0 {
+		if hours == 1 {
+			parts = append(parts, "1 Stunde")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d Stunden", hours))
+		}
+	}
+	if minutes > 0 {
+		if minutes == 1 {
+			parts = append(parts, "1 Minute")
+		} else {
+			parts = append(parts, fmt.Sprintf("%d Minuten", minutes))
+		}
+	}
+
+	if len(parts) == 0 {
+		return "Noch weniger als eine Minute bis zum Anstoß"
+	}
+
+	// Join with " und " for last element, ", " for the rest
+	var result string
+	if len(parts) == 1 {
+		result = parts[0]
+	} else if len(parts) == 2 {
+		result = parts[0] + " und " + parts[1]
+	} else {
+		result = parts[0] + ", " + parts[1] + " und " + parts[2]
+	}
+
+	return "Noch " + result + " bis zum Anstoß"
+}
+
 var functions = template.FuncMap{
-	"germanWeekday": germanWeekday,
-	"germanDate":    germanDate,
-	"matchResult":   matchResult,
-	"defaultIntStr": defaultIntStr,
-	"defaultStr":    defaultStr,
-	"add":           add,
-	"germanYesNo":   germanYesNo,
-	"isLast":        isLast,
-	"even":          even,
-	"odd":           odd,
-	"isKOPhase":     isKOPhase,
-	"pluralize":     pluralize,
-	"duration":      duration,
-	"detailsJSON":   detailsJSON,
+	"germanWeekday":    germanWeekday,
+	"germanDate":       germanDate,
+	"matchResult":      matchResult,
+	"defaultIntStr":    defaultIntStr,
+	"defaultStr":       defaultStr,
+	"add":              add,
+	"germanYesNo":      germanYesNo,
+	"isLast":           isLast,
+	"even":             even,
+	"odd":              odd,
+	"isKOPhase":        isKOPhase,
+	"pluralize":        pluralize,
+	"duration":         duration,
+	"detailsJSON":      detailsJSON,
+	"timeUntilKickoff": timeUntilKickoff,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {

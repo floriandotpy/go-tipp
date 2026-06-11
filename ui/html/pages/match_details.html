@@ -11,6 +11,9 @@
       {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
       ({{.Match.Start.Format "15:04" }} Uhr)
     </p>
+    {{with timeUntilKickoff .Match.Start}}
+    <p class="match-details__countdown">⏱ {{.}}</p>
+    {{end}}
 
     {{if eq $.Status "live"}}
     <div class="live-indicator">
