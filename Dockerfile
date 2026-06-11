@@ -18,6 +18,9 @@ FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata curl
 
+# Set timezone so time.Now() and time parsing align with Europe/Berlin
+ENV TZ=Europe/Berlin
+
 # Install dbmate for running migrations on startup
 RUN curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/download/v2.24.2/dbmate-linux-amd64 \
     && chmod +x /usr/local/bin/dbmate
