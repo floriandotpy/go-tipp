@@ -25,6 +25,9 @@
       {{end}} {{template "main" .}}
     </main>
     <div class="container footer l-box">
+      {{if .IsAuthenticated}}
+      <p class="footer__user">Eingeloggt als {{.AuthUserName}}</p>
+      {{end}}
       <p>
         &copy; {{.CurrentYear}} GoTipp ist eine Web-Anwendung für Tippspiele unter Freunden &amp; ein Projekt von
         <a href="https://casualcoding.com">casualcoding.com</a>

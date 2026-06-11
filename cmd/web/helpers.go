@@ -49,6 +49,12 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 
 func (app *application) newTemplateData(r *http.Request) templateData {
 	authUserId, _ := app.authUserId(r)
+	var authUserName string
+	if authUserId != 0 {
+		if u, err := app.users.Get(authUserId); err == nil {
+			authUserName = u.Name
+		}
+	}
 	event := eventFromContext(r)
 	eventFinished, _ := app.eventIsFinished(event.ID)
 	return templateData{
@@ -58,6 +64,7 @@ func (app *application) newTemplateData(r *http.Request) templateData {
 		IsAdmin:         app.isAdmin(r),
 		CSRFToken:       nosurf.Token(r),
 		AuthUserId:      authUserId,
+		AuthUserName:    authUserName,
 		EventIsFinished: eventFinished,
 		Event:           event,
 		IsActiveEvent:   event.IsActive,

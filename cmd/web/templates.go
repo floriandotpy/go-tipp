@@ -69,6 +69,7 @@ type templateData struct {
 	IsAdmin         bool
 	CSRFToken       string
 	AuthUserId      int
+	AuthUserName    string
 	// for user_details view
 	User            models.User
 	UserCompare     models.User
