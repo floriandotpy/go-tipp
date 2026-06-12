@@ -46,6 +46,21 @@ func (m *MatchModel) HasLiveMatch(eventID int) (bool, error) {
 	return count > 0, nil
 }
 
+// HasRecentlyFinishedMatch returns true if there is at least one match for the
+// given event that started within the last 24 hours and is marked finished.
+// This allows the script to re-check and correct results shortly after a match ends.
+func (m *MatchModel) HasRecentlyFinishedMatch(eventID int) (bool, error) {
+	var count int
+	err := m.DB.QueryRow(
+		`SELECT COUNT(*) FROM matches WHERE event_id = ? AND finished = TRUE AND start >= NOW() - INTERVAL 24 HOUR`,
+		eventID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (m *MatchModel) MatchHasBegun(matchId int) (bool, error) {
 	match, err := m.Get(matchId)
 	if err != nil {

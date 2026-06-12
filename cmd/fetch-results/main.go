@@ -83,16 +83,22 @@ func run(db *sql.DB) int {
 	}
 	fmt.Printf("Active event: %s (ID: %d)\n", event.Name, event.ID)
 
-	// Early exit: check if any match is currently in progress
+	// Early exit: check if any match is live or finished within the last 24h
 	hasLive, err := matchModel.HasLiveMatch(event.ID)
 	if err != nil {
 		fmt.Printf("Error checking for live matches: %v\n", err)
 		record(models.JobStatusError, fmt.Sprintf("Error checking for live matches: %v", err), nil)
 		return 1
 	}
-	if !hasLive {
-		fmt.Println("No live matches, nothing to do.")
-		record(models.JobStatusNoop, "No live matches", nil)
+	hasRecentlyFinished, err := matchModel.HasRecentlyFinishedMatch(event.ID)
+	if err != nil {
+		fmt.Printf("Error checking for recently finished matches: %v\n", err)
+		record(models.JobStatusError, fmt.Sprintf("Error checking for recently finished matches: %v", err), nil)
+		return 1
+	}
+	if !hasLive && !hasRecentlyFinished {
+		fmt.Println("No live or recently finished matches, nothing to do.")
+		record(models.JobStatusNoop, "No live or recently finished matches", nil)
 		return 0
 	}
 
@@ -133,9 +139,27 @@ func run(db *sql.DB) int {
 			continue
 		}
 
-		// Skip if already marked finished in our DB and API agrees
+		// Skip if already marked finished in our DB and API agrees,
+		// BUT only if the result also matches (API may correct scores after marking finished).
 		if dbMatch.Finished && apiMatch.MatchIsFinished {
-			continue
+			apiResults := parseResults(apiMatch)
+			if end, ok := apiResults["Endergebnis"]; ok {
+				if dbMatch.ResultA != nil && dbMatch.ResultB != nil &&
+					*dbMatch.ResultA == end[0] && *dbMatch.ResultB == end[1] {
+					continue
+				}
+				// Result mismatch or missing — fall through to update it
+				if dbMatch.ResultA != nil && dbMatch.ResultB != nil {
+					fmt.Printf("Result correction needed: %s vs %s (db=%d:%d, api=%d:%d)\n",
+						dbMatch.TeamA, dbMatch.TeamB, *dbMatch.ResultA, *dbMatch.ResultB, end[0], end[1])
+				} else {
+					fmt.Printf("Result missing in DB: %s vs %s (api=%d:%d)\n",
+						dbMatch.TeamA, dbMatch.TeamB, end[0], end[1])
+				}
+			} else {
+				// No Endergebnis in API but already finished — skip
+				continue
+			}
 		}
 
 		fmt.Printf("Processing: %s vs %s (db_id=%d, api_id=%d)\n",
@@ -156,12 +180,14 @@ func run(db *sql.DB) int {
 
 		// Determine result string for detail logging
 		var resultStr string
+		var resultChanged bool
 
 		// Set end result
 		if end, ok := results["Endergebnis"]; ok {
 			if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != end[0] || *dbMatch.ResultB != end[1] {
 				fmt.Printf("  Setting result: %d:%d\n", end[0], end[1])
 				matchModel.SetResults(dbMatch.ID, end[0], end[1])
+				resultChanged = true
 			}
 			resultStr = fmt.Sprintf("%d:%d", end[0], end[1])
 		}
@@ -171,6 +197,7 @@ func run(db *sql.DB) int {
 			if dbMatch.ResultAETA == nil || dbMatch.ResultAETB == nil || *dbMatch.ResultAETA != aet[0] || *dbMatch.ResultAETB != aet[1] {
 				fmt.Printf("  Setting AET result: %d:%d\n", aet[0], aet[1])
 				matchModel.SetResultsAfterExtension(dbMatch.ID, aet[0], aet[1])
+				resultChanged = true
 			}
 			resultStr = fmt.Sprintf("%d:%d AET", aet[0], aet[1])
 		}
@@ -180,6 +207,7 @@ func run(db *sql.DB) int {
 			if dbMatch.ResultAPenA == nil || dbMatch.ResultAPenB == nil || *dbMatch.ResultAPenA != apen[0] || *dbMatch.ResultAPenB != apen[1] {
 				fmt.Printf("  Setting penalty result: %d:%d\n", apen[0], apen[1])
 				matchModel.SetResultsAfterPenalty(dbMatch.ID, apen[0], apen[1])
+				resultChanged = true
 			}
 			resultStr = fmt.Sprintf("%d:%d PEN", apen[0], apen[1])
 		}
@@ -191,6 +219,11 @@ func run(db *sql.DB) int {
 			matchModel.SetMatchIsFinished(dbMatch.ID, apiMatch.MatchIsFinished)
 			recomputeUserScores = true
 			newlyFinished = apiMatch.MatchIsFinished
+		}
+
+		// Also recompute scores if a result was corrected on an already-finished match
+		if resultChanged && dbMatch.Finished {
+			recomputeUserScores = true
 		}
 
 		matchDetails = append(matchDetails, matchDetail{
