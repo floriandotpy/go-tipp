@@ -255,6 +255,12 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 	data := app.newTemplateData(r)
 	data.Match = match
 
+	// Look up the event phase to get its human-readable title
+	selectedPhase, err := app.eventPhases.GetByEventAndNumber(event.ID, match.EventPhase)
+	if err == nil {
+		data.SelectedPhase = selectedPhase
+	}
+
 	now := time.Now()
 	status := app.matchTipps.MatchStatus(match, now)
 	data.Status = status
