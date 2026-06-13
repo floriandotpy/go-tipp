@@ -16,14 +16,15 @@ type ApiGroup struct {
 }
 
 type ApiMatch struct {
-	MatchID         int         `json:"matchID"`
-	MatchDateTime   string      `json:"matchDateTime"`
-	TeamA           ApiTeam     `json:"team1"`
-	TeamB           ApiTeam     `json:"team2"`
-	MatchResults    []ApiResult `json:"matchResults"`
-	MatchIsFinished bool        `json:"matchIsFinished"`
-	Goals           []ApiGoal   `json:"goals"`
-	Group           ApiGroup    `json:"group"`
+	MatchID            int         `json:"matchID"`
+	MatchDateTime      string      `json:"matchDateTime"`
+	MatchDateTimeUTC   string      `json:"matchDateTimeUTC"`
+	TeamA              ApiTeam     `json:"team1"`
+	TeamB              ApiTeam     `json:"team2"`
+	MatchResults       []ApiResult `json:"matchResults"`
+	MatchIsFinished    bool        `json:"matchIsFinished"`
+	Goals              []ApiGoal   `json:"goals"`
+	Group              ApiGroup    `json:"group"`
 }
 
 type ApiGoal struct {

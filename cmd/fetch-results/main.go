@@ -112,12 +112,17 @@ func run(db *sql.DB) int {
 	}
 
 	// Filter to only matches that have started
-	now := time.Now()
+	now := time.Now().UTC()
 	var relevant []api.ApiMatch
 	for _, am := range apiMatches {
-		matchTime, parseErr := time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+		// Use UTC time from API for accurate comparison (matchDateTime is local/CEST)
+		matchTime, parseErr := time.Parse(time.RFC3339, am.MatchDateTimeUTC)
 		if parseErr != nil {
-			continue
+			// Fallback: try parsing local time as Europe/Berlin
+			matchTime, parseErr = time.Parse("2006-01-02T15:04:05", am.MatchDateTime)
+			if parseErr != nil {
+				continue
+			}
 		}
 		if matchTime.Before(now) || am.MatchIsFinished {
 			relevant = append(relevant, am)
