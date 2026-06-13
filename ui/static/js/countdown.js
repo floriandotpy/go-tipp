@@ -3,6 +3,7 @@
   if (!el) return;
 
   var target = new Date(el.getAttribute('data-target')).getTime();
+  var label = el.getAttribute('data-label') || 'Anpfiff in';
 
   function update() {
     var now = Date.now();
@@ -32,7 +33,7 @@
     }
 
     if (timeText) {
-      el.innerHTML = 'Die WM startet in <span class="hero__countdown-time">' + timeText + '</span>.';
+      el.innerHTML = label + ' <span class="hero__countdown-time">' + timeText + '</span>';
     } else {
       el.style.display = 'none';
     }

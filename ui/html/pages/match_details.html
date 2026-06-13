@@ -1,4 +1,6 @@
-{{define "title"}}Spiele{{end}}{{define "assets"}}{{end}}{{define "main"}}
+{{define "title"}}Spiele{{end}}{{define "assets"}}
+{{if eq .Status "future"}}<script src="/static/js/countdown.js" defer></script>{{end}}
+{{end}}{{define "main"}}
 <div class="container">
   <div class="match-details match-details-top">
     <p class="match-details__subtitle">{{.SelectedPhase.Title}}</p>
@@ -11,8 +13,9 @@
       {{germanWeekday .Match.Start}}, {{germanDate .Match.Start}}
       ({{.Match.Start.Format "15:04" }} Uhr)
     </p>
-    {{with timeUntilKickoff .Match.Start}}
-    <p class="match-details__countdown">⏱ {{.}}</p>
+
+    {{if eq $.Status "future"}}
+    <p class="match-details__countdown" id="countdown" data-target="{{.Match.Start.UTC.Format "2006-01-02T15:04:05Z07:00"}}" data-label="⏱ Anpfiff in"></p>
     {{end}}
 
     {{if eq $.Status "live"}}
@@ -23,6 +26,7 @@
     {{end}}
   </div>
 
+  {{if ne $.Status "future"}}
   <div class="match-details">
     <p class="match-details__subtitle">Endergebnis (nach 90 Minuten)</p>
     <p class="match-details__result">
@@ -31,21 +35,23 @@
       {{.LiveResult.ResultB}} {{end}}
     </p>
   </div>
+  {{if .Match.ResultAETA}}
   <div class="match-details">
-    {{if .Match.ResultAETA}}
     <p class="match-details__subtitle">Nach Verlängerung</p>
     <p class="match-details__result">
       {{.Match.ResultAETA}} : {{.Match.ResultAETB}}
     </p>
   </div>
+  {{end}}
+  {{if .Match.ResultAPenA}}
   <div class="match-details">
-    {{end}} {{if .Match.ResultAPenA}}
     <p class="match-details__subtitle">Nach Elfmeterschießen</p>
     <p class="match-details__result">
       {{.Match.ResultAPenA}} : {{.Match.ResultAPenB}}
     </p>
-    {{end}}
   </div>
+  {{end}}
+  {{end}}
 
   {{if .Goals}}
   <h2>Spielverlauf {{if eq $.Status "live"}}(live){{end}}</h2>

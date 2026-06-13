@@ -830,6 +830,13 @@ a.status-future::before {
     font-size: 2em;
     margin: 0;
 }
+.match-details__countdown {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--green-dark);
+    margin: 0.5em 0 0;
+}
 .muted {
     font-size: 0.8em;
     color: lightslategray;
