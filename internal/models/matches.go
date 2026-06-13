@@ -123,14 +123,14 @@ func (m *MatchModel) Insert(teamA, teamB string, start time.Time, matchType stri
 func (m *MatchModel) Get(id int) (Match, error) {
 	stmt := `SELECT id, start, team_a, team_b, result_a, result_b,
 	result_aet_a, result_aet_b, result_apen_a, result_apen_b,
-	match_type, finished, event_phase, event_id FROM matches WHERE id = ?`
+	match_type, finished, event_phase, event_id, api_match_id FROM matches WHERE id = ?`
 	var match Match
 	err := m.DB.QueryRow(stmt, id).Scan(
 		&match.ID, &match.Start, &match.TeamA, &match.TeamB,
 		&match.ResultA, &match.ResultB,
 		&match.ResultAETA, &match.ResultAETB,
 		&match.ResultAPenA, &match.ResultAPenB,
-		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
+		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID, &match.ApiMatchID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord

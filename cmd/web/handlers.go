@@ -1451,6 +1451,125 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
+// --- Admin Match Resync ---
+
+func (app *application) adminResyncMatch(w http.ResponseWriter, r *http.Request) {
+	matchID, err := strconv.Atoi(r.PathValue("matchID"))
+	if err != nil || matchID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Look up the match in our DB
+	match, err := app.matches.Get(matchID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	// Match must have an API match ID to resync
+	if match.ApiMatchID == nil {
+		app.sessionManager.Put(r.Context(), "flash", "Dieses Spiel hat keine API-Match-ID und kann nicht synchronisiert werden.")
+		http.Redirect(w, r, fmt.Sprintf("/spiel/%d", matchID), http.StatusSeeOther)
+		return
+	}
+
+	// Get the event to fetch from its API
+	event, err := app.events.Get(match.EventID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Fetch all matches from the API
+	apiMatches, err := api.FetchMatchData(event.ApiBaseURL)
+	if err != nil {
+		app.sessionManager.Put(r.Context(), "flash", fmt.Sprintf("Fehler beim Abrufen der API: %v", err))
+		http.Redirect(w, r, fmt.Sprintf("/spiel/%d", matchID), http.StatusSeeOther)
+		return
+	}
+
+	// Find the specific match in the API response
+	var apiMatch *api.ApiMatch
+	for i := range apiMatches {
+		if apiMatches[i].MatchID == *match.ApiMatchID {
+			apiMatch = &apiMatches[i]
+			break
+		}
+	}
+
+	if apiMatch == nil {
+		app.sessionManager.Put(r.Context(), "flash", fmt.Sprintf("Spiel mit API-ID %d nicht in API-Antwort gefunden.", *match.ApiMatchID))
+		http.Redirect(w, r, fmt.Sprintf("/spiel/%d", matchID), http.StatusSeeOther)
+		return
+	}
+
+	// Sync goals: delete all then re-insert
+	app.goals.DeleteAllForMatch(matchID)
+	for _, apiGoal := range apiMatch.Goals {
+		goal := api.ConvertApiGoalToGoal(apiGoal)
+		_, err := app.goals.InsertOrUpdate(matchID, goal)
+		if err != nil {
+			app.logger.Error("resync: error inserting goal", "match_id", matchID, "error", err)
+		}
+	}
+
+	// Parse and set results
+	results := parseResyncResults(*apiMatch)
+
+	if end, ok := results["Endergebnis"]; ok {
+		app.matches.SetResults(matchID, end[0], end[1])
+	}
+	if aet, ok := results["nach Verlängerung"]; ok {
+		app.matches.SetResultsAfterExtension(matchID, aet[0], aet[1])
+	}
+	if apen, ok := results["nach Elfmeterschießen"]; ok {
+		app.matches.SetResultsAfterPenalty(matchID, apen[0], apen[1])
+	}
+
+	// Update finished flag
+	if match.Finished != apiMatch.MatchIsFinished {
+		app.matches.SetMatchIsFinished(matchID, apiMatch.MatchIsFinished)
+	}
+
+	// Recompute points if the match is finished
+	if apiMatch.MatchIsFinished {
+		app.tipps.UpdatePoints(event.ID)
+	}
+
+	msg := fmt.Sprintf("Spiel erfolgreich synchronisiert: %d Tore, finished=%t", len(apiMatch.Goals), apiMatch.MatchIsFinished)
+	app.sessionManager.Put(r.Context(), "flash", msg)
+	http.Redirect(w, r, fmt.Sprintf("/spiel/%d", matchID), http.StatusSeeOther)
+}
+
+// parseResyncResults extracts result types from an API match (same logic as fetch-results).
+func parseResyncResults(apiMatch api.ApiMatch) map[string][2]int {
+	results := make(map[string][2]int)
+	relevantNames := []string{"Endergebnis", "nach Verlängerung", "nach Elfmeterschießen"}
+
+	for _, result := range apiMatch.MatchResults {
+		for _, name := range relevantNames {
+			if result.ResultName == name {
+				results[name] = [2]int{result.PointsTeamA, result.PointsTeamB}
+			}
+		}
+	}
+
+	if apen, ok := results["nach Elfmeterschießen"]; ok {
+		if end, ok2 := results["Endergebnis"]; ok2 {
+			if apen[0] == end[0] && apen[1] == end[1] {
+				delete(results, "nach Elfmeterschießen")
+			}
+		}
+	}
+
+	return results
+}
+
 // --- Admin Job Runs ---
 
 func (app *application) adminJobRuns(w http.ResponseWriter, r *http.Request) {

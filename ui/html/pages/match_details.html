@@ -96,6 +96,16 @@
     </tbody>
   </table>
   {{end}}
+
+  {{if .IsAdmin}}
+  <div class="match-details" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--color-border, #ddd);">
+    <p class="match-details__subtitle">Admin</p>
+    <form method="POST" action="/admin/matches/{{.Match.ID}}/resync">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <button type="submit" class="pure-button">Spiel mit API synchronisieren</button>
+    </form>
+  </div>
+  {{end}}
 </div>
 
 {{end}}

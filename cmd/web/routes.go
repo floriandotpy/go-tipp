@@ -75,6 +75,9 @@ func (app *application) routes() http.Handler {
 	// Delete phase
 	mux.Handle("POST /admin/phases/{phaseID}/delete", admin.ThenFunc(app.adminDeletePhasePost))
 
+	// Resync a single match from API
+	mux.Handle("POST /admin/matches/{matchID}/resync", admin.ThenFunc(app.adminResyncMatch))
+
 	// Job runs
 	mux.Handle("GET /admin/jobs", admin.ThenFunc(app.adminJobRuns))
 
