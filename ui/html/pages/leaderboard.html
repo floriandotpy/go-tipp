@@ -22,26 +22,14 @@
         <td class="w-2-12">Gesamtpunkte</td>
       </tr>
     </thead>
-    {{$prev_place:=0}} {{range $i, $u := .Users}}
+    {{$prev_place:=0}} {{$stripe:=0}} {{range $u := .Users}}
+    {{$showPlace := ne $u.Place $prev_place}}
+    {{if $showPlace}}{{$stripe = add $stripe 1}}{{$prev_place = $u.Place}}{{end}}
     <tr
-      {{if
-      eq
-      $.AuthUserId
-      $u.ID}}
-      class="active"
-      {{end}}
-      {{if
-      even
-      $u.Place
-      }}
-      class="even"
-      {{else}}
-      class="odd"
-      {{end}}
+      {{if eq $.AuthUserId $u.ID}}class="active"{{else if even $stripe}}class="even"{{else}}class="odd"{{end}}
     >
       <td class="text-right">
-        {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
-        {{end}}
+        {{if $showPlace}}{{$u.Place}}{{end}}
       </td>
       <td>
         <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
