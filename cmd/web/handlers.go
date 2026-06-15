@@ -1570,6 +1570,41 @@ func parseResyncResults(apiMatch api.ApiMatch) map[string][2]int {
 	return results
 }
 
+// --- Admin TV Info ---
+
+func (app *application) adminUpdateMatchTv(w http.ResponseWriter, r *http.Request) {
+	matchID, err := strconv.Atoi(r.PathValue("matchID"))
+	if err != nil || matchID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	var tvChannel *string
+	if v := r.PostForm.Get("tv_channel"); v != "" {
+		tvChannel = &v
+	}
+
+	var streamLink *string
+	if v := r.PostForm.Get("stream_link"); v != "" {
+		streamLink = &v
+	}
+
+	err = app.matches.UpdateTvInfo(matchID, tvChannel, streamLink)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "TV-Info aktualisiert.")
+	http.Redirect(w, r, fmt.Sprintf("/spiel/%d", matchID), http.StatusSeeOther)
+}
+
 // --- Admin Job Runs ---
 
 func (app *application) adminJobRuns(w http.ResponseWriter, r *http.Request) {

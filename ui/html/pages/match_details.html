@@ -26,6 +26,15 @@
     {{end}}
   </div>
 
+  {{if .Match.TvChannel}}
+  <div class="match-details">
+    <p class="match-details__subtitle">TV-Übertragung</p>
+    <p class="match-details__result">
+      {{if .Match.StreamLink}}<a href="{{.Match.StreamLink}}" target="_blank" rel="noopener">{{.Match.TvChannel}}</a>{{else}}{{.Match.TvChannel}}{{end}}
+    </p>
+  </div>
+  {{end}}
+
   {{if ne $.Status "future"}}
   <div class="match-details">
     <p class="match-details__subtitle">Endergebnis (nach 90 Minuten)</p>
@@ -109,6 +118,27 @@
     <form method="POST" action="/admin/matches/{{.Match.ID}}/resync">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
       <button type="submit" class="pure-button">Spiel mit API synchronisieren</button>
+    </form>
+    <form method="POST" action="/admin/matches/{{.Match.ID}}/tv" class="pure-form pure-form-aligned" style="margin-top: 1rem;">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <fieldset>
+        <div class="pure-control-group">
+          <label for="tv_channel">TV-Sender:</label>
+          <select id="tv_channel" name="tv_channel">
+            <option value="">– keiner –</option>
+            <option value="ARD" {{if eq (defaultStr .Match.TvChannel "") "ARD"}}selected{{end}}>ARD</option>
+            <option value="ZDF" {{if eq (defaultStr .Match.TvChannel "") "ZDF"}}selected{{end}}>ZDF</option>
+            <option value="MagentaTV" {{if eq (defaultStr .Match.TvChannel "") "MagentaTV"}}selected{{end}}>MagentaTV</option>
+          </select>
+        </div>
+        <div class="pure-control-group">
+          <label for="stream_link">Stream-Link:</label>
+          <input type="url" id="stream_link" name="stream_link" value="{{defaultStr .Match.StreamLink ""}}" placeholder="https://..." size="50">
+        </div>
+        <div class="pure-controls">
+          <button type="submit" class="pure-button pure-button-primary">TV-Info speichern</button>
+        </div>
+      </fieldset>
     </form>
   </div>
   {{end}}

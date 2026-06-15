@@ -78,6 +78,9 @@ func (app *application) routes() http.Handler {
 	// Resync a single match from API
 	mux.Handle("POST /admin/matches/{matchID}/resync", admin.ThenFunc(app.adminResyncMatch))
 
+	// Update TV info for a match
+	mux.Handle("POST /admin/matches/{matchID}/tv", admin.ThenFunc(app.adminUpdateMatchTv))
+
 	// Job runs
 	mux.Handle("GET /admin/jobs", admin.ThenFunc(app.adminJobRuns))
 

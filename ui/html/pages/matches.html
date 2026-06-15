@@ -99,7 +99,7 @@
             {{end}}
             <br /><span
               class="muted">
-              {{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04" }}</span>
+              {{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04" }}{{with .TvChannel}} · {{.}}{{end}}</span>
             </span>
           </a>
           </td>

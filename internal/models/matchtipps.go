@@ -25,6 +25,10 @@ type MatchTipp struct {
 	ResultAPenA *int
 	ResultAPenB *int
 
+	// TV broadcast info
+	TvChannel  *string
+	StreamLink *string
+
 	AcceptsTipps bool
 	Status       string
 
@@ -121,6 +125,8 @@ func (m *MatchTippModel) AllByDaterange(userId int, eventID int, after time.Time
 			ResultAETB:   match.ResultAETB,
 			ResultAPenA:  match.ResultAPenA,
 			ResultAPenB:  match.ResultAPenB,
+			TvChannel:    match.TvChannel,
+			StreamLink:   match.StreamLink,
 			AcceptsTipps: acceptsTipps,
 			Status:       status,
 		}

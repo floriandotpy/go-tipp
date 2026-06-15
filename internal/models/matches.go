@@ -26,6 +26,10 @@ type Match struct {
 	EventPhase int
 	EventID    int
 	ApiMatchID *int
+
+	// TV broadcast info
+	TvChannel  *string
+	StreamLink *string
 }
 
 type MatchModel struct {
@@ -123,14 +127,16 @@ func (m *MatchModel) Insert(teamA, teamB string, start time.Time, matchType stri
 func (m *MatchModel) Get(id int) (Match, error) {
 	stmt := `SELECT id, start, team_a, team_b, result_a, result_b,
 	result_aet_a, result_aet_b, result_apen_a, result_apen_b,
-	match_type, finished, event_phase, event_id, api_match_id FROM matches WHERE id = ?`
+	match_type, finished, event_phase, event_id, api_match_id,
+	tv_channel, stream_link FROM matches WHERE id = ?`
 	var match Match
 	err := m.DB.QueryRow(stmt, id).Scan(
 		&match.ID, &match.Start, &match.TeamA, &match.TeamB,
 		&match.ResultA, &match.ResultB,
 		&match.ResultAETA, &match.ResultAETB,
 		&match.ResultAPenA, &match.ResultAPenB,
-		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID, &match.ApiMatchID)
+		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID, &match.ApiMatchID,
+		&match.TvChannel, &match.StreamLink)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Match{}, ErrNoRecord
@@ -347,7 +353,8 @@ func (m *MatchModel) AllWithResults(eventID int) ([]Match, error) {
 	result_a, result_b,
 	result_aet_a, result_aet_b,
 	result_apen_a, result_apen_b,
-	match_type, finished, event_phase, event_id
+	match_type, finished, event_phase, event_id,
+	tv_channel, stream_link
 	FROM matches WHERE event_id = ? ORDER BY start ASC, id ASC`
 
 	rows, err := m.DB.Query(stmt, eventID)
@@ -364,7 +371,8 @@ func (m *MatchModel) AllWithResults(eventID int) ([]Match, error) {
 			&match.ResultA, &match.ResultB,
 			&match.ResultAETA, &match.ResultAETB,
 			&match.ResultAPenA, &match.ResultAPenB,
-			&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
+			&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID,
+			&match.TvChannel, &match.StreamLink)
 		if err != nil {
 			return nil, err
 		}
@@ -421,7 +429,8 @@ func (m *MatchModel) AllByDaterange(eventID int, after time.Time, before time.Ti
 	result_a, result_b,
 	result_aet_a, result_aet_b,
 	result_apen_a, result_apen_b,
-	match_type, finished, event_phase, event_id
+	match_type, finished, event_phase, event_id,
+	tv_channel, stream_link
              FROM matches 
              WHERE event_id = ? AND start >= ? AND start <= ? 
              ORDER BY start ASC, id ASC`
@@ -440,7 +449,8 @@ func (m *MatchModel) AllByDaterange(eventID int, after time.Time, before time.Ti
 			&match.ResultA, &match.ResultB,
 			&match.ResultAETA, &match.ResultAETB,
 			&match.ResultAPenA, &match.ResultAPenB,
-			&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID)
+			&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID,
+			&match.TvChannel, &match.StreamLink)
 		if err != nil {
 			return nil, err
 		}
@@ -530,4 +540,11 @@ func InferEventPhaseType(db *sql.DB, match *Match) (string, error) {
 		return "", err
 	}
 	return phaseType, nil
+}
+
+// UpdateTvInfo updates the tv_channel and stream_link for a match.
+func (m *MatchModel) UpdateTvInfo(id int, tvChannel, streamLink *string) error {
+	stmt := `UPDATE matches SET tv_channel = ?, stream_link = ? WHERE id = ?`
+	_, err := m.DB.Exec(stmt, tvChannel, streamLink, id)
+	return err
 }
