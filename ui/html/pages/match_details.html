@@ -37,7 +37,7 @@
 
   {{if ne $.Status "future"}}
   <div class="match-details">
-    <p class="match-details__subtitle">Endergebnis (nach 90 Minuten)</p>
+    <p class="match-details__subtitle">{{if eq $.Status "done"}}Endergebnis (nach 90 Minuten){{else}}Aktueller Spielstand{{end}}</p>
     <p class="match-details__result">
       {{if eq $.Status "done"}}{{.Match.ResultA}} : {{.Match.ResultB}} {{end}}
       {{if eq $.Status "live" "pending"}}{{.LiveResult.ResultA}} :
