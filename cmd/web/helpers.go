@@ -146,6 +146,20 @@ func isActiveEvent(r *http.Request) bool {
 	return event.IsActive
 }
 
+// liveScore derives the current match score from goals, falling back to the
+// match result columns. During live matches the goals table reflects the true
+// state before "Endergebnis" appears in the API.
+func liveScore(goals []models.Goal, resultA *int, resultB *int) (int, int) {
+	if len(goals) > 0 {
+		last := goals[len(goals)-1]
+		return last.ScoreTeamA, last.ScoreTeamB
+	}
+	if resultA != nil && resultB != nil {
+		return *resultA, *resultB
+	}
+	return 0, 0
+}
+
 func (app *application) getGroupID(invite string) (int, error) {
 
 	// check for empty string to avoid accidental match if a group has no invite code set in the db

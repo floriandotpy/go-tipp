@@ -303,10 +303,9 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		}
 		data.Tipps = tipps
 
-		var scoreA, scoreB = 0, 0 // no live data yet? default to 0:0
-		if match.ResultA != nil && match.ResultB != nil {
-			scoreA, scoreB = *match.ResultA, *match.ResultB
-		}
+		// Derive live score from goals (more accurate during live matches than
+		// match.ResultA/ResultB which only updates when "Endergebnis" appears).
+		scoreA, scoreB := liveScore(goals, match.ResultA, match.ResultB)
 
 		liveTipps, err := app.tipps.ComputeLiveTipps(tipps, scoreA, scoreB, eventPhaseType)
 		if err != nil {

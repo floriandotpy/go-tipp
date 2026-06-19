@@ -75,7 +75,7 @@
     <tbody>
       {{range $i, $goal := .Goals}}
       <tr {{if isLast $i $.Goals }} class="active" {{end}}>
-        <td>{{$goal.MatchMinute}}</td>
+        <td>{{if $goal.MatchMinute}}{{$goal.MatchMinute}}{{else}}-{{end}}</td>
         <td>{{$goal.ScoreTeamA}} : {{$goal.ScoreTeamB}}</td>
         <td>{{$goal.GoalGetterName}}</td>
       </tr>
