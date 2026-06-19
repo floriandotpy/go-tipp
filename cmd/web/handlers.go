@@ -167,15 +167,27 @@ func (app *application) matchesHandler(w http.ResponseWriter, req *http.Request)
 		// default to today's phase
 		todaysPhase, phaseErr := app.eventPhases.DetermineCurrentPhase(event.ID, time.Now())
 		if phaseErr != nil {
-			// No phase covers "now" — check if event hasn't started yet or is over
+			// No phase covers "now" — find the best phase to show
 			if len(eventPhases) > 0 {
 				now := time.Now()
 				if now.Before(eventPhases[0].Start) {
 					// Event hasn't started yet → show first phase
 					phaseId = eventPhases[0].Number
 				} else {
-					// Event is over → show last phase
-					phaseId = eventPhases[len(eventPhases)-1].Number
+					// "now" is between two phases or after the last one.
+					// Pick the next upcoming phase (first phase whose start is after now).
+					found := false
+					for _, ep := range eventPhases {
+						if ep.Start.After(now) {
+							phaseId = ep.Number
+							found = true
+							break
+						}
+					}
+					if !found {
+						// All phases are in the past → show last phase
+						phaseId = eventPhases[len(eventPhases)-1].Number
+					}
 				}
 			} else {
 				phaseId = 1
