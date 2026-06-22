@@ -241,6 +241,12 @@ a:hover { color: #06e; }​ */
     background-color: rgba(232, 245, 189, 0.3);
 }
 
+/* Highlight for the next relevant match (live or upcoming) */
+.cc-table.cc-table-striped tbody tr.match-highlight {
+    background-color: rgba(232, 245, 189, 0.5);
+    box-shadow: inset 3px 0 0 var(--green-dark);
+}
+
 /* manual striped */
 .cc-table tbody tr.even {
     background-color: #fafafa;
