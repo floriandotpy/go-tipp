@@ -66,7 +66,7 @@
   {{end}}
 
     <table class="cc-table cc-table-striped">
-      <thead class="">
+      <thead>
         <tr>
           <th class="w-2-12"></th>
           <th class="w-4-12">Spiel</th>
@@ -86,24 +86,20 @@
             >
           </td>
           <td>
-            <a
-              href="/spiel/{{.MatchId}}">
+            <a href="/spiel/{{.MatchId}}">
             {{if eq .TeamA ""}}
             <span class="team-none">(Noch offen)</span>
             {{else}}
             {{.TeamA}}
             {{end}}
-            -
+            –
             {{if eq .TeamB ""}}
             <span class="team-none">(Noch offen)</span>
             {{else}}
             {{.TeamB}}
             {{end}}
-            <br /><span
-              class="muted">
-              {{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04" }}{{with .TvChannel}} · {{.}}{{end}}</span>
-            </span>
-          </a>
+            <br /><span class="muted">{{germanWeekday .Start}}, {{germanDate .Start}} {{.Start.Format "15:04"}}{{with .TvChannel}} · {{.}}{{end}}</span>
+            </a>
           </td>
           <td>{{matchResult .ResultA .ResultB}}
             {{ if .ResultAPenA}}
@@ -117,7 +113,6 @@
               (n.V. {{.ResultAETA}}:{{.ResultAETB}}) 
             </span>
             {{end}}
-
           </td>
           <td>
             {{if and $.IsActiveEvent .AcceptsTipps}}
@@ -130,6 +125,8 @@
               type="number"
               min="0"
               max="99"
+              inputmode="numeric"
+              pattern="[0-9]*"
               name="tipp_a_{{.MatchId}}"
               value='{{defaultIntStr .TippA ""}}'
             />
@@ -138,6 +135,8 @@
               type="number"
               min="0"
               max="99"
+              inputmode="numeric"
+              pattern="[0-9]*"
               name="tipp_b_{{.MatchId}}"
               value='{{defaultIntStr .TippB ""}}'
             />

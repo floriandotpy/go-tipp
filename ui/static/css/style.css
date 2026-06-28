@@ -280,6 +280,11 @@ a:hover { color: #06e; }​ */
     .cc-table thead {
         font-size: 10px;
     }
+
+    /* Prevent Safari auto-zoom on input focus */
+    .cc-table input[type="number"] {
+        font-size: 16px;
+    }
 }
 
 
