@@ -1347,3 +1347,50 @@ Prev/next buttons for mobile view
     flex-wrap: wrap;
     align-items: center;
 }
+
+
+/* Chart controls */
+.chart-container {
+    margin: 1em 0 2em;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.chart-toggle-group {
+    display: inline-flex;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.chart-toggle {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.chart-toggle:not(:last-child) {
+    border-right: 1px solid #eee;
+}
+
+.chart-toggle:hover {
+    background: #f5f5f3;
+}
+
+.chart-toggle.active {
+    background: var(--green-dark);
+    color: #fff;
+}

@@ -1,6 +1,6 @@
 {{define "title"}}Leaderboard{{end}} {{define "assets"}}
-<script src="/static/lib/chart-4.4.3.js"></script>
-<script src="/static/js/scoreboard.js"></script>
+<script src="/static/lib/chart-4.4.3.js?v={{assetVersion}}"></script>
+<script src="/static/js/scoreboard.js?v={{assetVersion}}"></script>
 {{end}} {{define "main"}}
 
 <div class="container">
@@ -41,11 +41,20 @@
   </table>
 
   {{ $lid := .ID }} {{ if eq $lid 0 }} {{ $lid = "1,2" }} {{ end }}
-  <h3>{{.Title}} Leaderboard Verlauf</h3>
-  <div>
-    <div class="w-8-12-sm margin-lr-auto">
-      <canvas data-chart="{{$lid}}" width="400" height="400"></canvas>
+  <h3>{{.Title}} Verlauf</h3>
+  <div class="chart-container">
+    <div class="chart-controls">
+      <div class="chart-toggle-group">
+        <button class="chart-toggle active" data-timeframe="10">Letzte 10</button>
+        <button class="chart-toggle" data-timeframe="25">Letzte 25</button>
+        <button class="chart-toggle" data-timeframe="all">Alle Spiele</button>
+      </div>
+      <div class="chart-toggle-group">
+        <button class="chart-toggle active" data-mode="points">Punkte</button>
+        <button class="chart-toggle" data-mode="rank">Rang</button>
+      </div>
     </div>
+    <canvas data-chart="{{$lid}}"></canvas>
   </div>
 
   {{end}}

@@ -279,6 +279,9 @@ func timeUntilKickoff(start time.Time) string {
 	return "Noch " + result + " bis zum Anstoß"
 }
 
+// staticVersion is set once at startup and used as a cache-busting query parameter.
+var staticVersion = fmt.Sprintf("%d", time.Now().Unix())
+
 var functions = template.FuncMap{
 	"germanWeekday":    germanWeekday,
 	"germanDate":       germanDate,
@@ -295,6 +298,7 @@ var functions = template.FuncMap{
 	"duration":         duration,
 	"detailsJSON":      detailsJSON,
 	"timeUntilKickoff": timeUntilKickoff,
+	"assetVersion":     func() string { return staticVersion },
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
