@@ -106,8 +106,8 @@ function createChart(canvas, data, { timeframe, mode }) {
       borderColor: getColor(idx),
       backgroundColor: getColor(idx),
       borderWidth: 1.8,
-      pointRadius: 2,
-      pointHoverRadius: 5,
+      pointRadius: 0,
+      pointHoverRadius: 0,
       tension: 0.3,
     };
   });
@@ -139,24 +139,17 @@ function createChart(canvas, data, { timeframe, mode }) {
             const chart = legend.chart;
             const idx = legendItem.datasetIndex;
 
-            // If already highlighted, reset all
             if (chart._highlightedIndex === idx) {
               chart.data.datasets.forEach((dataset, i) => {
                 dataset.borderWidth = 1.8;
                 dataset.borderColor = getColor(i);
-                dataset.pointBackgroundColor = getColor(i);
               });
               chart._highlightedIndex = null;
             } else {
-              // Highlight clicked, dim others
               chart.data.datasets.forEach((dataset, i) => {
-                dataset.borderWidth = i === idx ? 3 : 1.8;
-                dataset.borderColor = i === idx
-                  ? getColor(i)
-                  : getColor(i) + '26';
-                dataset.pointBackgroundColor = i === idx
-                  ? getColor(i)
-                  : getColor(i) + '26';
+                const active = i === idx;
+                dataset.borderWidth = active ? 3 : 1;
+                dataset.borderColor = active ? getColor(i) : getColor(i) + '20';
               });
               chart._highlightedIndex = idx;
             }
@@ -164,25 +157,20 @@ function createChart(canvas, data, { timeframe, mode }) {
           },
           onHover: (event, legendItem, legend) => {
             const chart = legend.chart;
-            if (chart._highlightedIndex != null) return; // don't override tap selection
+            if (chart._highlightedIndex != null) return;
             chart.data.datasets.forEach((dataset, i) => {
-              dataset.borderWidth = i === legendItem.datasetIndex ? 3 : 1.8;
-              dataset.borderColor = i === legendItem.datasetIndex
-                ? getColor(i)
-                : getColor(i) + '26';
-              dataset.pointBackgroundColor = i === legendItem.datasetIndex
-                ? getColor(i)
-                : getColor(i) + '26';
+              const active = i === legendItem.datasetIndex;
+              dataset.borderWidth = active ? 3 : 1;
+              dataset.borderColor = active ? getColor(i) : getColor(i) + '20';
             });
             chart.update('none');
           },
           onLeave: (event, legendItem, legend) => {
             const chart = legend.chart;
-            if (chart._highlightedIndex != null) return; // don't override tap selection
+            if (chart._highlightedIndex != null) return;
             chart.data.datasets.forEach((dataset, i) => {
               dataset.borderWidth = 1.8;
               dataset.borderColor = getColor(i);
-              dataset.pointBackgroundColor = getColor(i);
             });
             chart.update('none');
           },
