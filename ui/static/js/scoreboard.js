@@ -70,6 +70,13 @@ function createChart(canvas, data, { timeframe, mode }) {
   const users = data.users;
   const matches = data.matches;
 
+  // Sort users by current total points (descending) so legend matches leaderboard
+  users.sort((a, b) => {
+    const lastA = a.total_points[a.total_points.length - 1] || 0;
+    const lastB = b.total_points[b.total_points.length - 1] || 0;
+    return lastB - lastA;
+  });
+
   // Determine limit from timeframe
   let limit = null;
   if (timeframe === '10') limit = 10;
@@ -126,6 +133,57 @@ function createChart(canvas, data, { timeframe, mode }) {
             pointStyle: 'circle',
             padding: 16,
             font: { size: 12 },
+          },
+          onClick: (event, legendItem, legend) => {
+            const chart = legend.chart;
+            const idx = legendItem.datasetIndex;
+
+            // If already highlighted, reset all
+            if (chart._highlightedIndex === idx) {
+              chart.data.datasets.forEach((dataset, i) => {
+                dataset.borderWidth = 1.8;
+                dataset.borderColor = getColor(i);
+                dataset.pointBackgroundColor = getColor(i);
+              });
+              chart._highlightedIndex = null;
+            } else {
+              // Highlight clicked, dim others
+              chart.data.datasets.forEach((dataset, i) => {
+                dataset.borderWidth = i === idx ? 3 : 1.8;
+                dataset.borderColor = i === idx
+                  ? getColor(i)
+                  : getColor(i) + '26';
+                dataset.pointBackgroundColor = i === idx
+                  ? getColor(i)
+                  : getColor(i) + '26';
+              });
+              chart._highlightedIndex = idx;
+            }
+            chart.update('none');
+          },
+          onHover: (event, legendItem, legend) => {
+            const chart = legend.chart;
+            if (chart._highlightedIndex != null) return; // don't override tap selection
+            chart.data.datasets.forEach((dataset, i) => {
+              dataset.borderWidth = i === legendItem.datasetIndex ? 3 : 1.8;
+              dataset.borderColor = i === legendItem.datasetIndex
+                ? getColor(i)
+                : getColor(i) + '26';
+              dataset.pointBackgroundColor = i === legendItem.datasetIndex
+                ? getColor(i)
+                : getColor(i) + '26';
+            });
+            chart.update('none');
+          },
+          onLeave: (event, legendItem, legend) => {
+            const chart = legend.chart;
+            if (chart._highlightedIndex != null) return; // don't override tap selection
+            chart.data.datasets.forEach((dataset, i) => {
+              dataset.borderWidth = 1.8;
+              dataset.borderColor = getColor(i);
+              dataset.pointBackgroundColor = getColor(i);
+            });
+            chart.update('none');
           },
         },
         tooltip: {
