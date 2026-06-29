@@ -132,8 +132,8 @@ function createChart(canvas, data, { timeframe, mode }) {
           labels: {
             usePointStyle: true,
             pointStyle: 'circle',
-            padding: 16,
-            font: { size: 12 },
+            padding: 20,
+            font: { size: 14 },
           },
           onClick: (event, legendItem, legend) => {
             const chart = legend.chart;
@@ -199,11 +199,6 @@ function createChart(canvas, data, { timeframe, mode }) {
       },
       scales: {
         x: {
-          title: {
-            display: true,
-            text: 'Spiel',
-            font: { size: 12 },
-          },
           grid: {
             display: false,
           },
@@ -213,11 +208,6 @@ function createChart(canvas, data, { timeframe, mode }) {
           },
         },
         y: {
-          title: {
-            display: true,
-            text: mode === 'rank' ? 'Rang' : 'Punkte',
-            font: { size: 12 },
-          },
           reverse: mode === 'rank',
           beginAtZero: mode !== 'rank',
           grid: {

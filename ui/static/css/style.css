@@ -1354,14 +1354,14 @@ Prev/next buttons for mobile view
     margin: 1em 0 2em;
 }
 
-.chart-container canvas {
-    width: 100% !important;
-    height: 400px !important;
+.chart-canvas-wrap {
+    position: relative;
+    height: 400px;
 }
 
 @media (max-width: 640px) {
-    .chart-container canvas {
-        height: 350px !important;
+    .chart-canvas-wrap {
+        height: 350px;
     }
 }
 
