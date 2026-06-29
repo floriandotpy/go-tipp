@@ -120,6 +120,7 @@ function createChart(canvas, data, { timeframe, mode }) {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       animation: false,
       interaction: {
         mode: 'index',

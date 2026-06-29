@@ -1354,6 +1354,17 @@ Prev/next buttons for mobile view
     margin: 1em 0 2em;
 }
 
+.chart-container canvas {
+    width: 100% !important;
+    height: 400px !important;
+}
+
+@media (max-width: 640px) {
+    .chart-container canvas {
+        height: 350px !important;
+    }
+}
+
 .chart-controls {
     display: flex;
     gap: 12px;
