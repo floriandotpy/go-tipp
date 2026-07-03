@@ -165,6 +165,29 @@ func run(db *sql.DB) int {
 				continue
 			}
 
+			// Fallback: if not found by API ID, check by event + date + teams.
+			// This handles the case where the API reassigned a match to a new ID.
+			if existing.ID == 0 {
+				day := parsedTime.Format("2006-01-02")
+				existing, err = matchModel.GetByEventAndTeams(event.ID, day, am.TeamA.TeamName, am.TeamB.TeamName)
+				if err != nil {
+					fmt.Printf("  Error looking up match by metadata: %v\n", err)
+					continue
+				}
+				if existing.ID != 0 {
+					// Found by metadata — update api_match_id to the new value
+					err = matchModel.UpdateApiMatchID(existing.ID, am.MatchID)
+					if err != nil {
+						fmt.Printf("  Error updating api_match_id for match %d: %v\n", existing.ID, err)
+						continue
+					}
+					fmt.Printf("  Relinked match: %s vs %s (api_match_id %d -> %d)\n",
+						am.TeamA.TeamName, am.TeamB.TeamName,
+						func() int { if existing.ApiMatchID != nil { return *existing.ApiMatchID }; return 0 }(),
+						am.MatchID)
+				}
+			}
+
 			teams := fmt.Sprintf("%s vs %s", am.TeamA.TeamName, am.TeamB.TeamName)
 
 			if existing.ID != 0 {

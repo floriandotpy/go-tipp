@@ -227,6 +227,41 @@ func (m *MatchModel) GetByApiMatchID(apiMatchID int) (Match, error) {
 	return match, nil
 }
 
+// GetByEventAndTeams looks up a match by event, date, and team names.
+// This serves as a fallback when the API reassigns a match ID.
+// Returns a zero-value Match (ID == 0) if not found.
+func (m *MatchModel) GetByEventAndTeams(eventID int, day string, teamA, teamB string) (Match, error) {
+	query := `
+		SELECT id, start, team_a, team_b,
+		result_a, result_b,
+		result_aet_a, result_aet_b,
+		result_apen_a, result_apen_b,
+		match_type, finished, event_phase, event_id, api_match_id
+		FROM matches
+		WHERE event_id = ? AND DATE(start) = ? AND team_a = ? AND team_b = ?
+	`
+	var match Match
+	err := m.DB.QueryRow(query, eventID, day, teamA, teamB).Scan(
+		&match.ID, &match.Start, &match.TeamA, &match.TeamB,
+		&match.ResultA, &match.ResultB,
+		&match.ResultAETA, &match.ResultAETB,
+		&match.ResultAPenA, &match.ResultAPenB,
+		&match.MatchType, &match.Finished, &match.EventPhase, &match.EventID, &match.ApiMatchID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return Match{}, nil
+		}
+		return Match{}, err
+	}
+	return match, nil
+}
+
+// UpdateApiMatchID updates the external API match ID for an existing match.
+func (m *MatchModel) UpdateApiMatchID(id int, apiMatchID int) error {
+	_, err := m.DB.Exec(`UPDATE matches SET api_match_id = ? WHERE id = ?`, apiMatchID, id)
+	return err
+}
+
 // UpdateMatch updates team names, start time, and phase info for an existing match.
 func (m *MatchModel) UpdateMatch(id int, teamA, teamB string, start time.Time, matchType string, eventPhase int) error {
 	query := `

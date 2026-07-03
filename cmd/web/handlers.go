@@ -1412,6 +1412,16 @@ func (app *application) adminSyncEventGet(w http.ResponseWriter, r *http.Request
 				app.serverError(w, r, err)
 				return
 			}
+
+			// Fallback: check by event + date + teams (handles API ID reassignment)
+			if existing.ID == 0 {
+				existing, err = app.matches.GetByEventAndTeams(eventID, day, am.TeamA.TeamName, am.TeamB.TeamName)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+			}
+
 			if existing.ID != 0 {
 				// Match exists — check if anything changed
 				if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
@@ -1505,6 +1515,25 @@ func (app *application) adminSyncEventPost(w http.ResponseWriter, r *http.Reques
 				app.serverError(w, r, err)
 				return
 			}
+
+			// Fallback: if not found by API ID, check by event + date + teams.
+			// This handles the case where the API reassigned a match to a new ID.
+			if existing.ID == 0 {
+				day := parsedTime.Format("2006-01-02")
+				existing, err = app.matches.GetByEventAndTeams(eventID, day, am.TeamA.TeamName, am.TeamB.TeamName)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
+				if existing.ID != 0 {
+					err = app.matches.UpdateApiMatchID(existing.ID, am.MatchID)
+					if err != nil {
+						app.serverError(w, r, err)
+						return
+					}
+				}
+			}
+
 			if existing.ID != 0 {
 				// Match exists — update if anything changed
 				if existing.TeamA != am.TeamA.TeamName || existing.TeamB != am.TeamB.TeamName || !existing.Start.Equal(parsedTime) {
