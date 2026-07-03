@@ -864,6 +864,18 @@ func (app *application) adminIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	data.JobRunsSyncPhases = syncRuns
 
+	// Load group members for group management
+	groupMembers := make(map[int][]models.User)
+	for _, g := range groups {
+		members, err := app.groups.UsersInGroup(g.ID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		groupMembers[g.ID] = members
+	}
+	data.GroupMembers = groupMembers
+
 	app.render(w, r, http.StatusOK, "admin.html", data)
 }
 
@@ -898,6 +910,68 @@ func (app *application) adminResetPasswordPost(w http.ResponseWriter, r *http.Re
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Passwort wurde zurückgesetzt.")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminAddUserToGroup(w http.ResponseWriter, r *http.Request) {
+	groupID, err := strconv.Atoi(r.PathValue("groupID"))
+	if err != nil || groupID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.Atoi(r.PostForm.Get("user_id"))
+	if err != nil || userID < 1 {
+		app.sessionManager.Put(r.Context(), "flash", "Ungültiger Benutzer.")
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+
+	err = app.groups.AddUserToGroup(userID, groupID)
+	if err != nil {
+		// Duplicate entry is fine — user already in group
+		app.sessionManager.Put(r.Context(), "flash", "Benutzer konnte nicht hinzugefügt werden (evtl. bereits Mitglied).")
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Benutzer zur Gruppe hinzugefügt.")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *application) adminRemoveUserFromGroup(w http.ResponseWriter, r *http.Request) {
+	groupID, err := strconv.Atoi(r.PathValue("groupID"))
+	if err != nil || groupID < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.Atoi(r.PostForm.Get("user_id"))
+	if err != nil || userID < 1 {
+		app.sessionManager.Put(r.Context(), "flash", "Ungültiger Benutzer.")
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+
+	err = app.groups.RemoveUserFromGroup(userID, groupID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Benutzer aus Gruppe entfernt.")
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 

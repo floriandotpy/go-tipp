@@ -134,31 +134,51 @@
   {{end}}
 
   <h2>Gruppen</h2>
-  <table class="cc-table">
-    <thead>
-      <tr>
-        <td>ID</td>
-        <td>Name</td>
-        <td>Invite-Code</td>
-        <td>Direktlink</td>
-      </tr>
-    </thead>
-    {{range .Groups}}
-    <tr>
-      <td>{{.ID}}</td>
-      <td>{{.Name}}</td>
-      <td><em>{{.Invite}}</em></td>
-      <td>
-        <input
-          type="text"
-          disabled
-          size="50"
-          value="domain.com/user/signup?invite={{.Invite}}"
-        />
-      </td>
-    </tr>
+  {{range .Groups}}
+  {{$groupID := .ID}}
+  <section class="admin-event" style="margin-bottom: 1.5em;">
+    <h3>{{.Name}} <span class="muted">(Invite: {{.Invite}})</span></h3>
+
+    {{$members := index $.GroupMembers .ID}}
+    {{if $members}}
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Benutzer</th>
+          <th>Entfernen</th>
+        </tr>
+      </thead>
+      <tbody>
+      {{range $members}}
+        <tr>
+          <td>{{.Name}}</td>
+          <td>
+            <form action="/admin/groups/{{$groupID}}/removeuser" method="post" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}" />
+              <input type="hidden" name="user_id" value="{{.ID}}" />
+              <button class="pure-button" type="submit" onclick="return confirm('{{.Name}} aus Gruppe entfernen?')">✕</button>
+            </form>
+          </td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="muted">Keine Mitglieder.</p>
     {{end}}
-  </table>
+
+    <form action="/admin/groups/{{$groupID}}/adduser" method="post" style="display:flex;gap:4px;align-items:center;margin-top:0.5em;">
+      <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}" />
+      <select name="user_id" required>
+        <option value="">Benutzer wählen…</option>
+        {{range $.Users}}
+        <option value="{{.ID}}">{{.Name}}</option>
+        {{end}}
+      </select>
+      <button class="pure-button" type="submit">Hinzufügen</button>
+    </form>
+  </section>
+  {{end}}
 </div>
 
 {{end}}

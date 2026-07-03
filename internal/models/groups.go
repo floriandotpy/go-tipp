@@ -92,6 +92,35 @@ ORDER BY
 	return groups, nil
 }
 
+func (m *GroupModel) RemoveUserFromGroup(userId int, groupId int) error {
+	stmt := "DELETE FROM user_groups WHERE user_id = ? AND group_id = ?;"
+	_, err := m.DB.Exec(stmt, userId, groupId)
+	return err
+}
+
+func (m *GroupModel) UsersInGroup(groupId int) ([]User, error) {
+	stmt := `SELECT u.id, u.name FROM users u
+JOIN user_groups ug ON u.id = ug.user_id
+WHERE ug.group_id = ?
+ORDER BY u.name ASC`
+	rows, err := m.DB.Query(stmt, groupId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		err = rows.Scan(&u.ID, &u.Name)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
 func (m *GroupModel) GetByInvite(invite string) (Group, error) {
 	stmt := "SELECT id, name, invite FROM `groups` WHERE invite = ? ORDER BY id ASC"
 

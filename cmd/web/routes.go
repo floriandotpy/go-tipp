@@ -84,6 +84,10 @@ func (app *application) routes() http.Handler {
 	// Job runs
 	mux.Handle("GET /admin/jobs", admin.ThenFunc(app.adminJobRuns))
 
+	// Group membership management
+	mux.Handle("POST /admin/groups/{groupID}/adduser", admin.ThenFunc(app.adminAddUserToGroup))
+	mux.Handle("POST /admin/groups/{groupID}/removeuser", admin.ThenFunc(app.adminRemoveUserFromGroup))
+
 	// API routes (Bearer token auth, no session/CSRF)
 	api := alice.New(app.apiRateLimit, app.apiAuth)
 	mux.Handle("GET /api/v1/matches", api.ThenFunc(app.apiGetMatches))
