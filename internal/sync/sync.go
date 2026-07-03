@@ -9,13 +9,16 @@ import (
 )
 
 // koKeywords are substrings that indicate a knockout phase.
-var koKeywords = []string{"Finale", "Viertelfinale", "Halbfinale", "Achtelfinale"}
+// We use "finale" (lowercase) to match all compound words like
+// Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, and Finale itself.
+var koKeywords = []string{"finale"}
 
-// InferPhaseType returns "phase_ko" if groupName contains any KO keyword,
-// otherwise "phase_group".
+// InferPhaseType returns "phase_ko" if groupName contains any KO keyword
+// (case-insensitive), otherwise "phase_group".
 func InferPhaseType(groupName string) string {
+	lower := strings.ToLower(groupName)
 	for _, kw := range koKeywords {
-		if strings.Contains(groupName, kw) {
+		if strings.Contains(lower, kw) {
 			return "phase_ko"
 		}
 	}
