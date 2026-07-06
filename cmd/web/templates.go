@@ -95,6 +95,8 @@ type templateData struct {
 	// Job run history for admin
 	JobRunsFetchResults []models.JobRun
 	JobRunsSyncPhases   []models.JobRun
+	// Data consistency checks for admin
+	ConsistencyChecks []models.ConsistencyCheck
 	// Group members for admin group management
 	GroupMembers map[int][]models.User
 }

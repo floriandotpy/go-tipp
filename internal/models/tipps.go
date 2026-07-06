@@ -250,6 +250,7 @@ func (m *TippModel) AllForMatch(matchId int) ([]Tipp, error) {
 // for the given event. Returns the number of rows affected.
 func (m *TippModel) UpdatePoints(eventID int) (int, error) {
 	// First update result_correct, goal_difference_correct, and tendency_correct
+	// Only score matches that are finished to avoid scoring against live intermediate results.
 	stmt1 := `
 	UPDATE tipps t
 	JOIN matches m ON t.match_id = m.id
@@ -269,6 +270,7 @@ func (m *TippModel) UpdatePoints(eventID int) (int, error) {
 			ELSE 0 
 		END
 	WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL
+	AND m.finished = 1
 	AND m.event_id = ?;
 	`
 
@@ -311,7 +313,7 @@ func buildUpdatePointsQuery(phasePointsMap map[string]scoring.PhasePoints) strin
 	queryTemplate := `
     UPDATE tipps t
     JOIN matches m ON t.match_id = m.id
-    LEFT JOIN event_phases ep ON m.event_id = ep.event_id AND m.event_phase = ep.number
+    JOIN event_phases ep ON m.event_id = ep.event_id AND m.event_phase = ep.number
     SET t.points = CASE
         WHEN ep.phase_type = '%s' THEN
             CASE
@@ -329,7 +331,9 @@ func buildUpdatePointsQuery(phasePointsMap map[string]scoring.PhasePoints) strin
             END
         ELSE 0
     END
-    WHERE m.event_id = ?;
+    WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL
+    AND m.finished = 1
+    AND m.event_id = ?;
     `
 
 	query := fmt.Sprintf(queryTemplate,
@@ -388,13 +392,16 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 	// Perform SQL query to aggregate user points
 	query := `
 	WITH all_matches AS (
-		SELECT DISTINCT m.id AS match_id FROM matches m WHERE m.result_a IS NOT NULL AND m.event_id = ?
+		SELECT DISTINCT m.id AS match_id, m.start AS match_start
+		FROM matches m
+		WHERE m.result_a IS NOT NULL AND m.result_b IS NOT NULL AND m.finished = 1 AND m.event_id = ?
 	),
 	user_matches AS (
 		SELECT
 			u.id AS user_id,
 			u.name,
-			m.match_id
+			m.match_id,
+			m.match_start
 		FROM
 			users u
 		CROSS JOIN
@@ -410,26 +417,27 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 		SELECT 
 			um.user_id,
 			um.match_id,
+			um.match_start,
 			COALESCE(SUM(t.points), 0) AS points
 		FROM 
 			user_matches um
 		LEFT JOIN 
 			tipps t ON um.user_id = t.user_id AND um.match_id = t.match_id
 		GROUP BY 
-			um.user_id, um.match_id
+			um.user_id, um.match_id, um.match_start
 	)
 	SELECT 
 		ut.user_id,
 		u.name,
 		ut.match_id,
 		ut.points,
-		SUM(ut.points) OVER (PARTITION BY ut.user_id ORDER BY ut.match_id) AS total_points
+		SUM(ut.points) OVER (PARTITION BY ut.user_id ORDER BY ut.match_start, ut.match_id) AS total_points
 	FROM 
 		user_tipps ut
 	JOIN 
 		users u ON ut.user_id = u.id
 	ORDER BY 
-		ut.user_id, ut.match_id;
+		ut.user_id, ut.match_start, ut.match_id;
     `
 
 	rows, err := m.DB.Query(query, eventID)

@@ -84,6 +84,9 @@ func (app *application) routes() http.Handler {
 	// Job runs
 	mux.Handle("GET /admin/jobs", admin.ThenFunc(app.adminJobRuns))
 
+	// Data consistency monitoring
+	mux.Handle("GET /admin/consistency", admin.ThenFunc(app.adminConsistency))
+
 	// Group membership management
 	mux.Handle("POST /admin/groups/{groupID}/adduser", admin.ThenFunc(app.adminAddUserToGroup))
 	mux.Handle("POST /admin/groups/{groupID}/removeuser", admin.ThenFunc(app.adminRemoveUserFromGroup))

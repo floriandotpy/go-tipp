@@ -1740,6 +1740,14 @@ func (app *application) adminJobRuns(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, "admin_jobs.html", data)
 }
 
+// --- Admin Data Consistency ---
+
+func (app *application) adminConsistency(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.ConsistencyChecks = app.consistency.RunChecks()
+	app.render(w, r, http.StatusOK, "admin_consistency.html", data)
+}
+
 // --- User Settings / Token Management ---
 
 func (app *application) userSettings(w http.ResponseWriter, r *http.Request) {

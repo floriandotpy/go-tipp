@@ -165,7 +165,7 @@ func (m *UserModel) GroupLeaderboard(groupId, eventID int) ([]User, error) {
 	stmt := `SELECT 
 		u.id AS user_id, 
 		u.name AS user_name, 
-		COALESCE(SUM(t.points), 0) AS total_points,
+		COALESCE(SUM(CASE WHEN ma.finished = 1 THEN t.points ELSE 0 END), 0) AS total_points,
 		COUNT(t.id) AS tipps_count
 	FROM users u
 	JOIN user_groups ug ON u.id = ug.user_id
@@ -207,7 +207,7 @@ func (m *UserModel) GlobalLeaderboard(eventID int) ([]User, error) {
 	stmt := `SELECT 
 		u.id AS user_id, 
 		u.name AS user_name, 
-		COALESCE(SUM(t.points), 0) AS total_points, 
+		COALESCE(SUM(CASE WHEN ma.finished = 1 THEN t.points ELSE 0 END), 0) AS total_points, 
 		COUNT(t.id) AS tipps_count
 	FROM users u
 	LEFT JOIN tipps t ON u.id = t.user_id
@@ -249,7 +249,7 @@ func (m *UserModel) GetBestInSelectedPhases(groupId, eventID int, phaseIds []int
 	stmt := `SELECT
 		u.id AS user_id,
 		u.name AS user_name,
-		COALESCE(SUM(t.points), 0) AS total_points,
+		COALESCE(SUM(CASE WHEN m.finished = 1 THEN t.points ELSE 0 END), 0) AS total_points,
 		COUNT(t.id) AS tipps_count
 	FROM users u
 	JOIN user_groups ug ON u.id = ug.user_id
