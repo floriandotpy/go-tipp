@@ -1,0 +1,56 @@
+{{define "title"}}Datenkonsistenz{{end}} {{define "assets"}}{{end}} {{define "main"}}
+<div class="container">
+  <h1>Datenkonsistenz</h1>
+  <p><a href="/admin">&larr; Zurück zum Admin</a></p>
+  <p class="consistency-intro">
+    Nur-Lese-Prüfungen der Datenbank. Die Werte werden bei jedem Aufruf frisch geladen.
+  </p>
+
+  {{$anyIssue := false}}
+  {{range .ConsistencyChecks}}{{if not .OK}}{{$anyIssue = true}}{{end}}{{end}}
+
+  {{if not $anyIssue}}
+  <div class="consistency-summary consistency-summary--ok">
+    <span class="dot dot--green-dark"></span>
+    <span>Keine Auffälligkeiten gefunden. Alle Prüfungen sind sauber.</span>
+  </div>
+  {{end}}
+
+  {{range .ConsistencyChecks}}
+  <section class="consistency-check{{if .OK}} consistency-check--ok{{end}}">
+    <h2 class="consistency-check__head">
+      {{if .Err}}<span class="dot dot--red" title="Prüfung fehlgeschlagen"></span>
+      {{else if .OK}}<span class="dot dot--green-light" title="Keine Auffälligkeiten"></span>
+      {{else}}<span class="dot dot--red" title="Auffälligkeiten gefunden"></span>{{end}}
+      <span>{{.Title}}</span>
+      {{if and (not .OK) (not .Err)}}<span class="consistency-check__count">{{.Count}}</span>{{end}}
+    </h2>
+    <p class="consistency-check__desc">{{.Description}}</p>
+
+    {{if .Err}}
+    <p class="consistency-check__error">Fehler bei der Ausführung: {{.Err}}</p>
+    {{else if .OK}}
+    <p class="consistency-check__ok-text">Keine Treffer.</p>
+    {{else}}
+    <table class="cc-table cc-table--compact">
+      <thead>
+        <tr>
+          {{range .Columns}}<th>{{.}}</th>{{end}}
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Rows}}
+        <tr>
+          {{range .}}<td>{{.}}</td>{{end}}
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{if .Truncated}}
+    <p class="consistency-note">Zeige die ersten {{len .Rows}} von {{.Count}} Treffern.</p>
+    {{end}}
+    {{end}}
+  </section>
+  {{end}}
+</div>
+{{end}}

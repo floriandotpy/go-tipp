@@ -558,8 +558,8 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 	// get user id from session
 	userId, err := app.authUserId(r)
 	if err != nil {
-		// TODO: or a proper not authenticated error?
 		app.serverError(w, r, err)
+		return
 	}
 
 	// Iterate through form data
@@ -624,6 +624,12 @@ func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http
 
 			tippB, err := strconv.Atoi(tippBStr)
 			if err != nil {
+				app.clientError(w, http.StatusBadRequest)
+				return
+			}
+
+			// Reject out-of-range scores (mirrors the API contract: 0–99).
+			if tippA < 0 || tippA > 99 || tippB < 0 || tippB > 99 {
 				app.clientError(w, http.StatusBadRequest)
 				return
 			}
@@ -1738,6 +1744,14 @@ func (app *application) adminJobRuns(w http.ResponseWriter, r *http.Request) {
 	data.JobRunsFetchResults = fetchRuns
 	data.JobRunsSyncPhases = syncRuns
 	app.render(w, r, http.StatusOK, "admin_jobs.html", data)
+}
+
+// --- Admin Data Consistency ---
+
+func (app *application) adminConsistency(w http.ResponseWriter, r *http.Request) {
+	data := app.newTemplateData(r)
+	data.ConsistencyChecks = app.consistency.RunChecks()
+	app.render(w, r, http.StatusOK, "admin_consistency.html", data)
 }
 
 // --- User Settings / Token Management ---

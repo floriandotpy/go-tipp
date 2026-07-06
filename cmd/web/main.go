@@ -33,6 +33,7 @@ type application struct {
 	goals          *models.GoalModel
 	apiTokens      *models.ApiTokenModel
 	jobRuns        *models.JobRunModel
+	consistency    *models.ConsistencyModel
 	apiLimiter     *ipRateLimiter
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
@@ -106,6 +107,7 @@ func main() {
 		goals:          &models.GoalModel{DB: db},
 		apiTokens:      &models.ApiTokenModel{DB: db},
 		jobRuns:        &models.JobRunModel{DB: db},
+		consistency:    &models.ConsistencyModel{DB: db},
 		apiLimiter:     newIPRateLimiter(30, 60), // 30 requests/sec sustained, burst of 60
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
