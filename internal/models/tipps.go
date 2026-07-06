@@ -45,37 +45,6 @@ type TippModel struct {
 	DB *sql.DB
 }
 
-func (m *TippModel) Insert(matchId int, userId int, tippA int, tippB int) (int, error) {
-
-	stmt := `INSERT INTO tipps (match_id, user_id, tipp_a, tipp_b, created, changed)
-	VALUES(?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`
-
-	result, err := m.DB.Exec(stmt, matchId, userId, tippA, tippB)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return int(id), nil
-}
-
-func (m *TippModel) Update(matchId int, userId int, tippA int, tippB int) error {
-	stmt := `UPDATE tipps
-	SET tipp_a = ?, tipp_b = ?, changed = UTC_TIMESTAMP()
-	WHERE match_id = ? AND user_id = ?`
-
-	_, err := m.DB.Exec(stmt, tippA, tippB, matchId, userId)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *TippModel) Exists(matchId int, userId int) (bool, error) {
 	stmt := `SELECT COUNT(*) FROM tipps WHERE match_id = ? AND user_id = ?`
 
@@ -100,23 +69,19 @@ func (m *TippModel) Delete(matchId int, userId int) error {
 }
 
 func (m *TippModel) InsertOrUpdate(matchId int, userId int, tippA int, tippB int) error {
-	tippExists, err := m.Exists(matchId, userId)
-	if err != nil {
-		return err
-	}
+	// Atomic upsert. Relies on the UNIQUE KEY tipps_uc_user_match (user_id, match_id)
+	// so concurrent submissions can never create duplicate rows for the same
+	// (user, match) pair. This replaces the previous check-then-write pattern,
+	// which was not safe under concurrency.
+	stmt := `INSERT INTO tipps (match_id, user_id, tipp_a, tipp_b, created, changed)
+	VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+	ON DUPLICATE KEY UPDATE
+		tipp_a = VALUES(tipp_a),
+		tipp_b = VALUES(tipp_b),
+		changed = UTC_TIMESTAMP()`
 
-	if tippExists {
-		err = m.Update(matchId, userId, tippA, tippB)
-		if err != nil {
-			return err
-		}
-	} else {
-		_, err = m.Insert(matchId, userId, tippA, tippB)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err := m.DB.Exec(stmt, matchId, userId, tippA, tippB)
+	return err
 }
 
 // BatchTipp holds the data for one tipp in a batch operation.
@@ -127,7 +92,9 @@ type BatchTipp struct {
 }
 
 // BatchInsertOrUpdate saves multiple tipps within a single database transaction.
-// All tipps are saved or none (all-or-nothing).
+// All tipps are saved or none (all-or-nothing). Each write is an atomic upsert
+// backed by the UNIQUE KEY tipps_uc_user_match, so concurrent requests can never
+// create duplicate rows for the same (user, match) pair.
 func (m *TippModel) BatchInsertOrUpdate(userID int, tipps []BatchTipp) error {
 	tx, err := m.DB.Begin()
 	if err != nil {
@@ -135,25 +102,15 @@ func (m *TippModel) BatchInsertOrUpdate(userID int, tipps []BatchTipp) error {
 	}
 	defer tx.Rollback()
 
-	for _, t := range tipps {
-		var count int
-		err = tx.QueryRow(`SELECT COUNT(*) FROM tipps WHERE match_id = ? AND user_id = ?`, t.MatchID, userID).Scan(&count)
-		if err != nil {
-			return err
-		}
+	stmt := `INSERT INTO tipps (match_id, user_id, tipp_a, tipp_b, created, changed)
+		VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
+		ON DUPLICATE KEY UPDATE
+			tipp_a = VALUES(tipp_a),
+			tipp_b = VALUES(tipp_b),
+			changed = UTC_TIMESTAMP()`
 
-		if count > 0 {
-			_, err = tx.Exec(
-				`UPDATE tipps SET tipp_a = ?, tipp_b = ?, changed = UTC_TIMESTAMP() WHERE match_id = ? AND user_id = ?`,
-				t.TippA, t.TippB, t.MatchID, userID,
-			)
-		} else {
-			_, err = tx.Exec(
-				`INSERT INTO tipps (match_id, user_id, tipp_a, tipp_b, created, changed) VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-				t.MatchID, userID, t.TippA, t.TippB,
-			)
-		}
-		if err != nil {
+	for _, t := range tipps {
+		if _, err = tx.Exec(stmt, t.MatchID, userID, t.TippA, t.TippB); err != nil {
 			return err
 		}
 	}

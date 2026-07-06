@@ -130,6 +130,24 @@ var consistencyChecks = []checkDef{
 			LIMIT ?`,
 	},
 	{
+		key:         "duplicate_tipps",
+		title:       "Doppelte Tipps (Nutzer + Spiel)",
+		description: "Mehr als ein Tipp desselben Nutzers für dasselbe Spiel. Sollte durch die UNIQUE-Bedingung unmöglich sein; Treffer deuten auf ein Datenproblem hin und werden in der Rangliste doppelt gezählt.",
+		countSQL: `SELECT COUNT(*) FROM (
+				SELECT 1
+				FROM tipps
+				GROUP BY user_id, match_id
+				HAVING COUNT(*) > 1
+			) d`,
+		sampleSQL: `SELECT t.user_id, t.match_id, COUNT(*) AS anzahl,
+			GROUP_CONCAT(t.id ORDER BY t.changed) AS tipp_ids
+			FROM tipps t
+			GROUP BY t.user_id, t.match_id
+			HAVING COUNT(*) > 1
+			ORDER BY anzahl DESC, t.user_id
+			LIMIT ?`,
+	},
+	{
 		key:         "invalid_tipp_points",
 		title:       "Logisch inkonsistente Tipp-Punkte",
 		description: "Tipps, deren gespeicherte Korrekt-Markierungen sich widersprechen oder deren Punkte nicht zu den Markierungen passen (z. B. Punkte ohne jede Korrekt-Markierung, oder result_correct=1 ohne tendency_correct).",

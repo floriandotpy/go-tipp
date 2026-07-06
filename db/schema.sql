@@ -137,6 +137,7 @@ CREATE TABLE `tipps` (
   PRIMARY KEY (`id`),
   KEY `match_id` (`match_id`),
   KEY `user_id` (`user_id`),
+  UNIQUE KEY `tipps_uc_user_match` (`user_id`,`match_id`),
   CONSTRAINT `tipps_ibfk_1` FOREIGN KEY (`match_id`) REFERENCES `matches` (`id`),
   CONSTRAINT `tipps_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
