@@ -75,6 +75,20 @@ go run ./cmd/fetch-results
 ./bin/fetch-results
 ```
 
+**Flags:**
+
+| Flag | Description |
+| --- | --- |
+| `-dsn` | MySQL data source name (falls back to `DATABASE_URL_GO`) |
+| `-all` | Reconcile **all** started/finished matches of the active event, bypassing the live/recently-finished gate |
+
+By default the command only does work when a match is live or finished within the last 24 hours (step 2 above). Pass `-all` to force a full re-check of every started/finished match — useful for backfilling result corrections (e.g. after a result-parsing fix) outside the normal window. It re-derives results, fixes any that differ, and recomputes user points.
+
+```sh
+# One-off: reconcile every match of the active event and recompute points
+go run ./cmd/fetch-results -all
+```
+
 ### sync-phases — Phase & Match Import
 
 Syncs event phases and matches from the API. Creates new phases as they appear (e.g., knockout rounds added after group stage), and updates match details (team names, kick-off times). Run 1–2 times per day.

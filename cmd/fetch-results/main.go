@@ -30,6 +30,7 @@ type fetchDetails struct {
 
 func main() {
 	dsn := flag.String("dsn", "", "MySQL data source name")
+	all := flag.Bool("all", false, "reconcile all started/finished matches of the active event, bypassing the live/recently-finished gate (useful for backfilling result corrections)")
 	flag.Parse()
 
 	if *dsn == "" {
@@ -45,10 +46,14 @@ func main() {
 	}
 	defer db.Close()
 
-	os.Exit(run(db))
+	os.Exit(run(db, *all))
 }
 
-func run(db *sql.DB) int {
+// run processes match results for the active event. When reconcileAll is true,
+// the live/recently-finished early-exit gate is skipped so that every
+// started/finished match is re-checked and corrected — used to backfill result
+// fixes (e.g. after a result-parsing bug) outside the normal 24h window.
+func run(db *sql.DB, reconcileAll bool) int {
 	startedAt := time.Now()
 
 	eventModel := &models.EventModel{DB: db}
@@ -83,23 +88,28 @@ func run(db *sql.DB) int {
 	}
 	fmt.Printf("Active event: %s (ID: %d)\n", event.Name, event.ID)
 
-	// Early exit: check if any match is live or finished within the last 24h
-	hasLive, err := matchModel.HasLiveMatch(event.ID)
-	if err != nil {
-		fmt.Printf("Error checking for live matches: %v\n", err)
-		record(models.JobStatusError, fmt.Sprintf("Error checking for live matches: %v", err), nil)
-		return 1
-	}
-	hasRecentlyFinished, err := matchModel.HasRecentlyFinishedMatch(event.ID)
-	if err != nil {
-		fmt.Printf("Error checking for recently finished matches: %v\n", err)
-		record(models.JobStatusError, fmt.Sprintf("Error checking for recently finished matches: %v", err), nil)
-		return 1
-	}
-	if !hasLive && !hasRecentlyFinished {
-		fmt.Println("No live or recently finished matches, nothing to do.")
-		record(models.JobStatusNoop, "No live or recently finished matches", nil)
-		return 0
+	// Early exit: check if any match is live or finished within the last 24h.
+	// Skipped when reconcileAll is set, so all matches get re-checked.
+	if reconcileAll {
+		fmt.Println("Reconcile-all mode: bypassing live/recently-finished gate.")
+	} else {
+		hasLive, err := matchModel.HasLiveMatch(event.ID)
+		if err != nil {
+			fmt.Printf("Error checking for live matches: %v\n", err)
+			record(models.JobStatusError, fmt.Sprintf("Error checking for live matches: %v", err), nil)
+			return 1
+		}
+		hasRecentlyFinished, err := matchModel.HasRecentlyFinishedMatch(event.ID)
+		if err != nil {
+			fmt.Printf("Error checking for recently finished matches: %v\n", err)
+			record(models.JobStatusError, fmt.Sprintf("Error checking for recently finished matches: %v", err), nil)
+			return 1
+		}
+		if !hasLive && !hasRecentlyFinished {
+			fmt.Println("No live or recently finished matches, nothing to do.")
+			record(models.JobStatusNoop, "No live or recently finished matches", nil)
+			return 0
+		}
 	}
 
 	// Fetch all match data from the event's API
