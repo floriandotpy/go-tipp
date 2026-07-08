@@ -148,7 +148,7 @@ func isActiveEvent(r *http.Request) bool {
 
 // liveScore derives the current match score from goals, falling back to the
 // match result columns. During live matches the goals table reflects the true
-// state before "Endergebnis" appears in the API.
+// state before the regular-time result appears in the API.
 func liveScore(goals []models.Goal, resultA *int, resultB *int) (int, int) {
 	if len(goals) > 0 {
 		last := goals[len(goals)-1]

@@ -16,11 +16,11 @@ import (
 
 // details structs for JSON logging
 type matchDetail struct {
-	ID         int    `json:"id"`
-	Teams      string `json:"teams"`
-	GoalsSynced int   `json:"goals_synced"`
-	ResultSet  string `json:"result_set,omitempty"`
-	Finished   bool   `json:"finished"`
+	ID          int    `json:"id"`
+	Teams       string `json:"teams"`
+	GoalsSynced int    `json:"goals_synced"`
+	ResultSet   string `json:"result_set,omitempty"`
+	Finished    bool   `json:"finished"`
 }
 
 type fetchDetails struct {
@@ -30,6 +30,7 @@ type fetchDetails struct {
 
 func main() {
 	dsn := flag.String("dsn", "", "MySQL data source name")
+	all := flag.Bool("all", false, "reconcile all started/finished matches of the active event, bypassing the live/recently-finished gate (useful for backfilling result corrections)")
 	flag.Parse()
 
 	if *dsn == "" {
@@ -45,10 +46,14 @@ func main() {
 	}
 	defer db.Close()
 
-	os.Exit(run(db))
+	os.Exit(run(db, *all))
 }
 
-func run(db *sql.DB) int {
+// run processes match results for the active event. When reconcileAll is true,
+// the live/recently-finished early-exit gate is skipped so that every
+// started/finished match is re-checked and corrected — used to backfill result
+// fixes (e.g. after a result-parsing bug) outside the normal 24h window.
+func run(db *sql.DB, reconcileAll bool) int {
 	startedAt := time.Now()
 
 	eventModel := &models.EventModel{DB: db}
@@ -83,23 +88,28 @@ func run(db *sql.DB) int {
 	}
 	fmt.Printf("Active event: %s (ID: %d)\n", event.Name, event.ID)
 
-	// Early exit: check if any match is live or finished within the last 24h
-	hasLive, err := matchModel.HasLiveMatch(event.ID)
-	if err != nil {
-		fmt.Printf("Error checking for live matches: %v\n", err)
-		record(models.JobStatusError, fmt.Sprintf("Error checking for live matches: %v", err), nil)
-		return 1
-	}
-	hasRecentlyFinished, err := matchModel.HasRecentlyFinishedMatch(event.ID)
-	if err != nil {
-		fmt.Printf("Error checking for recently finished matches: %v\n", err)
-		record(models.JobStatusError, fmt.Sprintf("Error checking for recently finished matches: %v", err), nil)
-		return 1
-	}
-	if !hasLive && !hasRecentlyFinished {
-		fmt.Println("No live or recently finished matches, nothing to do.")
-		record(models.JobStatusNoop, "No live or recently finished matches", nil)
-		return 0
+	// Early exit: check if any match is live or finished within the last 24h.
+	// Skipped when reconcileAll is set, so all matches get re-checked.
+	if reconcileAll {
+		fmt.Println("Reconcile-all mode: bypassing live/recently-finished gate.")
+	} else {
+		hasLive, err := matchModel.HasLiveMatch(event.ID)
+		if err != nil {
+			fmt.Printf("Error checking for live matches: %v\n", err)
+			record(models.JobStatusError, fmt.Sprintf("Error checking for live matches: %v", err), nil)
+			return 1
+		}
+		hasRecentlyFinished, err := matchModel.HasRecentlyFinishedMatch(event.ID)
+		if err != nil {
+			fmt.Printf("Error checking for recently finished matches: %v\n", err)
+			record(models.JobStatusError, fmt.Sprintf("Error checking for recently finished matches: %v", err), nil)
+			return 1
+		}
+		if !hasLive && !hasRecentlyFinished {
+			fmt.Println("No live or recently finished matches, nothing to do.")
+			record(models.JobStatusNoop, "No live or recently finished matches", nil)
+			return 0
+		}
 	}
 
 	// Fetch all match data from the event's API
@@ -147,22 +157,22 @@ func run(db *sql.DB) int {
 		// Skip if already marked finished in our DB and API agrees,
 		// BUT only if the result also matches (API may correct scores after marking finished).
 		if dbMatch.Finished && apiMatch.MatchIsFinished {
-			apiResults := parseResults(apiMatch)
-			if end, ok := apiResults["Endergebnis"]; ok {
+			apiResults := api.ExtractMatchResults(apiMatch)
+			if regular, ok := apiResults[api.ResultRegularTime]; ok {
 				if dbMatch.ResultA != nil && dbMatch.ResultB != nil &&
-					*dbMatch.ResultA == end[0] && *dbMatch.ResultB == end[1] {
+					*dbMatch.ResultA == regular[0] && *dbMatch.ResultB == regular[1] {
 					continue
 				}
 				// Result mismatch or missing — fall through to update it
 				if dbMatch.ResultA != nil && dbMatch.ResultB != nil {
 					fmt.Printf("Result correction needed: %s vs %s (db=%d:%d, api=%d:%d)\n",
-						dbMatch.TeamA, dbMatch.TeamB, *dbMatch.ResultA, *dbMatch.ResultB, end[0], end[1])
+						dbMatch.TeamA, dbMatch.TeamB, *dbMatch.ResultA, *dbMatch.ResultB, regular[0], regular[1])
 				} else {
 					fmt.Printf("Result missing in DB: %s vs %s (api=%d:%d)\n",
-						dbMatch.TeamA, dbMatch.TeamB, end[0], end[1])
+						dbMatch.TeamA, dbMatch.TeamB, regular[0], regular[1])
 				}
 			} else {
-				// No Endergebnis in API but already finished — skip
+				// No regular-time result in API but already finished — skip
 				continue
 			}
 		}
@@ -181,24 +191,24 @@ func run(db *sql.DB) int {
 		}
 
 		// Parse results from API response
-		results := parseResults(apiMatch)
+		results := api.ExtractMatchResults(apiMatch)
 
 		// Determine result string for detail logging
 		var resultStr string
 		var resultChanged bool
 
-		// Set end result
-		if end, ok := results["Endergebnis"]; ok {
-			if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != end[0] || *dbMatch.ResultB != end[1] {
-				fmt.Printf("  Setting result: %d:%d\n", end[0], end[1])
-				matchModel.SetResults(dbMatch.ID, end[0], end[1])
+		// Set regular-time result used for scoring.
+		if regular, ok := results[api.ResultRegularTime]; ok {
+			if dbMatch.ResultA == nil || dbMatch.ResultB == nil || *dbMatch.ResultA != regular[0] || *dbMatch.ResultB != regular[1] {
+				fmt.Printf("  Setting regular-time result: %d:%d\n", regular[0], regular[1])
+				matchModel.SetResults(dbMatch.ID, regular[0], regular[1])
 				resultChanged = true
 			}
-			resultStr = fmt.Sprintf("%d:%d", end[0], end[1])
+			resultStr = fmt.Sprintf("%d:%d", regular[0], regular[1])
 		}
 
 		// Set result after extra time
-		if aet, ok := results["nach Verlängerung"]; ok {
+		if aet, ok := results[api.ResultAfterExtraTime]; ok {
 			if dbMatch.ResultAETA == nil || dbMatch.ResultAETB == nil || *dbMatch.ResultAETA != aet[0] || *dbMatch.ResultAETB != aet[1] {
 				fmt.Printf("  Setting AET result: %d:%d\n", aet[0], aet[1])
 				matchModel.SetResultsAfterExtension(dbMatch.ID, aet[0], aet[1])
@@ -208,7 +218,7 @@ func run(db *sql.DB) int {
 		}
 
 		// Set result after penalty shootout
-		if apen, ok := results["nach Elfmeterschießen"]; ok {
+		if apen, ok := results[api.ResultAfterPenalties]; ok {
 			if dbMatch.ResultAPenA == nil || dbMatch.ResultAPenB == nil || *dbMatch.ResultAPenA != apen[0] || *dbMatch.ResultAPenB != apen[1] {
 				fmt.Printf("  Setting penalty result: %d:%d\n", apen[0], apen[1])
 				matchModel.SetResultsAfterPenalty(dbMatch.ID, apen[0], apen[1])
@@ -277,31 +287,6 @@ func run(db *sql.DB) int {
 	}
 
 	return 0
-}
-
-// parseResults extracts the relevant result types from the API match response.
-func parseResults(apiMatch api.ApiMatch) map[string][2]int {
-	results := make(map[string][2]int)
-	relevantNames := []string{"Endergebnis", "nach Verlängerung", "nach Elfmeterschießen"}
-
-	for _, result := range apiMatch.MatchResults {
-		for _, name := range relevantNames {
-			if result.ResultName == name {
-				results[name] = [2]int{result.PointsTeamA, result.PointsTeamB}
-			}
-		}
-	}
-
-	// Cleanup: ignore penalty result if it's the same as the end result
-	if apen, ok := results["nach Elfmeterschießen"]; ok {
-		if end, ok2 := results["Endergebnis"]; ok2 {
-			if apen[0] == end[0] && apen[1] == end[1] {
-				delete(results, "nach Elfmeterschießen")
-			}
-		}
-	}
-
-	return results
 }
 
 func openDB(dsn string) (*sql.DB, error) {

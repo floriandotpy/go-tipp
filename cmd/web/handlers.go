@@ -304,7 +304,7 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		data.Tipps = tipps
 
 		// Derive live score from goals (more accurate during live matches than
-		// match.ResultA/ResultB which only updates when "Endergebnis" appears).
+		// match.ResultA/ResultB which only updates when a regular-time result appears).
 		scoreA, scoreB := liveScore(goals, match.ResultA, match.ResultB)
 
 		liveTipps, err := app.tipps.ComputeLiveTipps(tipps, scoreA, scoreB, eventPhaseType)
@@ -1001,9 +1001,9 @@ func (app *application) adminUpdatePoints(w http.ResponseWriter, r *http.Request
 // --- Admin Event CRUD ---
 
 type eventCreateForm struct {
-	Name               string `form:"name"`
-	Slug               string `form:"slug"`
-	ApiBaseURL         string `form:"api_base_url"`
+	Name                string `form:"name"`
+	Slug                string `form:"slug"`
+	ApiBaseURL          string `form:"api_base_url"`
 	validator.Validator `form:"-"`
 }
 
@@ -1639,15 +1639,15 @@ func (app *application) adminResyncMatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Parse and set results
-	results := parseResyncResults(*apiMatch)
+	results := api.ExtractMatchResults(*apiMatch)
 
-	if end, ok := results["Endergebnis"]; ok {
-		app.matches.SetResults(matchID, end[0], end[1])
+	if regular, ok := results[api.ResultRegularTime]; ok {
+		app.matches.SetResults(matchID, regular[0], regular[1])
 	}
-	if aet, ok := results["nach Verlängerung"]; ok {
+	if aet, ok := results[api.ResultAfterExtraTime]; ok {
 		app.matches.SetResultsAfterExtension(matchID, aet[0], aet[1])
 	}
-	if apen, ok := results["nach Elfmeterschießen"]; ok {
+	if apen, ok := results[api.ResultAfterPenalties]; ok {
 		app.matches.SetResultsAfterPenalty(matchID, apen[0], apen[1])
 	}
 
@@ -1664,30 +1664,6 @@ func (app *application) adminResyncMatch(w http.ResponseWriter, r *http.Request)
 	msg := fmt.Sprintf("Spiel erfolgreich synchronisiert: %d Tore, finished=%t", len(apiMatch.Goals), apiMatch.MatchIsFinished)
 	app.sessionManager.Put(r.Context(), "flash", msg)
 	http.Redirect(w, r, fmt.Sprintf("/spiel/%d", matchID), http.StatusSeeOther)
-}
-
-// parseResyncResults extracts result types from an API match (same logic as fetch-results).
-func parseResyncResults(apiMatch api.ApiMatch) map[string][2]int {
-	results := make(map[string][2]int)
-	relevantNames := []string{"Endergebnis", "nach Verlängerung", "nach Elfmeterschießen"}
-
-	for _, result := range apiMatch.MatchResults {
-		for _, name := range relevantNames {
-			if result.ResultName == name {
-				results[name] = [2]int{result.PointsTeamA, result.PointsTeamB}
-			}
-		}
-	}
-
-	if apen, ok := results["nach Elfmeterschießen"]; ok {
-		if end, ok2 := results["Endergebnis"]; ok2 {
-			if apen[0] == end[0] && apen[1] == end[1] {
-				delete(results, "nach Elfmeterschießen")
-			}
-		}
-	}
-
-	return results
 }
 
 // --- Admin TV Info ---
