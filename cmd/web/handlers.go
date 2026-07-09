@@ -303,21 +303,33 @@ func (app *application) matchDetailsHandler(w http.ResponseWriter, r *http.Reque
 		}
 		data.Tipps = tipps
 
-		// Derive live score from goals (more accurate during live matches than
-		// match.ResultA/ResultB which only updates when a regular-time result appears).
-		scoreA, scoreB := liveScore(goals, match.ResultA, match.ResultB)
+		// For finished matches, use the stored result (which is the correct
+		// regular-time score). For live matches, derive the score from goals
+		// since result_a/result_b may not be set yet.
+		if match.Finished {
+			if match.ResultA != nil && match.ResultB != nil {
+				data.LiveResult = LiveResult{
+					ResultA: *match.ResultA,
+					ResultB: *match.ResultB,
+				}
+			}
+			// Tipps already have their points computed from UpdatePoints — no
+			// need to recompute. data.Tipps (from AllForMatch) carries the
+			// stored points/correct flags directly.
+		} else {
+			scoreA, scoreB := liveScore(goals, match.ResultA, match.ResultB)
 
-		liveTipps, err := app.tipps.ComputeLiveTipps(tipps, scoreA, scoreB, eventPhaseType)
-		if err != nil {
-			app.serverError(w, r, err)
-		}
-		data.Tipps = liveTipps
+			liveTipps, err := app.tipps.ComputeLiveTipps(tipps, scoreA, scoreB, eventPhaseType)
+			if err != nil {
+				app.serverError(w, r, err)
+			}
+			data.Tipps = liveTipps
 
-		liveResult := LiveResult{
-			ResultA: scoreA,
-			ResultB: scoreB,
+			data.LiveResult = LiveResult{
+				ResultA: scoreA,
+				ResultB: scoreB,
+			}
 		}
-		data.LiveResult = liveResult
 	}
 
 	app.render(w, r, http.StatusOK, "match_details.html", data)
