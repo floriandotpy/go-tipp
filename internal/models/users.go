@@ -20,6 +20,7 @@ type User struct {
 	Tipps          int
 	IsAdmin        bool
 	Place          int
+	IsActive       bool
 }
 
 type UserModel struct {
@@ -166,7 +167,15 @@ func (m *UserModel) GroupLeaderboard(groupId, eventID int) ([]User, error) {
 		u.id AS user_id, 
 		u.name AS user_name, 
 		COALESCE(SUM(CASE WHEN ma.finished = 1 THEN t.points ELSE 0 END), 0) AS total_points,
-		COUNT(t.id) AS tipps_count
+		COUNT(t.id) AS tipps_count,
+		(SELECT COUNT(*) FROM tipps t2
+			JOIN (
+				SELECT id FROM matches
+				WHERE event_id = ? AND finished = 1
+				ORDER BY start DESC LIMIT 10
+			) recent ON t2.match_id = recent.id
+			WHERE t2.user_id = u.id
+		) AS recent_tipps
 	FROM users u
 	JOIN user_groups ug ON u.id = ug.user_id
 	LEFT JOIN tipps t ON u.id = t.user_id
@@ -175,7 +184,7 @@ func (m *UserModel) GroupLeaderboard(groupId, eventID int) ([]User, error) {
 	GROUP BY u.id, u.name
 	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
-	rows, err := m.DB.Query(stmt, groupId, eventID)
+	rows, err := m.DB.Query(stmt, eventID, groupId, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,10 +195,12 @@ func (m *UserModel) GroupLeaderboard(groupId, eventID int) ([]User, error) {
 
 	for rows.Next() {
 		var user User
-		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps)
+		var recentTipps int
+		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps, &recentTipps)
 		if err != nil {
 			return nil, err
 		}
+		user.IsActive = recentTipps >= 1
 
 		users = append(users, user)
 	}
@@ -208,7 +219,15 @@ func (m *UserModel) GlobalLeaderboard(eventID int) ([]User, error) {
 		u.id AS user_id, 
 		u.name AS user_name, 
 		COALESCE(SUM(CASE WHEN ma.finished = 1 THEN t.points ELSE 0 END), 0) AS total_points, 
-		COUNT(t.id) AS tipps_count
+		COUNT(t.id) AS tipps_count,
+		(SELECT COUNT(*) FROM tipps t2
+			JOIN (
+				SELECT id FROM matches
+				WHERE event_id = ? AND finished = 1
+				ORDER BY start DESC LIMIT 10
+			) recent ON t2.match_id = recent.id
+			WHERE t2.user_id = u.id
+		) AS recent_tipps
 	FROM users u
 	LEFT JOIN tipps t ON u.id = t.user_id
 	LEFT JOIN matches ma ON t.match_id = ma.id
@@ -216,7 +235,7 @@ func (m *UserModel) GlobalLeaderboard(eventID int) ([]User, error) {
 	GROUP BY u.id, u.name
 	ORDER BY total_points DESC, tipps_count DESC, user_id ASC;`
 
-	rows, err := m.DB.Query(stmt, eventID)
+	rows, err := m.DB.Query(stmt, eventID, eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -227,10 +246,12 @@ func (m *UserModel) GlobalLeaderboard(eventID int) ([]User, error) {
 
 	for rows.Next() {
 		var user User
-		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps)
+		var recentTipps int
+		err = rows.Scan(&user.ID, &user.Name, &user.Points, &user.Tipps, &recentTipps)
 		if err != nil {
 			return nil, err
 		}
+		user.IsActive = recentTipps >= 1
 
 		users = append(users, user)
 	}

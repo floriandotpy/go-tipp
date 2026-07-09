@@ -66,8 +66,14 @@ function sliceData(arr, limit) {
   return arr.slice(-limit);
 }
 
-function createChart(canvas, data, { timeframe, mode }) {
-  const users = data.users;
+function createChart(canvas, data, { timeframe, mode, activeOnly }) {
+  let users = data.users;
+
+  // Filter to active users only if requested
+  if (activeOnly) {
+    users = users.filter(u => u.is_active);
+  }
+
   const matches = data.matches;
 
   // Sort users by current total points (descending) so legend matches leaderboard
@@ -197,7 +203,6 @@ function createChart(canvas, data, { timeframe, mode }) {
         },
         y: {
           reverse: mode === 'rank',
-          beginAtZero: mode !== 'rank',
           grid: {
             color: 'rgba(0,0,0,0.05)',
           },
@@ -227,10 +232,12 @@ function initChartContainer(container) {
   let chartInstance = null;
   let currentTimeframe = '10';
   let currentMode = 'points';
+  let currentActiveOnly = true;
 
   // Wire up controls
   const timeframeBtns = container.querySelectorAll('[data-timeframe]');
   const modeBtns = container.querySelectorAll('[data-mode]');
+  const activeToggle = container.querySelector('.chart-active-toggle');
 
   timeframeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -250,6 +257,13 @@ function initChartContainer(container) {
     });
   });
 
+  if (activeToggle) {
+    activeToggle.addEventListener('change', () => {
+      currentActiveOnly = activeToggle.checked;
+      renderChart();
+    });
+  }
+
   function renderChart() {
     if (!chartData) return;
     if (chartInstance) {
@@ -258,6 +272,7 @@ function initChartContainer(container) {
     chartInstance = createChart(canvas, chartData, {
       timeframe: currentTimeframe,
       mode: currentMode,
+      activeOnly: currentActiveOnly,
     });
   }
 

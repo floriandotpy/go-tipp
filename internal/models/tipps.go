@@ -39,6 +39,7 @@ type UserPoints struct {
 	Name        string `json:"name"`
 	Points      []int  `json:"points"`
 	TotalPoints []int  `json:"total_points"`
+	IsActive    bool   `json:"is_active"`
 }
 
 type TippModel struct {
@@ -346,6 +347,34 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 	// Convert groupIds to a comma-separated string for the SQL query
 	groupIdsStr := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(groupIds)), ","), "[]")
 
+	// First, determine which users are "active" (have at least 1 tipp in the last 10 finished matches)
+	activeQuery := `
+		SELECT DISTINCT t.user_id
+		FROM tipps t
+		JOIN (
+			SELECT id FROM matches
+			WHERE event_id = ? AND finished = 1
+			ORDER BY start DESC LIMIT 10
+		) recent ON t.match_id = recent.id`
+
+	activeRows, err := m.DB.Query(activeQuery, eventID)
+	if err != nil {
+		return ScoreboardData{}, err
+	}
+	defer activeRows.Close()
+
+	activeUserIDs := make(map[int]bool)
+	for activeRows.Next() {
+		var uid int
+		if err := activeRows.Scan(&uid); err != nil {
+			return ScoreboardData{}, err
+		}
+		activeUserIDs[uid] = true
+	}
+	if err = activeRows.Err(); err != nil {
+		return ScoreboardData{}, err
+	}
+
 	// Perform SQL query to aggregate user points
 	query := `
 	WITH all_matches AS (
@@ -405,6 +434,7 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 
 	userPointsMap := make(map[string][]int)
 	totalPointsMap := make(map[string][]int)
+	userIDByName := make(map[string]int)
 	var matchesSet = make(map[int]struct{})
 
 	for rows.Next() {
@@ -421,6 +451,9 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 
 		// Collect matches
 		matchesSet[matchId] = struct{}{}
+
+		// Track user ID by name
+		userIDByName[name] = userId
 
 		// Collect user points
 		if _, exists := userPointsMap[name]; !exists {
@@ -448,7 +481,8 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 	// Convert map to slice of UserPoints
 	users := make([]UserPoints, 0, len(userPointsMap))
 	for name, points := range userPointsMap {
-		users = append(users, UserPoints{Name: name, Points: points, TotalPoints: totalPointsMap[name]})
+		isActive := activeUserIDs[userIDByName[name]]
+		users = append(users, UserPoints{Name: name, Points: points, TotalPoints: totalPointsMap[name], IsActive: isActive})
 	}
 
 	data := ScoreboardData{

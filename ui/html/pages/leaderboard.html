@@ -26,7 +26,7 @@
     {{$showPlace := ne $u.Place $prev_place}}
     {{if $showPlace}}{{$stripe = add $stripe 1}}{{$prev_place = $u.Place}}{{end}}
     <tr
-      {{if eq $.AuthUserId $u.ID}}class="active"{{else if even $stripe}}class="even"{{else}}class="odd"{{end}}
+      {{if eq $.AuthUserId $u.ID}}class="active"{{else if not $u.IsActive}}class="inactive {{if even $stripe}}even{{else}}odd{{end}}"{{else if even $stripe}}class="even"{{else}}class="odd"{{end}}
     >
       <td class="text-right">
         {{if $showPlace}}{{$u.Place}}{{end}}
@@ -53,6 +53,10 @@
         <button class="chart-toggle active" data-mode="points">Punkte</button>
         <button class="chart-toggle" data-mode="rank">Rang</button>
       </div>
+      <label class="chart-active-filter">
+        <input type="checkbox" class="chart-active-toggle" checked>
+        Nur aktive Spieler
+      </label>
     </div>
     <div class="chart-canvas-wrap">
       <canvas data-chart="{{$lid}}"></canvas>

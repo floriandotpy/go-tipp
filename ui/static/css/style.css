@@ -1487,3 +1487,26 @@ Prev/next buttons for mobile view
     font-size: 0.82em;
     margin: 10px 0 0;
 }
+
+/* Inactive players (no tipps in last 10 matches) */
+.cc-table tbody tr.inactive {
+    opacity: 0.45;
+}
+.cc-table tbody tr.inactive a {
+    color: inherit;
+}
+
+/* Active player filter checkbox in chart controls */
+.chart-active-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    user-select: none;
+}
+.chart-active-filter input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
