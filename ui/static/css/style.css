@@ -1074,27 +1074,317 @@ Prev/next buttons for mobile view
   }
 
 
-  /* wrapped page */
+  /* ============ wrapped page ============ */
+
+  /* Hero */
+  .wrapped-hero {
+    position: relative;
+    margin-top: 6px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+  .wrapped-hero__img {
+    width: 100%;
+  }
+  .wrapped-hero__overlay {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 28px 28px 22px;
+    box-sizing: border-box;
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    color: #fff;
+  }
+  .wrapped-hero__kicker {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.9;
+    margin: 0;
+  }
+  .wrapped-hero__title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: #fff;
+    margin: 4px 0 0;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+  @media (max-width: 640px) {
+    .wrapped-hero__title {
+      font-size: 1.8rem;
+    }
+    .wrapped-hero__overlay {
+      padding: 18px 16px 14px;
+    }
+  }
+
+  /* Sections */
+  .wrapped-section {
+    margin: 44px 0;
+  }
+  .wrapped-section__head {
+    margin-bottom: 16px;
+  }
+  .wrapped-section__title {
+    margin: 0;
+  }
+  .wrapped-section__lead {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin: 2px 0 0;
+  }
+
+  /* Stat cards */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 16px 0 28px;
+  }
+  /* Personal recap: fixed 3-up so 6 cards form two even rows with room for
+     longer labels like the phase verdict. */
+  .stat-grid--personal {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 640px) {
+    .stat-grid--personal {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .stat-card--accent {
+    background: linear-gradient(160deg, #f2f9e8 0%, #ffffff 70%);
+    border-color: var(--green-medium);
+  }
+  .stat-card__label {
+    font-family: 'DM Sans', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #8a8f98;
+    margin: 0;
+  }
+  .stat-card__value {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 2.1rem;
+    line-height: 1.1;
+    color: #1a1a1a;
+    margin: 8px 0 0;
+  }
+  .stat-card__value--sm {
+    font-size: 1.35rem;
+  }
+  .stat-card__caption {
+    font-size: 0.82rem;
+    color: #6b7280;
+    margin: 6px 0 0;
+  }
+
+  /* Goal distribution chart */
+  .goal-dist {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .goal-dist__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .goal-dist__title {
+    margin: 0;
+  }
+  .goal-dist__legend {
+    display: flex;
+    gap: 16px;
+    font-size: 0.82rem;
+    color: #555;
+  }
+  .goal-dist__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .goal-dist__swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .goal-dist__swatch--actual {
+    background: var(--green-dark);
+  }
+  .goal-dist__swatch--predicted {
+    background: #95c3de;
+  }
+  .goal-dist__caption {
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin: 6px 0 18px;
+  }
+  .goal-dist__row {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .goal-dist__bucket {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+    text-align: right;
+  }
+  .goal-dist__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .goal-dist__bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .goal-dist__fill {
+    height: 13px;
+    border-radius: 4px;
+    min-width: 2px;
+    transition: width 0.4s ease;
+  }
+  .goal-dist__fill--actual {
+    background: var(--green-dark);
+  }
+  .goal-dist__fill--predicted {
+    background: #95c3de;
+  }
+  .goal-dist__num {
+    font-size: 0.78rem;
+    color: #8a8f98;
+    min-width: 1.2rem;
+  }
+
+  /* Subsection heading inside a group section */
+  .wrapped-subhead {
+    margin: 32px 0 4px;
+  }
+  .wrapped-subhead__lead {
+    color: #6b7280;
+    font-size: 0.88rem;
+    margin: 0 0 14px;
+  }
+
+  /* Award cards */
+  .award-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 12px 0 8px;
+  }
+  @media (max-width: 560px) {
+    .award-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .award-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .award-card__icon {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    margin-top: 2px;
+  }
+  .award-card__body {
+    min-width: 0;
+  }
+  .award-card__title {
+    font-family: 'DM Sans', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #8a8f98;
+    margin: 0;
+  }
+  .award-card__winner {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #1a1a1a;
+    margin: 2px 0 0;
+  }
+  .award-card__detail {
+    font-size: 0.88rem;
+    color: var(--green-dark);
+    font-weight: 500;
+    margin: 2px 0 0;
+  }
+  .award-card__why {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+    margin: 6px 0 0;
+  }
+
+  /* Two-column subgrid for phase leaderboards */
+  .wrapped-subgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+  @media (max-width: 640px) {
+    .wrapped-subgrid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  }
+
   .wrapped-podium {
     font-size: 20px;
     padding: 24px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid #e4e4e4;
     border-radius: 12px;
-    margin: 24px 0;
+    margin: 20px 0;
     display: flex;
     justify-content: space-around;
     align-items: center;
-    background: linear-gradient(0deg, #e4e4e4, #f7f7f7);
+    background: linear-gradient(0deg, #f0f0ee, #ffffff);
   }
   @media (max-width: 480px) {
     .wrapped-podium {
       justify-content: space-between;
     }
-  }
-
-
-  .wrapped-podium-line-1 { 
-    /* margin-bottom: 6px; */
   }
   .badge-place {
     display: inline-flex;

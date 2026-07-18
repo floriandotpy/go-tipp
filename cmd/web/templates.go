@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	"tipp.casualcoding.com/internal/models"
+	"tipp.casualcoding.com/internal/stats"
 	"tipp.casualcoding.com/internal/sync"
 )
 
@@ -44,6 +46,8 @@ type WrappedStats struct {
 	BestInGroupPhase []models.User
 	BestInKoPhase    []models.User
 	ClosestGoalCount []models.User
+	// Wrapped holds the computed "Deine Tipprunde" awards and aggregates.
+	Wrapped stats.GroupWrapped
 }
 
 type templateData struct {
@@ -57,9 +61,9 @@ type templateData struct {
 	Groups          []models.Group
 	Leaderboards    []Leaderboard
 	Goals           []models.Goal
-	EventPhases    []models.EventPhase
-	EventPhasesMap map[int][]models.EventPhase
-	SelectedPhase  models.EventPhase
+	EventPhases     []models.EventPhase
+	EventPhasesMap  map[int][]models.EventPhase
+	SelectedPhase   models.EventPhase
 	LiveResult      LiveResult
 	Match           models.Match
 	Status          string // move into Match object?
@@ -79,10 +83,13 @@ type templateData struct {
 	PrevLink string
 	// wrapped stats
 	WrappedStatsList []WrappedStats
+	// personal "Dein Turnier" recap for the viewing user
+	WrappedPersonal     stats.Personal
+	WrappedPersonalName string
 	// admin phase match counts: key is phase ID
 	PhaseMatchCounts map[int]int
 	// import error
-	ImportError          string
+	ImportError string
 	// sync preview
 	SyncPreviewPhases []sync.SyncPreviewPhase
 	// countdown target for index page
@@ -195,6 +202,65 @@ func add(x, y int) int {
 	return x + y
 }
 
+// percent returns part/whole as an integer percentage (0-100), guarding against
+// division by zero. Used to size bars in the goal-distribution chart.
+func percent(part, whole int) int {
+	if whole <= 0 {
+		return 0
+	}
+	return int(math.Round(float64(part) / float64(whole) * 100))
+}
+
+// ratePercent converts a 0..1 ratio into a rounded integer percentage.
+func ratePercent(rate float64) int {
+	return int(math.Round(rate * 100))
+}
+
+// float1 formats a float with a single decimal place.
+func float1(f float64) string {
+	return strconv.FormatFloat(f, 'f', 1, 64)
+}
+
+// awardIcon maps a group-award key to its Phosphor duotone icon filename (under
+// /static/img).
+func awardIcon(key string) string {
+	switch key {
+	case "aufholjagd":
+		return "icon-rocket-launch-duotone.svg"
+	case "volltreffer":
+		return "icon-target-duotone.svg"
+	case "optimist":
+		return "icon-sun-duotone.svg"
+	case "stoiker":
+		return "icon-repeat-duotone.svg"
+	case "wildcard":
+		return "icon-cards-duotone.svg"
+	case "herdentier":
+		return "icon-users-three-duotone.svg"
+	case "einzelgaenger":
+		return "icon-path-duotone.svg"
+	case "pechvogel":
+		return "icon-cloud-rain-duotone.svg"
+	default:
+		return "icon-trophy.svg"
+	}
+}
+
+// maxGoalDist returns the largest bar value across a goal-distribution slice, so
+// bars can be scaled relative to the tallest bucket.
+func maxGoalDist(bins []stats.GoalDistBin) int {
+	max := 0
+	for _, b := range bins {
+		if b.Predicted > max {
+			max = b.Predicted
+		}
+		if b.Actual > max {
+			max = b.Actual
+		}
+	}
+	return max
+}
+
 func even(x int) bool {
 	return x%2 == 0
 }
@@ -293,6 +359,11 @@ var functions = template.FuncMap{
 	"defaultIntStr":    defaultIntStr,
 	"defaultStr":       defaultStr,
 	"add":              add,
+	"percent":          percent,
+	"ratePercent":      ratePercent,
+	"float1":           float1,
+	"maxGoalDist":      maxGoalDist,
+	"awardIcon":        awardIcon,
 	"germanYesNo":      germanYesNo,
 	"isLast":           isLast,
 	"even":             even,
