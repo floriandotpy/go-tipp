@@ -109,6 +109,11 @@ func TestWrappedTemplateRenders(t *testing.T) {
 					MostCommonTippCount:   9,
 					MostCommonActual:      "1:0",
 					MostCommonActualCount: 7,
+					PlayerStats: map[int]statspkg.PlayerStats{
+						7: {Tipps: 20, Points: 42, ExactHits: 5, HitRate: 0.25, AvgPoints: 2.1},
+						8: {Tipps: 20, Points: 38, ExactHits: 4, HitRate: 0.20, AvgPoints: 1.9},
+						9: {Tipps: 18, Points: 30, ExactHits: 3, HitRate: 0.17, AvgPoints: 1.7},
+					},
 					GoalDist: []statspkg.GoalDistBin{
 						{Label: "0", Predicted: 5, Actual: 8},
 						{Label: "1", Predicted: 20, Actual: 22},
@@ -137,6 +142,7 @@ func TestWrappedTemplateRenders(t *testing.T) {
 	for _, want := range []string{
 		"Dein Turnier", "Torverteilung", "KO-Spezialist", "Freunde", "2:1",
 		"Titel &amp; Auszeichnungen", "Beste Aufholjagd", "Sara", "Gruppen-Statistiken",
+		"podium", "Trefferquote",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("rendered output missing %q", want)

@@ -59,10 +59,24 @@ type GroupWrapped struct {
 	GoalDist []GoalDistBin
 
 	Awards []Award
+
+	// PlayerStats holds compact per-player figures keyed by user ID, surfaced on
+	// the podium alongside raw points.
+	PlayerStats map[int]PlayerStats
+}
+
+// PlayerStats holds compact per-player figures for the podium.
+type PlayerStats struct {
+	Tipps     int
+	Points    int
+	ExactHits int
+	HitRate   float64 // exact hits / tipps, 0..1
+	AvgPoints float64 // points / tipps
 }
 
 // userAgg holds the per-user figures reused across several awards.
 type userAgg struct {
+	id           int
 	name         string
 	tipped       int
 	points       int
@@ -103,7 +117,7 @@ func ComputeGroupWrapped(groupID int, groupName string, matches []MatchInfo, use
 	var totalPoints int
 
 	for _, u := range users {
-		a := userAgg{name: u.UserName}
+		a := userAgg{id: u.UserID, name: u.UserName}
 		scorelineCounts := make(map[string]int)
 
 		for _, t := range u.Tipps {
@@ -166,6 +180,17 @@ func ComputeGroupWrapped(groupID int, groupName string, matches []MatchInfo, use
 		actualBuckets[goalBinIndex(m.TotalGoals())]++
 	}
 	g.GoalDist = goalDistPercentages(predGoalBuckets, actualBuckets)
+
+	// Per-player compact stats, keyed by user ID for podium lookup.
+	g.PlayerStats = make(map[int]PlayerStats, len(aggs))
+	for _, a := range aggs {
+		ps := PlayerStats{Tipps: a.tipped, Points: a.points, ExactHits: a.exactHits}
+		if a.tipped > 0 {
+			ps.HitRate = float64(a.exactHits) / float64(a.tipped)
+			ps.AvgPoints = float64(a.points) / float64(a.tipped)
+		}
+		g.PlayerStats[a.id] = ps
+	}
 
 	// Comeback award needs chronological match order, so it's computed here and
 	// placed first as the marquee title.

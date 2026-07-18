@@ -1370,52 +1370,134 @@ Prev/next buttons for mobile view
     }
   }
 
-  .wrapped-podium {
-    font-size: 20px;
-    padding: 24px 12px;
-    border: 1px solid #e4e4e4;
-    border-radius: 12px;
-    margin: 20px 0;
+  /* Winners podium */
+  .podium {
     display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background: linear-gradient(0deg, #f0f0ee, #ffffff);
+    justify-content: center;
+    align-items: flex-end;
+    gap: 12px;
+    margin: 24px 0 28px;
   }
+  .podium__slot {
+    flex: 1 1 0;
+    max-width: 210px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  /* Visual ordering: 1st centered, 2nd left, 3rd right. */
+  .podium__slot--1 {
+    order: 2;
+  }
+  .podium__slot--2 {
+    order: 1;
+  }
+  .podium__slot--3 {
+    order: 3;
+  }
+
+  .podium__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 6px 12px;
+  }
+  .podium__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #fff;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    background: var(--green-medium);
+  }
+  .podium__name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1a1a1a;
+    line-height: 1.2;
+  }
+  .podium__points {
+    font-size: 0.9rem;
+    color: #333;
+    margin-top: 2px;
+  }
+  .podium__sub {
+    font-size: 0.75rem;
+    color: #8a8f98;
+    margin-top: 1px;
+  }
+  .podium__pedestal {
+    width: 100%;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 10px;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  }
+  .podium__rank {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .podium__slot--1 .podium__pedestal {
+    height: 92px;
+  }
+  .podium__slot--2 .podium__pedestal {
+    height: 66px;
+  }
+  .podium__slot--3 .podium__pedestal {
+    height: 46px;
+  }
+
+  /* Medal colors (gold / silver / bronze) shared by avatar disc and pedestal. */
+  .podium__avatar--1,
+  .podium__pedestal--1 {
+    background: linear-gradient(160deg, #ffd700, #ffa500);
+  }
+  .podium__avatar--2,
+  .podium__pedestal--2 {
+    background: linear-gradient(160deg, #c8c8c8, #a2a2a2);
+  }
+  .podium__avatar--3,
+  .podium__pedestal--3 {
+    background: linear-gradient(160deg, #cd7f32, #a0522d);
+  }
+
   @media (max-width: 480px) {
-    .wrapped-podium {
-      justify-content: space-between;
+    .podium {
+      gap: 6px;
+    }
+    .podium__avatar {
+      width: 46px;
+      height: 46px;
+      font-size: 1rem;
+    }
+    .podium__name {
+      font-size: 0.85rem;
+    }
+    .podium__points {
+      font-size: 0.8rem;
+    }
+    .podium__slot--1 .podium__pedestal {
+      height: 74px;
+    }
+    .podium__slot--2 .podium__pedestal {
+      height: 54px;
+    }
+    .podium__slot--3 .podium__pedestal {
+      height: 38px;
     }
   }
-  .badge-place {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 24px;
-    font-weight: bold;
-    color: #fff;
-    margin-left: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
-  
-  .badge-place-1 {
-    background: linear-gradient(45deg, #FFD700, #FFA500);
-    border: 2px solid #DAA520;
-  }
-  
-  .badge-place-2 {
-    background: linear-gradient(45deg, #C0C0C0, #A9A9A9);
-    border: 2px solid #808080;
-  }
-  
-  .badge-place-3 {
-    background: linear-gradient(45deg, #CD7F32, #8B4513);
-    border: 2px solid #A0522D;
-  }
-
-
   /* confetti */
 
     .confetti-container {

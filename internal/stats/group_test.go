@@ -55,6 +55,21 @@ func TestGroupWrapped_Eligibility(t *testing.T) {
 	if a, ok := findAward(g.Awards, "volltreffer"); !ok || a.Winner != "Alice" {
 		t.Errorf("volltreffer winner = %+v, want Alice", a)
 	}
+
+	// PlayerStats surfaced for the podium: Alice tipped 10, all exact hits.
+	alicePS, ok := g.PlayerStats[1]
+	if !ok {
+		t.Fatal("PlayerStats missing entry for Alice (id 1)")
+	}
+	if alicePS.Tipps != 10 || alicePS.ExactHits != 10 {
+		t.Errorf("Alice PlayerStats = %+v, want Tipps 10 / ExactHits 10", alicePS)
+	}
+	if alicePS.HitRate != 1.0 {
+		t.Errorf("Alice HitRate = %v, want 1.0", alicePS.HitRate)
+	}
+	if alicePS.AvgPoints != 3.0 {
+		t.Errorf("Alice AvgPoints = %v, want 3.0", alicePS.AvgPoints)
+	}
 }
 
 func TestGroupWrapped_MostCommonScorelines(t *testing.T) {

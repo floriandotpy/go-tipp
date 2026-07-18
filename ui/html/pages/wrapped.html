@@ -45,7 +45,7 @@
     <header class="wrapped-section__head">
       <h2 class="wrapped-section__title">Dein Turnier</h2>
       <p class="wrapped-section__lead">
-        Dein persönliches Tippjahr{{with .WrappedPersonalName}}, {{.}}{{end}}.
+        Dein persönliches Tippevent{{with .WrappedPersonalName}}, {{.}}{{end}}.
       </p>
     </header>
 
@@ -56,7 +56,7 @@
     </div>
     {{ else }}
     <div class="stat-grid stat-grid--personal">
-      <div class="stat-card stat-card--accent">
+      <div class="stat-card">
         <p class="stat-card__label">Gesamtpunkte</p>
         <p class="stat-card__value">{{$p.TotalPoints}}</p>
         <p class="stat-card__caption">
@@ -90,7 +90,7 @@
         <p class="stat-card__caption">dein häufigstes Ergebnis</p>
       </div>
 
-      <div class="stat-card stat-card--accent">
+      <div class="stat-card">
         <p class="stat-card__label">Dein Typ</p>
         <p class="stat-card__value stat-card__value--sm">{{$p.PhaseVerdict}}</p>
         <p class="stat-card__caption">
@@ -155,27 +155,26 @@
       </h2>
     </header>
 
-    {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}} {{ if gt $i 2
-    }} {{ break }} {{end}}
-    <div class="wrapped-podium">
-      <div class="wrapped-podium-line-1">
-        {{if ne $u.Place $prev_place}} {{$prev_place = $u.Place}} Platz
-        <span class="badge-place badge-place-{{$u.Place}}"> {{$u.Place}}</span>
-
-        {{else}} Platz
-        <span class="badge-place badge-place-{{$prev_place}} ">
-          {{$prev_place}}
-        </span>
-
-        {{end}}
+    <div class="podium">
+      {{ range $i, $u := $stats.Leaderboard.Users }} {{ if gt $i 2 }} {{ break }}
+      {{ end }} {{ $ps := index $stats.Wrapped.PlayerStats $u.ID }}
+      <div class="podium__slot podium__slot--{{add $i 1}}">
+        <div class="podium__card">
+          <span class="podium__avatar podium__avatar--{{$u.Place}}"
+            >{{initials $u.Name}}</span
+          >
+          <span class="podium__name">{{$u.Name}}</span>
+          <span class="podium__points">{{$u.Points}} Punkte</span>
+          <span class="podium__sub"
+            >Trefferquote {{ratePercent $ps.HitRate}}%</span
+          >
+        </div>
+        <div class="podium__pedestal podium__pedestal--{{$u.Place}}">
+          <span class="podium__rank">{{$u.Place}}</span>
+        </div>
       </div>
-      <div>
-        <strong>{{$u.Name}}</strong>
-      </div>
-
-      <div>{{$u.Points}} Punkte</div>
+      {{ end }}
     </div>
-    {{end}}
 
     <table class="cc-table">
       <thead>

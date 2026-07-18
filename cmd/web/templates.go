@@ -6,6 +6,7 @@ import (
 	"math"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"tipp.casualcoding.com/internal/models"
@@ -221,6 +222,22 @@ func float1(f float64) string {
 	return strconv.FormatFloat(f, 'f', 1, 64)
 }
 
+// initials returns up to two uppercase letters for an avatar disc: the first
+// letter of the first two whitespace-separated words, or just the first letter.
+func initials(name string) string {
+	fields := strings.Fields(name)
+	if len(fields) == 0 {
+		return "?"
+	}
+	first := []rune(fields[0])
+	out := strings.ToUpper(string(first[0]))
+	if len(fields) > 1 {
+		second := []rune(fields[1])
+		out += strings.ToUpper(string(second[0]))
+	}
+	return out
+}
+
 // awardIcon maps a group-award key to its Phosphor duotone icon filename (under
 // /static/img).
 func awardIcon(key string) string {
@@ -364,6 +381,7 @@ var functions = template.FuncMap{
 	"float1":           float1,
 	"maxGoalDist":      maxGoalDist,
 	"awardIcon":        awardIcon,
+	"initials":         initials,
 	"germanYesNo":      germanYesNo,
 	"isLast":           isLast,
 	"even":             even,
