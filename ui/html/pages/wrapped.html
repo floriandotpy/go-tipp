@@ -1,6 +1,7 @@
-{{define "title"}}Spiele{{end}} {{define "assets"}}
+{{define "title"}}Wrapped{{end}} {{define "assets"}}
 <script src="/static/lib/chart-4.4.3.js?v={{assetVersion}}"></script>
 <script src="/static/js/scoreboard.js?v={{assetVersion}}"></script>
+<script src="/static/js/wrapped.js?v={{assetVersion}}"></script>
 {{end}} {{define "main"}}
 <div class="confetti-container">
   <div class="confetti"></div>
@@ -16,175 +17,399 @@
 </div>
 
 <div class="container">
-  <div class="margin-top-s w-100">
-    <img
-      src="/static/img/trophy.jpg"
-      alt="Trophäe"
+  <div class="wrapped-hero">
+    <video
+      class="responsive-img wrapped-hero__img"
       width="1280"
       height="640"
-      class="responsive-img"
-    />
+      autoplay
+      muted
+      playsinline
+    >
+      <source src="/static/img/trophy-animated.mp4" type="video/mp4" />
+    </video>
+    <div class="wrapped-hero__overlay">
+      <p class="wrapped-hero__kicker">{{.Event.Name}}</p>
+      <h1 class="wrapped-hero__title">GoTipp Wrapped</h1>
+    </div>
   </div>
 
   {{ if eq .EventIsFinished false }}
-  <div class="container">
-    <div class="cc-alert-flash margin-v-m">
-      ⏳ Das Tippspiel läuft noch. Die Gewinner sind also noch nicht final.
-    </div>
+  <div class="cc-alert-flash margin-v-m">
+    ⏳ Das Tippspiel läuft noch. Die Zahlen sind also noch nicht final.
   </div>
-  {{ end }} {{range $j, $stats := .WrappedStatsList}}
+  {{ end }}
 
-  <h2>Gesamtsieger <em>{{$stats.Group.Name}}</em></h2>
+  <!-- ============ Dein Turnier (personal recap) ============ -->
+  <section class="wrapped-section">
+    <header class="wrapped-section__head">
+      <h2 class="wrapped-section__title">Dein Turnier</h2>
+      <p class="wrapped-section__lead">
+        Dein persönliches Tippevent{{with .WrappedPersonalName}}, {{.}}{{end}}.
+      </p>
+    </header>
 
-  {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}} {{ if gt $i 2
-  }} {{ break }} {{end}}
-  <div class="wrapped-podium">
-    <div class="wrapped-podium-line-1">
-      {{if ne $u.Place $prev_place}} {{$prev_place = $u.Place}} Platz
-      <span class="badge-place badge-place-{{$u.Place}}"> {{$u.Place}}</span>
+    {{ $p := .WrappedPersonal }} {{ if eq $p.TotalTipps 0 }}
+    <div class="cc-alert">
+      Du hast in diesem Turnier keine Tipps abgegeben — beim nächsten Mal bist du
+      dabei!
+    </div>
+    {{ else }}
+    <div class="stat-grid stat-grid--personal">
+      <div class="stat-card">
+        <p class="stat-card__label">Gesamtpunkte</p>
+        <p class="stat-card__value">{{$p.TotalPoints}}</p>
+        <p class="stat-card__caption">
+          aus {{pluralize $p.MatchesTipped "Tipp" "Tipps"}}
+        </p>
+      </div>
 
-      {{else}} Platz
-      <span class="badge-place badge-place-{{$prev_place}} ">
-        {{$prev_place}}
-      </span>
+      <div class="stat-card">
+        <p class="stat-card__label">Volltreffer</p>
+        <p class="stat-card__value">{{$p.ExactHits}}</p>
+        <p class="stat-card__caption">
+          exakte Ergebnisse · {{ratePercent $p.ExactHitRate}}% deiner Tipps
+        </p>
+      </div>
 
+      <div class="stat-card">
+        <p class="stat-card__label">Längster Streak</p>
+        <p class="stat-card__value">{{$p.LongestStreak}}</p>
+        <p class="stat-card__caption">Spiele in Folge mit Punkten</p>
+      </div>
+
+      <div class="stat-card">
+        <p class="stat-card__label">⌀ Punkte pro Tipp</p>
+        <p class="stat-card__value">{{float1 $p.AvgPointsPerTipp}}</p>
+        <p class="stat-card__caption">im Schnitt geholt</p>
+      </div>
+
+      <div class="stat-card">
+        <p class="stat-card__label">Lieblingstipp</p>
+        <p class="stat-card__value">{{$p.FavoriteScoreline}}</p>
+        <p class="stat-card__caption">dein häufigstes Ergebnis</p>
+      </div>
+
+      <div class="stat-card">
+        <p class="stat-card__label">Dein Typ</p>
+        <p class="stat-card__value stat-card__value--sm">{{$p.PhaseVerdict}}</p>
+        <p class="stat-card__caption">
+          Ausbeute Gruppe {{ratePercent $p.GroupShare}}% · KO
+          {{ratePercent $p.KoShare}}%
+        </p>
+      </div>
+    </div>
+
+    <!-- Goal distribution: reality vs. your tipps -->
+    {{ $max := maxGoalDist $p.GoalDist }}
+    <div class="goal-dist">
+      <div class="goal-dist__header">
+        <h3 class="goal-dist__title">Torverteilung: Realität vs. deine Tipps</h3>
+        <div class="goal-dist__legend">
+          <span class="goal-dist__legend-item">
+            <span class="goal-dist__swatch goal-dist__swatch--actual"></span>
+            Tatsächlich
+          </span>
+          <span class="goal-dist__legend-item">
+            <span class="goal-dist__swatch goal-dist__swatch--predicted"></span>
+            Dein Tipp
+          </span>
+        </div>
+      </div>
+      <p class="goal-dist__caption">
+        Tore pro Spiel — so viele Tore fielen wirklich, verglichen mit dem, was du
+        getippt hast.
+      </p>
+
+      {{ range $p.GoalDist }}
+      <div class="goal-dist__row">
+        <span class="goal-dist__bucket">{{.Label}}</span>
+        <div class="goal-dist__bars">
+          <div class="goal-dist__bar">
+            <span
+              class="goal-dist__fill goal-dist__fill--actual"
+              data-pct="{{percent .Actual $max}}"
+            ></span>
+            <span class="goal-dist__num">{{.Actual}}</span>
+          </div>
+          <div class="goal-dist__bar">
+            <span
+              class="goal-dist__fill goal-dist__fill--predicted"
+              data-pct="{{percent .Predicted $max}}"
+            ></span>
+            <span class="goal-dist__num">{{.Predicted}}</span>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+  </section>
+
+  <!-- ============ Group sections ============ -->
+  {{range $j, $stats := .WrappedStatsList}}
+  <section class="wrapped-section">
+    <header class="wrapped-section__head">
+      <h2 class="wrapped-section__title">
+        Gesamtsieger <em>{{$stats.Group.Name}}</em>
+      </h2>
+    </header>
+
+    <div class="podium">
+      {{ range $i, $u := $stats.Leaderboard.Users }} {{ if gt $i 2 }} {{ break }}
+      {{ end }} {{ $ps := index $stats.Wrapped.PlayerStats $u.ID }}
+      <div class="podium__slot podium__slot--{{add $i 1}}">
+        <div class="podium__card">
+          <span class="podium__avatar podium__avatar--{{$u.Place}}"
+            >{{initials $u.Name}}</span
+          >
+          <span class="podium__name">{{$u.Name}}</span>
+          <span class="podium__points">{{$u.Points}} Punkte</span>
+          <span class="podium__sub"
+            >Trefferquote {{ratePercent $ps.HitRate}}%</span
+          >
+        </div>
+        <div class="podium__pedestal podium__pedestal--{{$u.Place}}">
+          <span class="podium__rank">{{$u.Place}}</span>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+
+    <table class="cc-table">
+      <thead>
+        <tr class="">
+          <td class="w-1-12 text-right">Platz</td>
+          <td class="w-7-12">Name</td>
+          <td class="w-2-12">Tipps abgegeben</td>
+          <td class="w-2-12">Gesamtpunkte</td>
+        </tr>
+      </thead>
+      {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}}
+      <tr
+        {{if
+        eq
+        $.AuthUserId
+        $u.ID}}
+        class="active"
+        {{end}}
+        {{if
+        even
+        $u.Place
+        }}
+        class="even"
+        {{else}}
+        class="odd"
+        {{end}}
+      >
+        <td class="text-right">
+          {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
+          {{end}}
+        </td>
+        <td>
+          <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+        </td>
+        <td>{{$u.Tipps}}</td>
+        <td>{{$u.Points}}</td>
+      </tr>
       {{end}}
+    </table>
+
+    <!-- Deine Tipprunde: awards + group statistics -->
+    {{ $g := $stats.Wrapped }} {{ if $g.Awards }}
+    <h3 class="wrapped-subhead">Titel &amp; Auszeichnungen</h3>
+    <p class="wrapped-subhead__lead">
+      Vergeben an Mitspieler mit mindestens der Hälfte aller Tipps.
+    </p>
+    <div class="award-grid">
+      {{ range $g.Awards }}
+      <div class="award-card">
+        <img
+          class="award-card__icon"
+          src="/static/img/{{awardIcon .Key}}"
+          alt=""
+          width="32"
+          height="32"
+        />
+        <div class="award-card__body">
+          <p class="award-card__title">{{.Title}}</p>
+          <p class="award-card__winner">{{.Winner}}</p>
+          <p class="award-card__detail">{{.Detail}}</p>
+          <p class="award-card__why">{{.Explanation}}</p>
+        </div>
+      </div>
+      {{ end }}
     </div>
-    <div>
-      <strong>{{$u.Name}}</strong>
+    {{ end }} {{ if gt $g.TotalTipps 0 }}
+    <h3 class="wrapped-subhead">Gruppen-Statistiken</h3>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <p class="stat-card__label">Tipps abgegeben</p>
+        <p class="stat-card__value">{{$g.TotalTipps}}</p>
+        <p class="stat-card__caption">
+          von {{pluralize $g.PlayerCount "Mitspieler" "Mitspielern"}}
+        </p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">⌀ Punkte / Person</p>
+        <p class="stat-card__value">{{float1 $g.AvgPointsPerPlayer}}</p>
+        <p class="stat-card__caption">{{$g.EligibleCount}} aktiv dabei</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Häufigster Tipp</p>
+        <p class="stat-card__value">{{$g.MostCommonTipp}}</p>
+        <p class="stat-card__caption">{{$g.MostCommonTippCount}}× getippt</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-card__label">Häufigstes Ergebnis</p>
+        <p class="stat-card__value">{{$g.MostCommonActual}}</p>
+        <p class="stat-card__caption">{{$g.MostCommonActualCount}}× so passiert</p>
+      </div>
     </div>
 
-    <div>{{$u.Points}} Punkte</div>
-  </div>
+    {{ $gmax := maxGoalDist $g.GoalDist }}
+    <div class="goal-dist">
+      <div class="goal-dist__header">
+        <h3 class="goal-dist__title">Torverteilung: getippt vs. real</h3>
+        <div class="goal-dist__legend">
+          <span class="goal-dist__legend-item">
+            <span class="goal-dist__swatch goal-dist__swatch--actual"></span>
+            Real
+          </span>
+          <span class="goal-dist__legend-item">
+            <span class="goal-dist__swatch goal-dist__swatch--predicted"></span>
+            Tipps der Gruppe
+          </span>
+        </div>
+      </div>
+      <p class="goal-dist__caption">
+        Anteil der Spiele nach Toren — was wirklich passierte, verglichen mit den
+        Tipps der ganzen Runde.
+      </p>
+
+      {{ range $g.GoalDist }}
+      <div class="goal-dist__row">
+        <span class="goal-dist__bucket">{{.Label}}</span>
+        <div class="goal-dist__bars">
+          <div class="goal-dist__bar">
+            <span
+              class="goal-dist__fill goal-dist__fill--actual"
+              data-pct="{{percent .Actual $gmax}}"
+            ></span>
+            <span class="goal-dist__num">{{.Actual}}%</span>
+          </div>
+          <div class="goal-dist__bar">
+            <span
+              class="goal-dist__fill goal-dist__fill--predicted"
+              data-pct="{{percent .Predicted $gmax}}"
+            ></span>
+            <span class="goal-dist__num">{{.Predicted}}%</span>
+          </div>
+        </div>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+
+    <div class="wrapped-subgrid">
+      <div class="wrapped-subgrid__col">
+        <h3>Top-Punktesammler in der Gruppenphase</h3>
+        <table class="cc-table">
+          <thead>
+            <tr class="">
+              <td class="w-1-12 text-right">Platz</td>
+              <td class="w-8-12">Name</td>
+              <td class="w-3-12">Punkte</td>
+            </tr>
+          </thead>
+          <tbody>
+            {{$prev_place:=0}} {{range $i, $u := $stats.BestInGroupPhase}} {{ if
+            gt $i 2 }} {{ break }} {{end}}
+            <tr
+              {{if
+              eq
+              $.AuthUserId
+              $u.ID}}
+              class="active"
+              {{end}}
+              {{if
+              even
+              $u.Place
+              }}
+              class="even"
+              {{else}}
+              class="odd"
+              {{end}}
+            >
+              <td class="text-right">
+                {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place =
+                $u.Place}} {{end}}
+              </td>
+              <td>
+                <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+              </td>
+              <td>{{$u.Points}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wrapped-subgrid__col">
+        <h3>Top-Punktesammler in der KO-Phase</h3>
+        <table class="cc-table">
+          <thead>
+            <tr class="">
+              <td class="w-1-12 text-right">Platz</td>
+              <td class="w-8-12">Name</td>
+              <td class="w-3-12">Punkte</td>
+            </tr>
+          </thead>
+          <tbody>
+            {{$prev_place:=0}} {{range $i, $u := $stats.BestInKoPhase}} {{ if gt
+            $i 2 }} {{ break }} {{end}}
+            <tr
+              {{if
+              eq
+              $.AuthUserId
+              $u.ID}}
+              class="active"
+              {{end}}
+              {{if
+              even
+              $u.Place
+              }}
+              class="even"
+              {{else}}
+              class="odd"
+              {{end}}
+            >
+              <td class="text-right">
+                {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place =
+                $u.Place}} {{end}}
+              </td>
+              <td>
+                <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
+              </td>
+              <td>{{$u.Points}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>Der Punkteverlauf</h3>
+    <div class="chart-container">
+      <div class="chart-canvas-wrap">
+        <canvas
+          data-chart="{{$stats.Group.ID}}"
+          width="400"
+          height="400"
+        ></canvas>
+      </div>
+    </div>
+  </section>
   {{end}}
-
-  <table class="cc-table">
-    <thead>
-      <tr class="">
-        <td class="w-1-12 text-right">Platz</td>
-        <td class="w-7-12">Name</td>
-        <td class="w-2-12">Tipps abgegeben</td>
-        <td class="w-2-12">Gesamtpunkte</td>
-      </tr>
-    </thead>
-    {{$prev_place:=0}} {{range $i, $u := $stats.Leaderboard.Users}}
-    <tr
-      {{if
-      eq
-      $.AuthUserId
-      $u.ID}}
-      class="active"
-      {{end}}
-      {{if
-      even
-      $u.Place
-      }}
-      class="even"
-      {{else}}
-      class="odd"
-      {{end}}
-    >
-      <td class="text-right">
-        {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
-        {{end}}
-      </td>
-      <td>
-        <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
-      </td>
-      <td>{{$u.Tipps}}</td>
-      <td>{{$u.Points}}</td>
-    </tr>
-    {{end}}
-  </table>
-
-  <h2>Top-Punktesammler in der Gruppenphase</h2>
-  <table class="cc-table">
-    <thead>
-      <tr class="">
-        <td class="w-1-12 text-right">Platz</td>
-        <td class="w-7-12">Name</td>
-        <td class="w-2-12">Punkte gesammelt</td>
-      </tr>
-    </thead>
-    <tbody>
-      {{$prev_place:=0}} {{range $i, $u := $stats.BestInGroupPhase}} {{ if gt $i
-      2 }} {{ break }} {{end}}
-      <tr
-        {{if
-        eq
-        $.AuthUserId
-        $u.ID}}
-        class="active"
-        {{end}}
-        {{if
-        even
-        $u.Place
-        }}
-        class="even"
-        {{else}}
-        class="odd"
-        {{end}}
-      >
-        <td class="text-right">
-          {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
-          {{end}}
-        </td>
-        <td>
-          <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
-        </td>
-        <td>{{$u.Points}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-
-  <h2>Top Punktesammler in der KO-Phase</h2>
-  <table class="cc-table">
-    <thead>
-      <tr class="">
-        <td class="w-1-12 text-right">Platz</td>
-        <td class="w-7-12">Name</td>
-        <td class="w-2-12">Punkte gesammelt</td>
-      </tr>
-    </thead>
-    <tbody>
-      {{$prev_place:=0}} {{range $i, $u := $stats.BestInKoPhase}} {{ if gt $i 2
-      }} {{ break }} {{end}}
-      <tr
-        {{if
-        eq
-        $.AuthUserId
-        $u.ID}}
-        class="active"
-        {{end}}
-        {{if
-        even
-        $u.Place
-        }}
-        class="even"
-        {{else}}
-        class="odd"
-        {{end}}
-      >
-        <td class="text-right">
-          {{if ne $u.Place $prev_place}} {{$u.Place}} {{$prev_place = $u.Place}}
-          {{end}}
-        </td>
-        <td>
-          <a href="/user/{{$u.Name}}">{{$u.Name}}</a>
-        </td>
-        <td>{{$u.Points}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-  </table>
-
-  {{ $lid := .Group.ID }} {{ if eq $lid 0 }} {{ $lid = "1,2" }} {{ end }}
-  <div>
-    <div class="w-8-12-sm margin-lr-auto">
-      <canvas data-chart="{{$lid}}" width="400" height="400"></canvas>
-    </div>
-  </div>
-
-  {{end}} {{end}}
 </div>
+{{end}}

@@ -1074,58 +1074,430 @@ Prev/next buttons for mobile view
   }
 
 
-  /* wrapped page */
-  .wrapped-podium {
-    font-size: 20px;
-    padding: 24px 12px;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    margin: 24px 0;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background: linear-gradient(0deg, #e4e4e4, #f7f7f7);
+  /* ============ wrapped page ============ */
+
+  /* Hero */
+  .wrapped-hero {
+    position: relative;
+    margin-top: 6px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   }
-  @media (max-width: 480px) {
-    .wrapped-podium {
-      justify-content: space-between;
+  .wrapped-hero__img {
+    width: 100%;
+  }
+  .wrapped-hero__overlay {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 28px 28px 22px;
+    box-sizing: border-box;
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    color: #fff;
+  }
+  .wrapped-hero__kicker {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.9;
+    margin: 0;
+  }
+  .wrapped-hero__title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: #fff;
+    margin: 4px 0 0;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+  @media (max-width: 640px) {
+    .wrapped-hero__title {
+      font-size: 1.8rem;
+    }
+    .wrapped-hero__overlay {
+      padding: 18px 16px 14px;
     }
   }
 
-
-  .wrapped-podium-line-1 { 
-    /* margin-bottom: 6px; */
+  /* Sections */
+  .wrapped-section {
+    margin: 44px 0;
   }
-  .badge-place {
+  .wrapped-section__head {
+    margin-bottom: 16px;
+  }
+  .wrapped-section__title {
+    margin: 0;
+  }
+  .wrapped-section__lead {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin: 2px 0 0;
+  }
+
+  /* Stat cards */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 16px 0 28px;
+  }
+  /* Personal recap: fixed 3-up so 6 cards form two even rows with room for
+     longer labels like the phase verdict. */
+  .stat-grid--personal {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 640px) {
+    .stat-grid--personal {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .stat-card--accent {
+    background: linear-gradient(160deg, #f2f9e8 0%, #ffffff 70%);
+    border-color: var(--green-medium);
+  }
+  .stat-card__label {
+    font-family: 'DM Sans', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #8a8f98;
+    margin: 0;
+  }
+  .stat-card__value {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 2.1rem;
+    line-height: 1.1;
+    color: #1a1a1a;
+    margin: 8px 0 0;
+  }
+  .stat-card__value--sm {
+    font-size: 1.35rem;
+  }
+  .stat-card__caption {
+    font-size: 0.82rem;
+    color: #6b7280;
+    margin: 6px 0 0;
+  }
+
+  /* Goal distribution chart */
+  .goal-dist {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .goal-dist__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .goal-dist__title {
+    margin: 0;
+  }
+  .goal-dist__legend {
+    display: flex;
+    gap: 16px;
+    font-size: 0.82rem;
+    color: #555;
+  }
+  .goal-dist__legend-item {
     display: inline-flex;
-    justify-content: center;
     align-items: center;
-    width: 40px;
-    height: 40px;
+    gap: 6px;
+  }
+  .goal-dist__swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .goal-dist__swatch--actual {
+    background: var(--green-dark);
+  }
+  .goal-dist__swatch--predicted {
+    background: #95c3de;
+  }
+  .goal-dist__caption {
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin: 6px 0 18px;
+  }
+  .goal-dist__row {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .goal-dist__bucket {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+    text-align: right;
+  }
+  .goal-dist__bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .goal-dist__bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .goal-dist__fill {
+    height: 13px;
+    border-radius: 4px;
+    min-width: 2px;
+    transition: width 0.4s ease;
+  }
+  .goal-dist__fill--actual {
+    background: var(--green-dark);
+  }
+  .goal-dist__fill--predicted {
+    background: #95c3de;
+  }
+  .goal-dist__num {
+    font-size: 0.78rem;
+    color: #8a8f98;
+    min-width: 1.2rem;
+  }
+
+  /* Subsection heading inside a group section */
+  .wrapped-subhead {
+    margin: 32px 0 4px;
+  }
+  .wrapped-subhead__lead {
+    color: #6b7280;
+    font-size: 0.88rem;
+    margin: 0 0 14px;
+  }
+
+  /* Award cards */
+  .award-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 12px 0 8px;
+  }
+  @media (max-width: 560px) {
+    .award-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .award-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  .award-card__icon {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    margin-top: 2px;
+  }
+  .award-card__body {
+    min-width: 0;
+  }
+  .award-card__title {
+    font-family: 'DM Sans', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #8a8f98;
+    margin: 0;
+  }
+  .award-card__winner {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #1a1a1a;
+    margin: 2px 0 0;
+  }
+  .award-card__detail {
+    font-size: 0.88rem;
+    color: var(--green-dark);
+    font-weight: 500;
+    margin: 2px 0 0;
+  }
+  .award-card__why {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+    margin: 6px 0 0;
+  }
+
+  /* Two-column subgrid for phase leaderboards */
+  .wrapped-subgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+  @media (max-width: 640px) {
+    .wrapped-subgrid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  }
+
+  /* Winners podium */
+  .podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 12px;
+    margin: 24px 0 28px;
+  }
+  .podium__slot {
+    flex: 1 1 0;
+    max-width: 210px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  /* Visual ordering: 1st centered, 2nd left, 3rd right. */
+  .podium__slot--1 {
+    order: 2;
+  }
+  .podium__slot--2 {
+    order: 1;
+  }
+  .podium__slot--3 {
+    order: 3;
+  }
+
+  .podium__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 6px 12px;
+  }
+  .podium__avatar {
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    font-size: 24px;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
     color: #fff;
-    margin-left: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin-bottom: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    background: var(--green-medium);
   }
-  
-  .badge-place-1 {
-    background: linear-gradient(45deg, #FFD700, #FFA500);
-    border: 2px solid #DAA520;
+  .podium__name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1a1a1a;
+    line-height: 1.2;
   }
-  
-  .badge-place-2 {
-    background: linear-gradient(45deg, #C0C0C0, #A9A9A9);
-    border: 2px solid #808080;
+  .podium__points {
+    font-size: 0.9rem;
+    color: #333;
+    margin-top: 2px;
   }
-  
-  .badge-place-3 {
-    background: linear-gradient(45deg, #CD7F32, #8B4513);
-    border: 2px solid #A0522D;
+  .podium__sub {
+    font-size: 0.75rem;
+    color: #8a8f98;
+    margin-top: 1px;
+  }
+  .podium__pedestal {
+    width: 100%;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 10px;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  }
+  .podium__rank {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .podium__slot--1 .podium__pedestal {
+    height: 92px;
+  }
+  .podium__slot--2 .podium__pedestal {
+    height: 66px;
+  }
+  .podium__slot--3 .podium__pedestal {
+    height: 46px;
   }
 
+  /* Medal colors (gold / silver / bronze) shared by avatar disc and pedestal. */
+  .podium__avatar--1,
+  .podium__pedestal--1 {
+    background: linear-gradient(160deg, #ffd700, #ffa500);
+  }
+  .podium__avatar--2,
+  .podium__pedestal--2 {
+    background: linear-gradient(160deg, #c8c8c8, #a2a2a2);
+  }
+  .podium__avatar--3,
+  .podium__pedestal--3 {
+    background: linear-gradient(160deg, #cd7f32, #a0522d);
+  }
 
+  @media (max-width: 480px) {
+    .podium {
+      gap: 6px;
+    }
+    .podium__avatar {
+      width: 46px;
+      height: 46px;
+      font-size: 1rem;
+    }
+    .podium__name {
+      font-size: 0.85rem;
+    }
+    .podium__points {
+      font-size: 0.8rem;
+    }
+    .podium__slot--1 .podium__pedestal {
+      height: 74px;
+    }
+    .podium__slot--2 .podium__pedestal {
+      height: 54px;
+    }
+    .podium__slot--3 .podium__pedestal {
+      height: 38px;
+    }
+  }
   /* confetti */
 
     .confetti-container {

@@ -493,6 +493,55 @@ func (m *TippModel) GetScoreboardData(groupIds []int, eventID int) (ScoreboardDa
 	return data, nil
 }
 
+// GroupTippRow is one member's tipp joined with the essentials needed for the
+// group "wrapped" statistics. Only tipps on finished, resulted matches of the
+// event are returned.
+type GroupTippRow struct {
+	UserID          int
+	UserName        string
+	MatchID         int
+	TippA           int
+	TippB           int
+	Points          int
+	ResultCorrect   bool
+	TendencyCorrect bool
+}
+
+// AllForGroupEvent returns every tipp submitted by members of the given group on
+// finished matches of the given event, joined with the scoring flags. Rows are
+// ordered by user then match so callers can group them cheaply.
+func (m *TippModel) AllForGroupEvent(groupID, eventID int) ([]GroupTippRow, error) {
+	stmt := `SELECT u.id, u.name, t.match_id, t.tipp_a, t.tipp_b, t.points,
+		t.result_correct, t.tendency_correct
+	FROM tipps t
+	JOIN users u ON t.user_id = u.id
+	JOIN user_groups ug ON ug.user_id = u.id
+	JOIN matches ma ON t.match_id = ma.id
+	WHERE ug.group_id = ? AND ma.event_id = ? AND ma.finished = 1
+		AND ma.result_a IS NOT NULL AND ma.result_b IS NOT NULL
+	ORDER BY u.id, ma.start, ma.id`
+
+	rows, err := m.DB.Query(stmt, groupID, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []GroupTippRow
+	for rows.Next() {
+		var r GroupTippRow
+		if err := rows.Scan(&r.UserID, &r.UserName, &r.MatchID, &r.TippA, &r.TippB,
+			&r.Points, &r.ResultCorrect, &r.TendencyCorrect); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserEventStats holds aggregated tipp stats for a user within a single event.
 type UserEventStats struct {
 	TippCount   int

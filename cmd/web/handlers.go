@@ -14,6 +14,7 @@ import (
 
 	"tipp.casualcoding.com/internal/api"
 	"tipp.casualcoding.com/internal/models"
+	statspkg "tipp.casualcoding.com/internal/stats"
 	appsync "tipp.casualcoding.com/internal/sync"
 	"tipp.casualcoding.com/internal/validator"
 )
@@ -488,7 +489,9 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var groupPhaseNumbers, koPhaseNumbers []int
+	phaseTypeByNumber := make(map[int]string)
 	for _, ep := range eventPhases {
+		phaseTypeByNumber[ep.Number] = ep.PhaseType
 		if ep.PhaseType == "phase_group" {
 			groupPhaseNumbers = append(groupPhaseNumbers, ep.Number)
 		} else if ep.PhaseType == "phase_ko" {
@@ -497,7 +500,25 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := app.newTemplateData(r)
-	var stats = []WrappedStats{}
+
+	// Finished, resulted matches mapped into the stats input type — reused for
+	// both the personal recap and every group recap.
+	matchInfos, err := app.eventMatchInfos(event.ID, phaseTypeByNumber)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Personal recap ("Dein Turnier") for the viewing user.
+	personal, err := app.computePersonalWrapped(userId, matchInfos)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.WrappedPersonal = personal
+	data.WrappedPersonalName = data.AuthUserName
+
+	var statsList = []WrappedStats{}
 	for _, group := range groups {
 		users, err := app.users.GroupLeaderboard(group.ID, event.ID)
 		if err != nil {
@@ -528,19 +549,110 @@ func (app *application) wrappedHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		var closestGoalCount []models.User
 
-		var wrappedStats = WrappedStats{
+		groupWrapped, err := app.computeGroupWrapped(group, matchInfos, event.ID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		statsList = append(statsList, WrappedStats{
 			Group:            group,
 			Leaderboard:      leaderboard,
 			BestInGroupPhase: bestInGrouphase,
 			BestInKoPhase:    bestInKoPhase,
-			ClosestGoalCount: closestGoalCount,
-		}
-		stats = append(stats, wrappedStats)
+			Wrapped:          groupWrapped,
+		})
 	}
-	data.WrappedStatsList = stats
+	data.WrappedStatsList = statsList
 	app.render(w, r, http.StatusOK, "wrapped.html", data)
+}
+
+// eventMatchInfos loads the event's finished, resulted matches and maps them into
+// the stats package input type. phaseTypeByNumber maps an event-phase number to
+// its phase type.
+func (app *application) eventMatchInfos(eventID int, phaseTypeByNumber map[int]string) ([]statspkg.MatchInfo, error) {
+	matches, err := app.matches.AllWithResults(eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	var matchInfos []statspkg.MatchInfo
+	for _, m := range matches {
+		if !m.Finished || m.ResultA == nil || m.ResultB == nil {
+			continue
+		}
+		matchInfos = append(matchInfos, statspkg.MatchInfo{
+			ID:        m.ID,
+			Start:     m.Start,
+			ResultA:   *m.ResultA,
+			ResultB:   *m.ResultB,
+			PhaseType: phaseTypeByNumber[m.EventPhase],
+		})
+	}
+	return matchInfos, nil
+}
+
+// computePersonalWrapped loads the viewing user's tipps and returns their
+// personal recap against the supplied event matches.
+func (app *application) computePersonalWrapped(userID int, matchInfos []statspkg.MatchInfo) (statspkg.Personal, error) {
+	tipps, err := app.tipps.AllForUser(userID)
+	if err != nil {
+		return statspkg.Personal{}, err
+	}
+
+	tippInfos := make([]statspkg.TippInfo, 0, len(tipps))
+	for _, t := range tipps {
+		tippInfos = append(tippInfos, statspkg.TippInfo{
+			MatchID:         t.MatchId,
+			TippA:           t.TippA,
+			TippB:           t.TippB,
+			Points:          t.Points,
+			ResultCorrect:   t.ResultCorrect,
+			TendencyCorrect: t.TendencyCorrect,
+		})
+	}
+
+	return statspkg.ComputePersonal(matchInfos, tippInfos), nil
+}
+
+// computeGroupWrapped loads every group member and their tipps, then computes the
+// group's awards and aggregate stats. Members without tipps are still counted as
+// players (and are ineligible for awards).
+func (app *application) computeGroupWrapped(group models.Group, matchInfos []statspkg.MatchInfo, eventID int) (statspkg.GroupWrapped, error) {
+	members, err := app.groups.UsersInGroup(group.ID)
+	if err != nil {
+		return statspkg.GroupWrapped{}, err
+	}
+
+	rows, err := app.tipps.AllForGroupEvent(group.ID, eventID)
+	if err != nil {
+		return statspkg.GroupWrapped{}, err
+	}
+
+	// Group tipp rows by user id.
+	tippsByUser := make(map[int][]statspkg.TippInfo)
+	for _, row := range rows {
+		tippsByUser[row.UserID] = append(tippsByUser[row.UserID], statspkg.TippInfo{
+			MatchID:         row.MatchID,
+			TippA:           row.TippA,
+			TippB:           row.TippB,
+			Points:          row.Points,
+			ResultCorrect:   row.ResultCorrect,
+			TendencyCorrect: row.TendencyCorrect,
+		})
+	}
+
+	userTipps := make([]statspkg.UserTipps, 0, len(members))
+	for _, m := range members {
+		userTipps = append(userTipps, statspkg.UserTipps{
+			UserID:   m.ID,
+			UserName: m.Name,
+			Tipps:    tippsByUser[m.ID],
+		})
+	}
+
+	return statspkg.ComputeGroupWrapped(group.ID, group.Name, matchInfos, userTipps), nil
 }
 
 func (app *application) tippUpdateMultipleHandler(w http.ResponseWriter, r *http.Request) {
